@@ -1,99 +1,59 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
+<html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Auditoria de Conferência</title>
 <style>
-:root{--green:#145c3a;--green2:#0d442b;--bg:#f4f6f5;--card:#fff;--line:#dfe6e2;--text:#17231d;--muted:#6d7973;--danger:#b3261e;--ok:#16804a}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--text)}
-header{height:68px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:5}
-header strong{font-size:20px}header small{opacity:.8;margin-left:10px}.wrap{max-width:1250px;margin:auto;padding:28px 18px}
-h1{margin:0 0 6px;font-size:29px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 3px 15px #00000009;margin-bottom:18px}
-.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:18px 0}.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}.kpi b{font-size:26px;display:block;margin-top:5px}
-label{display:block;font-size:12px;font-weight:bold;color:#59665f;margin-bottom:12px}input,select,textarea{width:100%;padding:12px;border:1px solid #ccd6d0;border-radius:8px;font-size:15px;background:#fff}textarea{min-height:90px}
-button,.btn{border:0;border-radius:8px;background:var(--green);color:#fff;padding:12px 16px;font-weight:bold;cursor:pointer}.secondary{background:#e7ece9;color:var(--green2)}.danger{background:var(--danger)}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.search{margin:12px 0}.lot{display:grid;grid-template-columns:1fr 1.6fr .8fr .7fr;gap:10px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:9px;padding:12px;margin:7px 0;cursor:pointer}.lot:hover{border-color:var(--green)}.status{font-weight:bold}.ok{color:var(--ok)}.bad{color:var(--danger)}.pending{color:#a76b00}
-.hidden{display:none}.top{display:flex;align-items:center;justify-content:space-between;gap:15px}.toast{position:fixed;right:18px;bottom:18px;background:#173b2b;color:white;padding:13px 18px;border-radius:9px;z-index:20;box-shadow:0 5px 20px #0003}
-table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:13px}
+:root{--g:#145c3a;--g2:#0d442b;--bg:#f3f6f4;--card:#fff;--line:#dce5df;--text:#17231d;--muted:#66736c;--ok:#16804a;--bad:#b3261e;--warn:#a76b00}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}header{background:var(--g);color:#fff;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}.wrap{max-width:1250px;margin:auto;padding:22px 16px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 15px #0000000a}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}.kpi b{display:block;font-size:26px;margin-top:4px}label{font-size:12px;font-weight:bold;color:#59655f;display:block;margin-bottom:10px}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd6cf;border-radius:8px;font-size:15px;background:#fff}textarea{min-height:80px}button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer}.sec{background:#e8eeea;color:var(--g2)}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.muted{color:var(--muted)}.hidden{display:none}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.lot{display:grid;grid-template-columns:1fr 1.6fr .8fr .9fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:9px;margin:7px 0;background:#fff;cursor:pointer}.lot:hover{border-color:var(--g)}.ok{color:var(--ok);font-weight:bold}.bad{color:var(--bad);font-weight:bold}.warn{color:var(--warn);font-weight:bold}.toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:10}.system{line-height:1.8;background:#f7f9f8;padding:12px;border-radius:8px}.dangerbox{background:#fff4f3;border:1px solid #f0c9c5;padding:12px;border-radius:8px;margin:12px 0}
 @media(max-width:800px){.grid,.kpis{grid-template-columns:1fr 1fr}.lot{grid-template-columns:1fr}.top{display:block}}
-@media(max-width:520px){.grid,.kpis{grid-template-columns:1fr}header{padding:0 15px}}
-</style>
-</head>
-<body>
-<header><div><strong>♙ AUDITORIA</strong><small>Conferência de Produtos</small></div><button class="secondary" onclick="show('dashboard')">Dashboard</button></header>
-<div class="wrap">
-<div id="toast" class="toast hidden"></div>
+@media(max-width:520px){.grid,.kpis{grid-template-columns:1fr}header{padding:13px 15px}}
+</style></head><body>
+<header><div><b>♙ AUDITORIA</b> <small>Conferência de Produtos</small></div><button class="sec" onclick="go('home')">Dashboard</button></header>
+<div class="wrap"><div id="toast" class="toast hidden"></div>
 
-<section id="dashboard">
-<div class="top"><div><h1>Dashboard</h1><div class="muted">Auditoria operacional de lotes</div></div>
-<div class="actions"><button onclick="show('start')">NOVA AUDITORIA</button><button class="secondary" onclick="document.getElementById('excelFile').click()">IMPORTAR EXCEL</button><input id="excelFile" type="file" accept=".xlsx" class="hidden" onchange="importExcel(this.files[0])"></div></div>
-<div class="kpis"><div class="kpi">Lotes<b id="kTotal">0</b></div><div class="kpi">Auditados<b id="kAudited">0</b></div><div class="kpi">Pendentes<b id="kPending">0</b></div><div class="kpi">Validados<b id="kValidated">0</b></div><div class="kpi">Acuracidade<b id="kAccuracy">0%</b></div></div>
-<div class="card"><h3>Como funciona</h3><p class="muted">Escolha o local, pesquise o lote, informe a quantidade física e salve. Todos os usuários veem as alterações online.</p></div>
-</section>
+<section id="home"><div class="top"><div><h1>Auditoria de Conferência</h1><p class="muted">Sistema online — celular, tablet e computador.</p></div><button onclick="go('start')">NOVA AUDITORIA</button></div>
+<div class="kpis"><div class="kpi">Lotes<b id="tot">0</b></div><div class="kpi">Auditados<b id="aud">0</b></div><div class="kpi">Pendentes<b id="pen">0</b></div><div class="kpi">Validados<b id="val">0</b></div><div class="kpi">Acuracidade<b id="acc">0%</b></div></div>
+<div class="card"><b>Regra de acuracidade</b><p class="muted">Lotes validados ÷ lotes auditados × 100.</p></div></section>
 
-<section id="start" class="hidden">
-<div class="card"><h1>Iniciar Auditoria</h1><p class="muted">Preencha os dados da conferência.</p>
-<div class="grid">
+<section id="start" class="hidden"><div class="card"><h2>Iniciar auditoria</h2><div class="grid">
 <label>LOCAL<select id="local"></select></label>
-<label>DATA VERIFICAÇÃO<input id="data" type="date"></label>
-<label>MÊS<input id="mes" disabled></label>
+<label>DATA VERIFICAÇÃO<input id="date" type="date"></label>
+<label>MÊS<input id="month" disabled></label>
 <label>AUDITOR PCP<input id="pcp"></label>
 <label>AUDITOR UNIDADE<input id="audun"></label>
 <label>RESPONSÁVEL UBS<input id="ubs"></label>
-</div>
-<div class="actions"><button onclick="startAudit()">INICIAR AUDITORIA</button><button class="secondary" onclick="show('dashboard')">CANCELAR</button></div>
-</div></section>
+</div><div class="actions"><button onclick="start()">INICIAR</button><button class="sec" onclick="go('home')">CANCELAR</button></div></div></section>
 
-<section id="lots" class="hidden">
-<div class="top"><div><h1>Lotes — <span id="localTitle"></span></h1><div class="muted">Selecione um lote para conferir.</div></div><div class="actions"><button class="secondary" onclick="downloadReport()">RELATÓRIO EXCEL</button><button class="secondary" onclick="show('dashboard')">VOLTAR</button></div></div>
-<div class="kpis"><div class="kpi">Total<b id="lTotal">0</b></div><div class="kpi">Auditados<b id="lAudited">0</b></div><div class="kpi">Pendentes<b id="lPending">0</b></div><div class="kpi">Acuracidade<b id="lAccuracy">0%</b></div><div class="kpi">Validados<b id="lValidated">0</b></div></div>
-<div class="card"><input id="search" class="search" placeholder="🔎 Pesquisar lote..." oninput="renderLots()"><div id="lotsList"></div></div>
-<div id="conference" class="card hidden">
-<h2>Conferência do Lote <span id="cLote"></span></h2>
-<div id="systemData" class="muted"></div><hr>
-<div class="grid">
-<label>CAT. FÍS.<input id="catfis"></label>
-<label>ETIQUETA FÍSICA<input id="etiqueta"></label>
-<label>QTD FÍSICA<input id="qtd" type="number" step="any"></label>
-<label>CÂMARA<input id="camara"></label>
-<label>QUADRA<input id="quadra"></label>
-<label>FILEIRA<input id="fileira"></label>
+<section id="lots" class="hidden"><div class="top"><div><h2>Lotes — <span id="lt"></span></h2><p class="muted">A QTD SISTEMA > 0 sem conferência na data fica pendente.</p></div><button class="sec" onclick="go('home')">VOLTAR</button></div>
+<div class="kpis"><div class="kpi">Total<b id="stot">0</b></div><div class="kpi">Auditados<b id="saud">0</b></div><div class="kpi">Pendentes<b id="spen">0</b></div><div class="kpi">Validados<b id="sval">0</b></div><div class="kpi">Acuracidade<b id="sacc">0%</b></div></div>
+<div class="card"><input id="search" placeholder="🔎 Pesquisar lote..." oninput="render()"><div id="list"></div></div>
+<div id="conf" class="card hidden"><h2>Lote <span id="clote"></span></h2><div id="sys" class="system"></div>
+<div class="grid" style="margin-top:14px">
+<label>CAT. FÍS.<input id="catfis"></label><label>ETIQUETA FÍSICA<input id="etq"></label><label>QTD FÍSICA<input id="qtd" type="number" step="any"></label>
+<label>CÂMARA<input id="cam"></label><label>QUADRA<input id="quad"></label><label>FILEIRA<input id="fila"></label>
+</div><label>OBSERVAÇÃO<textarea id="obs"></textarea></label><div id="warning"></div>
+<div class="actions"><button onclick="save()">SALVAR CONFERÊNCIA</button><button class="sec" onclick="closeConf()">FECHAR</button></div></div></section>
 </div>
-<label>OBSERVAÇÃO<textarea id="obs"></textarea></label>
-<div class="actions"><button onclick="saveAudit()">SALVAR CONFERÊNCIA</button><button class="secondary" onclick="closeConference()">FECHAR</button></div>
-</div>
-</section>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* COLOQUE AQUI os dados do seu projeto Supabase */
-const SUPABASE_URL = "COLE_SUA_URL";
-const SUPABASE_KEY = "COLE_SUA_PUBLISHABLE_KEY";
-let db=null, currentLocal="", currentLots=[], selected=null, currentAuditMeta={};
+const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
+const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let base=[],audits=[],selected=null,meta={};
 
-function configured(){return SUPABASE_URL.startsWith("http") && !SUPABASE_KEY.startsWith("COLE_")}
-function init(){if(configured()) db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY); else toast("Configure o Supabase no arquivo index.html."); document.getElementById("data").value=new Date().toISOString().slice(0,10); loadLocals();}
-function show(id){["dashboard","start","lots"].forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id)); if(id==="dashboard") loadDashboard(); if(id==="start") loadLocals();}
-function toast(t){let e=document.getElementById("toast");e.textContent=t;e.classList.remove("hidden");setTimeout(()=>e.classList.add("hidden"),3500)}
-function val(id){return document.getElementById(id).value}
-function set(id,v){document.getElementById(id).value=v??""}
-function month(){let d=val("data");if(!d)return"";return new Date(d+"T00:00:00").toLocaleDateString("pt-BR",{month:"long"}).toUpperCase()}
-document.getElementById("data").onchange=()=>set("mes",month());
+const $=id=>document.getElementById(id), v=id=>$(id).value, set=(id,x)=>$(id).value=x??"";
+function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
+function go(id){["home","start","lots"].forEach(x=>$(x).classList.toggle("hidden",x!==id));if(id==="home")dashboard();if(id==="start")loadLocals()}
+function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
+function month(){return new Date(v("date")+"T00:00:00").toLocaleDateString("pt-BR",{month:"long"}).toUpperCase()}
+$("date").value=new Date().toISOString().slice(0,10);$("month").value=month();$("date").onchange=()=>set("month",month());
 
-async function loadLocals(){if(!db)return;let {data,error}=await db.from("base_dados").select("local").order("local");if(error)return toast(error.message);let unique=[...new Set((data||[]).map(x=>x.local).filter(Boolean))];document.getElementById("local").innerHTML='<option value="">Selecione...</option>'+unique.map(x=>`<option>${esc(x)}</option>`).join("")}
-async function loadDashboard(){if(!db)return;let {data,error}=await db.from("auditorias").select("*");if(error)return toast(error.message);let rows=data||[],aud=rows.filter(x=>x.qtd_fisica!==null),val=aud.filter(x=>x.status==="VALIDADO");setText("kTotal",rows.length);setText("kAudited",aud.length);setText("kPending",rows.filter(x=>Number(x.qtd_sistema)>0&&x.qtd_fisica===null).length);setText("kValidated",val.length);setText("kAccuracy",aud.length?(val.length/aud.length*100).toFixed(1)+"%":"0%")}
-function setText(id,v){document.getElementById(id).textContent=v}
-async function startAudit(){if(!db)return;currentLocal=val("local");if(!currentLocal)return toast("Selecione o local.");currentAuditMeta={data_verificacao:val("data"),mes:month(),auditor_pcp:val("pcp"),auditor_unidade:val("audun"),responsavel_ubs:val("ubs")};let {data:base,error}=await db.from("base_dados").select("*").eq("local",currentLocal);if(error)return toast(error.message);let {data:aud,error:aerr}=await db.from("auditorias").select("lote").eq("local",currentLocal);if(aerr)return toast(aerr.message);let existing=new Set((aud||[]).map(x=>x.lote));let newRows=(base||[]).filter(r=>!existing.has(r.lote)).map(r=>({...r,...currentAuditMeta,origem:"BASE"}));if(newRows.length){let {error:e}=await db.from("auditorias").insert(newRows);if(e)return toast(e.message)}document.getElementById("localTitle").textContent=currentLocal;await loadLots();show("lots")}
-async function loadLots(){let {data,error}=await db.from("auditorias").select("*").eq("local",currentLocal).order("lote");if(error)return toast(error.message);currentLots=data||[];renderLots()}
-function renderLots(){let q=val("search").toUpperCase();let rows=currentLots.filter(x=>String(x.lote||"").toUpperCase().includes(q));document.getElementById("lotsList").innerHTML=rows.map(x=>{let st=x.status||"PENDENTE";let cls=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":"pending";return `<div class="lot" onclick='openLot(${JSON.stringify(x.lote)})'><b>${esc(x.lote)}</b><span>${esc(x.cultivar||"")} · ${esc(x.pen||"")} · ${esc(x.tratamento||"")}</span><span>${x.qtd_sistema??"NÃO CONSTA"}</span><span class="status ${cls}">${st}</span></div>`}).join("")||'<p class="muted">Nenhum lote encontrado.</p>';let audited=currentLots.filter(x=>x.qtd_fisica!==null),validated=audited.filter(x=>x.status==="VALIDADO"),pending=currentLots.filter(x=>Number(x.qtd_sistema)>0&&x.qtd_fisica===null);setText("lTotal",currentLots.length);setText("lAudited",audited.length);setText("lPending",pending.length);setText("lValidated",validated.length);setText("lAccuracy",audited.length?(validated.length/audited.length*100).toFixed(1)+"%":"0%")}
-function openLot(l){selected=currentLots.find(x=>x.lote===l);if(!selected)return;setText("cLote",selected.lote);document.getElementById("systemData").innerHTML=`LOCAL: <b>${esc(selected.local)}</b> · CULTURA: <b>${esc(selected.cultura||"")}</b> · CULTIVAR: <b>${esc(selected.cultivar||"")}</b> · CAT: <b>${esc(selected.cat||"")}</b> · PEN.: <b>${esc(selected.pen||"")}</b> · TRATAMENTO: <b>${esc(selected.tratamento||"")}</b> · QTD SISTEMA: <b>${selected.qtd_sistema??"NÃO CONSTA"}</b> · PESO ETIQUETA: <b>${selected.peso_etiqueta??"NÃO CONSTA"}</b>`;["catfis","etiqueta","qtd","camara","quadra","fileira","obs"].forEach(x=>set(x,selected[x==="catfis"?"cat_fis":x==="etiqueta"?"etiqueta_fisica":x==="qtd"?"qtd_fisica":x==="obs"?"observacao":x]||""));document.getElementById("conference").classList.remove("hidden");window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})}
-function closeConference(){selected=null;document.getElementById("conference").classList.add("hidden")}
-async function saveAudit(){if(!selected)return;let qtd=val("qtd")===""?null:Number(val("qtd"));let etiqueta=val("etiqueta")===""?null:Number(val("etiqueta"));let diverg=[];let qs=selected.qtd_sistema==null?null:Number(selected.qtd_sistema);if(qtd!==null&&qs===null)diverg.push("QTD SISTEMA não consta");else if(qtd!==null&&qtd!==qs)diverg.push("QTD FÍSICA DIFERENTE DA QTD SISTEMA");let pe=selected.peso_etiqueta==null?null:Number(selected.peso_etiqueta);if(etiqueta!==null&&pe!==null&&etiqueta!==pe)diverg.push("ETIQUETA FÍSICA DIFERENTE DO PESO ETIQUETA");let status=diverg.includes("QTD SISTEMA não consta")?"VERIFICAR QUANTIDADE SISTÊMICA NÃO CONSTA":diverg.length?"DIVERGÊNCIA":"VALIDADO";let patch={...currentAuditMeta,cat_fis:val("catfis"),etiqueta_fisica:val("etiqueta"),qtd_fisica:qtd,camara:val("camara"),quadra:val("quadra"),fileira:val("fileira"),observacao:val("obs"),status,divergencia:diverg.join("; ")};let {error}=await db.from("auditorias").update(patch).eq("id",selected.id);if(error)return toast(error.message);toast(status+(diverg.length?": "+diverg.join("; "):""));await loadLots();closeConference()}
-async function importExcel(file){toast("Importação Excel: nesta V2 a importação deve ser feita pelo painel administrativo para evitar alterações acidentais na base online.");}
-function downloadReport(){let rows=currentLots.filter(x=>x.qtd_fisica!==null);let validated=rows.filter(x=>x.status==="VALIDADO").length;let csv=["LOCAL,MÊS,LOTE,CULTIVAR,QTD SISTEMA,QTD FÍSICA,STATUS,DIVERGÊNCIA,OBSERVAÇÃO",...rows.map(x=>[x.local,x.mes,x.lote,x.cultivar,x.qtd_sistema,x.qtd_fisica,x.status,x.divergencia,x.observacao].map(csvv).join(","))].join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download=`relatorio_${currentLocal}_${new Date().toISOString().slice(0,10)}.csv`;a.click();toast(`Relatório gerado. Acuracidade: ${rows.length?(validated/rows.length*100).toFixed(1):0}%`)}
-function csvv(v){return `"${String(v??"").replaceAll('"','""')}"`}function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
-init();
-</script>
-</body></html>
+async function loadLocals(){let {data,error}=await db.from("base_dados").select("local").order("local");if(error)return toast(error.message);let a=[...new Set((data||[]).map(x=>x.local).filter(Boolean))];$("local").innerHTML='<option value="">Selecione...</option>'+a.map(x=>`<option>${esc(x)}</option>`).join("")}
+async function dashboard(){let {data:b,error:e}=await db.from("base_dados").select("lote,qtd_sistema");if(e)return toast(e.message);let {data:a,error:e2}=await db.from("auditorias").select("status,qtd_fisica");if(e2)return toast(e2.message);let aa=(a||[]).filter(x=>x.qtd_fisica!==null),vv=aa.filter(x=>x.status==="VALIDADO");$("tot").textContent=(b||[]).length;$("aud").textContent=aa.length;$("pen").textContent=(b||[]).filter(x=>Number(x.qtd_sistema)>0).length-aa.length;$("val").textContent=vv.length;$("acc").textContent=aa.length?(vv.length/aa.length*100).toFixed(1)+"%":"0%"}
+async function start(){let local=v("local");if(!local)return toast("Selecione o local.");meta={local,data_verificacao:v("date"),mes:month(),auditor_pcp:v("pcp"),auditor_unidade:v("audun"),responsavel_ubs:v("ubs")};$("lt").textContent=local;let {data:b,error}=await db.from("base_dados").select("*").eq("local",local).order("lote");if(error)return toast(error.message);base=b||[];let {data:a,error:e}=await db.from("auditorias").select("*").eq("local",local).eq("data_verificacao",meta.data_verificacao);if(e)return toast(e.message);audits=a||[];render();go("lots")}
+function render(){let q=v("search").toUpperCase(), amap=new Map(audits.map(x=>[x.lote,x]));let rows=base.filter(x=>String(x.lote).toUpperCase().includes(q));$("list").innerHTML=rows.map(x=>{let a=amap.get(x.lote),st=a?.status||"PENDENTE",cl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":"warn";return `<div class="lot" onclick="openLot('${esc(x.lote)}')"><b>${esc(x.lote)}</b><span>${esc(x.cultivar)} · ${esc(x.cat)} · ${esc(x.pen)}</span><span>Qtd: ${x.qtd_sistema??"—"}</span><span class="${cl}">${st}</span></div>`}).join("")||"<p class='muted'>Nenhum lote encontrado.</p>";let aa=audits.filter(x=>x.qtd_fisica!==null),vv=aa.filter(x=>x.status==="VALIDADO"),pp=base.filter(x=>Number(x.qtd_sistema)>0&&!amap.has(x.lote));$("stot").textContent=base.length;$("saud").textContent=aa.length;$("spen").textContent=pp.length;$("sval").textContent=vv.length;$("sacc").textContent=aa.length?(vv.length/aa.length*100).toFixed(1)+"%":"0%"}
+function openLot(l){selected=base.find(x=>x.lote===l);let a=audits.find(x=>x.lote===l);$("clote").textContent=l;$("sys").innerHTML=`<b>CULTURA:</b> ${esc(selected.cultura)} &nbsp; <b>CULTIVAR:</b> ${esc(selected.cultivar)} &nbsp; <b>CÓD. PRODUTO:</b> ${esc(selected.cod_produto)}<br><b>NOME PRODUTO ERP:</b> ${esc(selected.nome_produto_erp)}<br><b>CAT:</b> ${esc(selected.cat)} &nbsp; <b>PEN.:</b> ${esc(selected.pen)} &nbsp; <b>UM:</b> ${esc(selected.um)}<br><b>QTD SISTEMA:</b> ${selected.qtd_sistema??"NÃO CONSTA"} &nbsp; <b>PESO ETIQUETA:</b> ${selected.peso_etiqueta??"NÃO CONSTA"}`;set("catfis",a?.cat_fis||"");set("etq",a?.etiqueta_fisica||"");set("qtd",a?.qtd_fisica??"");set("cam",a?.camara||"");set("quad",a?.quadra||"");set("fila",a?.fileira||"");set("obs",a?.observacao||"");$("warning").innerHTML=Number(selected.qtd_sistema)===0?'<div class="dangerbox">⚠️ QTD SISTEMA = 0. Este lote não entra como pendente. Se houver QTD FÍSICA > 0, a conferência pode ser registrada.</div>':"";$("conf").classList.remove("hidden");window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})}
+function closeConf(){selected=null;$("conf").classList.add("hidden")}
+async function save(){if(!selected)return;let qtd=v("qtd")===""?null:Number(v("qtd")),etq=v("etq")===""?null:v("etq"),qs=selected.qtd_sistema==null?null:Number(selected.qtd_sistema);let div=[];if(qtd!==null&&qs!==null&&qtd!==qs)div.push("QTD FÍSICA DIFERENTE DA QTD SISTEMA");if(etq!==null&&selected.peso_etiqueta!==null&&String(etq)!==String(selected.peso_etiqueta))div.push("ETIQUETA FÍSICA DIFERENTE DO PESO ETIQUETA");let status=div.length?"DIVERGÊNCIA":"VALIDADO";let payload={...selected,...meta,cat_fis:v("catfis"),etiqueta_fisica:etq,qtd_fisica:qtd,camara:v("cam"),quadra:v("quad"),fileira:v("fila"),observacao:v("obs"),status,divergencia:div.join("; ")||null};delete payload.id;delete payload.created_at;let old=audits.find(x=>x.lote===selected.lote);let r=old?await db.from("auditorias").update(payload).eq("id",old.id):await db.from("auditorias").insert(payload);if(r.error)return toast(r.error.message);toast(status==="VALIDADO"?"Lote validado!":"Lote salvo com divergência.");let {data:a}=await db.from("auditorias").select("*").eq("local",meta.local).eq("data_verificacao",meta.data_verificacao);audits=a||[];render();closeConf()}
+dashboard();loadLocals();
+</script></body></html>
