@@ -225,8 +225,10 @@ table.data-table tr:hover{background:#f0f5f2}
 const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
 const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const TABLE_NAME = "auditorias_historico";
+
 let base=[],audits=[],dashData=[],filteredData=[],selected=null,meta={};
-let pendingDeletions = [];
 
 const MONTH_MAP = {
   "01":"JAN","02":"FEV","03":"MAR","04":"ABR","05":"MAI","06":"JUN",
@@ -259,8 +261,28 @@ async function loadLocalsStart(){
 async function fetchAllAudits(){
   let allRows = [], page = 0, pageSize = 1000;
   while(true){
-    let {data, error} = await db.from("auditorias").select("*").order("created_at", {ascending: true}).range(page*pageSize, (page+1)*pageSize - 1);
-    if(error || !data || data.length === 0) break;
+    let {data, error} = await db.from(TABLE_NAME).select("*").range(page*pageSize, (page+1)*pageSize - 1);
+    if(error) {
+      console.error("Erro Supabase:", error);
+      break;
+    }
+    if(!data || data.length === 0) break;
+    allRows.push(...data);
+    if(data.length < pageSize) break;
+    page++;
+  }
+  return allRows;
+}
+
+async function fetchBaseData(){
+  let allRows = [], page = 0, pageSize = 1000;
+  while(true){
+    let {data, error} = await db.from("base_dados").select("*").range(page*pageSize, (page+1)*pageSize - 1);
+    if(error) {
+      console.error("Erro Base Dados Supabase:", error);
+      break;
+    }
+    if(!data || data.length === 0) break;
     allRows.push(...data);
     if(data.length < pageSize) break;
     page++;
@@ -287,34 +309,67 @@ async function loadHistoryFilters(allData){
 }
 
 async function dashboard(){
-  let rawData = await fetchAllAudits();
-  await loadHistoryFilters(rawData);
+  let [rawAudits, rawBase] = await Promise.all([fetchAllAudits(), fetchBaseData()]);
 
   let selMonth=v("dashMonth").toUpperCase().trim();
   let selLocal=v("dashLocal").toUpperCase().trim();
   let selCultura=v("dashCultura").toUpperCase().trim();
 
-  dashData = rawData.filter(audit => {
+  let auditsMap = new Map();
+  rawAudits.forEach(a => auditsMap.set(`${a.local}_${a.lote}_${a.mes}`, a));
+
+  let combinedData = [];
+
+  if (selLocal) {
+    let filteredBase = rawBase.filter(b => String(b.local||"").toUpperCase() === selLocal);
+    filteredBase.forEach(b => {
+      let auditKey = `${b.local}_${b.lote}_${selMonth}`;
+      let a = auditsMap.get(auditKey);
+      combinedData.push({
+        mes: a?.mes || selMonth || "—",
+        lote: b.lote,
+        local: b.local,
+        cultura: b.cultura,
+        cultivar: b.cultivar,
+        cat: b.cat,
+        qtd_sistema: b.qtd_sistema,
+        qtd_fisica: a?.qtd_fisica ?? null,
+        status: a?.status || "PENDENTE",
+        data_verificacao: a?.data_verificacao || null,
+        auditor_pcp: a?.auditor_pcp || null,
+        auditor_unidade: a?.auditor_unidade || null,
+        responsavel_ubs: a?.responsavel_ubs || null,
+        observacao: a?.observacao || null
+      });
+    });
+  } else {
+    combinedData = rawAudits;
+  }
+
+  await loadHistoryFilters(rawAudits);
+
+  dashData = combinedData.filter(audit => {
     let matchMonth = !selMonth || String(audit.mes||"").toUpperCase() === selMonth;
     let matchLocal = !selLocal || String(audit.local||"").toUpperCase() === selLocal;
     let matchCultura = !selCultura || String(audit.cultura||"").toUpperCase() === selCultura;
-    return matchMonth && matchLocal && matchCultura;
+    let matchValidQtd = Number(audit.qtd_sistema) > 0;
+    return matchMonth && matchLocal && matchCultura && matchValidQtd;
   });
 
-  let totLotes=dashData.length;
-  let auditados=dashData.filter(x=>x.qtd_fisica!==null).length;
-  let pendentes=dashData.filter(x=>x.status==="PENDENTE").length;
-  let validados=dashData.filter(x=>x.status==="VALIDADO").length;
+  let totLotes = dashData.length;
+  let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined).length;
+  let validados = dashData.filter(x => x.status === "VALIDADO").length;
+  let pendentes = totLotes - auditados;
   
-  let accVal=auditados>0 ? (validados/auditados*100).toFixed(1) : "0.0";
+  let accVal = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) : "0.0";
 
-  $("tot").textContent=totLotes;
-  $("aud").textContent=auditados;
-  $("pen").textContent=pendentes;
-  $("val").textContent=validados;
-  $("acc").textContent=accVal+"%";
-  $("accBarTxt").textContent=accVal+"%";
-  $("accBar").style.width=accVal+"%";
+  $("tot").textContent = totLotes;
+  $("aud").textContent = auditados;
+  $("pen").textContent = pendentes < 0 ? 0 : pendentes;
+  $("val").textContent = validados;
+  $("acc").textContent = accVal + "%";
+  $("accBarTxt").textContent = accVal + "%";
+  $("accBar").style.width = accVal + "%";
 
   renderDashTable();
 }
@@ -347,9 +402,10 @@ function renderDashTable(){
 
 function exportToCSV(){
   if(!filteredData || filteredData.length===0) return toast("Nenhum dado para exportar.");
-  let csv=["\uFEFFMes Auditoria;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
+  let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status;Auditor PCP;Auditor Unidade;Responsavel UBS;Observacao"];
   filteredData.forEach(x=>{
-    csv.push(`"${x.mes}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
+    let obs = String(x.observacao||'').replaceAll('"','""').replaceAll('\n',' ');
+    csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}";"${x.auditor_pcp||''}";"${x.auditor_unidade||''}";"${x.responsavel_ubs||''}";"${obs}"`);
   });
   let blob=new Blob([csv.join("\n")], {type:"text/csv;charset=utf-8;"});
   let link=document.createElement("a");
@@ -365,16 +421,29 @@ function exportLocalAuditsCSV(){
   let exportRows = base.map(x=>{
     let a=amap.get(x.lote);
     return {
-      mes: meta.mes, lote: x.lote, local: meta.local, cultura: x.cultura, cultivar: x.cultivar,
-      cat: x.cat, qtd_sistema: x.qtd_sistema, qtd_fisica: a?.qtd_fisica ?? null, status: a?.status || "PENDENTE"
+      mes: meta.mes, 
+      data_verificacao: meta.data_verificacao,
+      lote: x.lote, 
+      local: meta.local, 
+      cultura: x.cultura, 
+      cultivar: x.cultivar,
+      cat: x.cat, 
+      qtd_sistema: x.qtd_sistema, 
+      qtd_fisica: a?.qtd_fisica ?? null, 
+      status: a?.status || "PENDENTE",
+      auditor_pcp: meta.auditor_pcp,
+      auditor_unidade: meta.auditor_unidade,
+      responsavel_ubs: meta.responsavel_ubs,
+      observacao: a?.observacao || null
     };
   });
 
   if(exportRows.length === 0) return toast("Nenhum lote para exportar.");
 
-  let csv=["\uFEFFMes Auditoria;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
+  let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status;Auditor PCP;Auditor Unidade;Responsavel UBS;Observacao"];
   exportRows.forEach(x=>{
-    csv.push(`"${x.mes}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
+    let obs = String(x.observacao||'').replaceAll('"','""').replaceAll('\n',' ');
+    csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}";"${x.auditor_pcp||''}";"${x.auditor_unidade||''}";"${x.responsavel_ubs||''}";"${obs}"`);
   });
 
   let blob=new Blob([csv.join("\n")], {type:"text/csv;charset=utf-8;"});
@@ -391,15 +460,22 @@ async function start(){
   if(!local)return toast("Selecione o local.");
   meta={local,data_verificacao:v("date"),mes:month(),auditor_pcp:v("pcp"),auditor_unidade:v("audun"),responsavel_ubs:v("ubs")};
   $("lt").textContent=local;
+
+  set("search","");
+  set("lotCultura","");
+  set("lotCultivar","");
+  set("lotStatus","");
   
   let {data:b,error}=await db.from("base_dados").select("*").eq("local",local).order("lote");
   if(error)return toast(error.message);
   base=b||[];
   
-  let {data:a,error:e}=await db.from("auditorias").select("*").eq("local",meta.local);
+  let {data:a,error:e}=await db.from(TABLE_NAME)
+    .select("*")
+    .eq("local",meta.local)
+    .eq("data_verificacao",meta.data_verificacao);
   if(e)return toast(e.message);
   audits=a||[];
-  pendingDeletions = [];
   
   populateLotFilters();
   render();
@@ -420,9 +496,10 @@ function render(){
   let selCultivar=v("lotCultivar").toUpperCase();
   let selStatus=v("lotStatus").toUpperCase();
   
+  let validBase = base.filter(x => Number(x.qtd_sistema) > 0);
   let amap=new Map(audits.map(x=>[x.lote,x]));
 
-  let rows = base.filter(x => {
+  let rows = validBase.filter(x => {
     let a=amap.get(x.lote);
     let st=a?.status||"PENDENTE";
 
@@ -444,14 +521,17 @@ function render(){
     </div>`
   }).join("")||"<p class='muted' style='text-align:center;padding:20px'>Nenhum lote encontrado.</p>";
 
-  let totalBase = base.length;
-  let auditadosCount = audits.filter(x => x.qtd_fisica !== null).length;
-  let validadosCount = audits.filter(x => x.status === "VALIDADO").length;
+  let totalBase = validBase.length;
+  let validLoteKeys = new Set(validBase.map(x => x.lote));
+
+  let auditadosValid = audits.filter(x => validLoteKeys.has(x.lote) && x.qtd_fisica !== null && x.qtd_fisica !== undefined);
+  let auditadosCount = auditadosValid.length;
+  let validadosCount = auditadosValid.filter(x => x.status === "VALIDADO").length;
   let pendentesCount = totalBase - auditadosCount;
 
   $("stot").textContent = totalBase;
   $("saud").textContent = auditadosCount;
-  $("spen").textContent = pendentesCount;
+  $("spen").textContent = pendentesCount < 0 ? 0 : pendentesCount;
   $("sval").textContent = validadosCount;
   $("sacc").textContent = auditadosCount > 0 ? (validadosCount / auditadosCount * 100).toFixed(1) + "%" : "0%";
 }
@@ -489,10 +569,6 @@ function deleteCurrentAuditHistory(){
 
   let existingAuditIndex = audits.findIndex(x => x.lote === selected.lote);
   if(existingAuditIndex !== -1){
-    let removedAudit = audits[existingAuditIndex];
-    removedAudit.deleted_at = new Date().toISOString();
-    removedAudit.action = "EXCLUIDO_E_MOVIDO_HISTORICO";
-    pendingDeletions.push(removedAudit);
     audits.splice(existingAuditIndex, 1);
   }
 
@@ -539,27 +615,25 @@ async function saveFullSession(){
   if(!meta.local) return toast("Sessão inválida.");
   toast("Sincronizando registros com o banco...");
 
-  // 1. Grava no histórico 'auditórios_históricos' conforme tabela criada no Supabase
-  if(pendingDeletions.length > 0){
-    let {error: histErr} = await db.from("auditórios_históricos").insert(pendingDeletions);
-    if(histErr) console.warn("Aviso ao salvar histórico:", histErr.message);
-    pendingDeletions = [];
-  }
-
-  // 2. Limpa e regrava na tabela principal de auditorias ativas
-  let {error: delError} = await db.from("auditorias").delete().eq("local", meta.local);
+  let {error: delError} = await db.from(TABLE_NAME)
+    .delete()
+    .eq("local", meta.local)
+    .eq("data_verificacao", meta.data_verificacao);
+    
   if(delError) return toast("Erro ao sincronizar: " + delError.message);
 
   if(audits && audits.length > 0) {
-    let {error: insError} = await db.from("auditorias").insert(audits);
+    let {error: insError} = await db.from(TABLE_NAME).insert(audits);
     if(insError) return toast("Erro ao salvar lotes: " + insError.message);
   }
 
-  // 3. Atualiza os dados sincronizados do banco
-  let {data:a}=await db.from("auditorias").select("*").eq("local",meta.local);
+  let {data:a}=await db.from(TABLE_NAME)
+    .select("*")
+    .eq("local",meta.local)
+    .eq("data_verificacao",meta.data_verificacao);
   audits=a||[];
   render();
-  toast("✅ Sessão salva e histórico atualizado no Supabase!");
+  toast("✅ Sessão salva no histórico do Supabase!");
 }
 
 function openNewLotModal(){
