@@ -33,6 +33,7 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
   <button class="sec" onclick="go('home')">Dashboard</button>
 </header>
+
 <div class="wrap"><div id="toast" class="toast hidden"></div>
 
 <section id="home">
@@ -225,15 +226,13 @@ const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
 const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let base=[],audits=[],dashData=[],filteredData=[],selected=null,meta={};
+let pendingDeletions = [];
 
 const MONTH_MAP = {
   "01":"JAN","02":"FEV","03":"MAR","04":"ABR","05":"MAI","06":"JUN",
   "07":"JUL","08":"AGO","09":"SET","10":"OUT","11":"NOV","12":"DEZ",
   "JAN":"JAN","FEV":"FEV","MAR":"MAR","ABR":"ABR","MAI":"MAI","JUN":"JUN",
-  "JUL":"JUL","AGO":"AGO","SET":"SET","OUT":"OUT","NOV":"NOV","DEZ":"DEZ",
-  "JANEIRO":"JAN","FEVEREIRO":"FEV","MARCO":"MAR","MARÇO":"MAR","ABRIL":"ABR",
-  "MAIO":"MAI","JUNHO":"JUN","JULHO":"JUL","AGOSTO":"AGO","SETEMBRO":"SET",
-  "OUTUBRO":"OUT","NOVEMBRO":"NOV","DEZEMBRO":"DEZ"
+  "JUL":"JUL","AGO":"AGO","SET":"SET","OUT":"OUT","NOV":"NOV","DEZ":"DEZ"
 };
 
 const ALL_MONTHS = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
@@ -243,18 +242,9 @@ function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden")
 function go(id){["home","start","lots"].forEach(x=>$(x).classList.toggle("hidden",x!==id));if(id==="home")dashboard();if(id==="start")loadLocalsStart()}
 function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
 
-function normalizeMonth(m){
-  if(!m) return "JAN";
-  let clean = String(m).trim().toUpperCase();
-  return MONTH_MAP[clean] || clean.slice(0,3);
-}
-
 function month(){
   let parts = v("date").split("-");
-  if(parts.length === 3){
-    return MONTH_MAP[parts[1]] || "JAN";
-  }
-  return "JAN";
+  return parts.length === 3 ? (MONTH_MAP[parts[1]] || "JAN") : "JAN";
 }
 
 $("date").value=new Date().toISOString().slice(0,10);$("month").value=month();$("date").onchange=()=>set("month",month());
@@ -267,9 +257,7 @@ async function loadLocalsStart(){
 }
 
 async function fetchAllAudits(){
-  let allRows = [];
-  let page = 0;
-  let pageSize = 1000;
+  let allRows = [], page = 0, pageSize = 1000;
   while(true){
     let {data, error} = await db.from("auditorias").select("*").order("created_at", {ascending: true}).range(page*pageSize, (page+1)*pageSize - 1);
     if(error || !data || data.length === 0) break;
@@ -281,7 +269,7 @@ async function fetchAllAudits(){
 }
 
 async function loadHistoryFilters(allData){
-  let recordedMonths = new Set(allData.map(x=>normalizeMonth(x.mes)).filter(Boolean));
+  let recordedMonths = new Set(allData.map(x=>x.mes).filter(Boolean));
   let sortedMonths = ALL_MONTHS.filter(m => recordedMonths.has(m));
   
   let locals=[...new Set(allData.map(x=>x.local).filter(Boolean))].sort();
@@ -306,29 +294,12 @@ async function dashboard(){
   let selLocal=v("dashLocal").toUpperCase().trim();
   let selCultura=v("dashCultura").toUpperCase().trim();
 
-  let uniqueAudits = new Map();
-  rawData.forEach(audit => {
-    let key = `${audit.local}_${audit.lote}`;
-    uniqueAudits.set(key, audit);
-  });
-
-  dashData = Array.from(uniqueAudits.values()).filter(audit => {
-    let m = normalizeMonth(audit.mes);
-    let matchMonth = !selMonth || m === selMonth;
+  dashData = rawData.filter(audit => {
+    let matchMonth = !selMonth || String(audit.mes||"").toUpperCase() === selMonth;
     let matchLocal = !selLocal || String(audit.local||"").toUpperCase() === selLocal;
     let matchCultura = !selCultura || String(audit.cultura||"").toUpperCase() === selCultura;
     return matchMonth && matchLocal && matchCultura;
-  }).map(audit => ({
-    mes: normalizeMonth(audit.mes),
-    lote: audit.lote,
-    local: audit.local,
-    cultura: audit.cultura,
-    cultivar: audit.cultivar,
-    cat: audit.cat,
-    qtd_sistema: audit.qtd_sistema,
-    qtd_fisica: audit.qtd_fisica,
-    status: audit.status || "—"
-  }));
+  });
 
   let totLotes=dashData.length;
   let auditados=dashData.filter(x=>x.qtd_fisica!==null).length;
@@ -375,9 +346,7 @@ function renderDashTable(){
 }
 
 function exportToCSV(){
-  if(!filteredData || filteredData.length===0){
-    return toast("Nenhum dado para exportar.");
-  }
+  if(!filteredData || filteredData.length===0) return toast("Nenhum dado para exportar.");
   let csv=["\uFEFFMes Auditoria;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
   filteredData.forEach(x=>{
     csv.push(`"${x.mes}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
@@ -396,21 +365,12 @@ function exportLocalAuditsCSV(){
   let exportRows = base.map(x=>{
     let a=amap.get(x.lote);
     return {
-      mes: meta.mes,
-      lote: x.lote,
-      local: meta.local,
-      cultura: x.cultura,
-      cultivar: x.cultivar,
-      cat: x.cat,
-      qtd_sistema: x.qtd_sistema,
-      qtd_fisica: a?.qtd_fisica ?? null,
-      status: a?.status || "PENDENTE"
+      mes: meta.mes, lote: x.lote, local: meta.local, cultura: x.cultura, cultivar: x.cultivar,
+      cat: x.cat, qtd_sistema: x.qtd_sistema, qtd_fisica: a?.qtd_fisica ?? null, status: a?.status || "PENDENTE"
     };
   });
 
-  if(exportRows.length === 0){
-    return toast("Nenhum lote para exportar.");
-  }
+  if(exportRows.length === 0) return toast("Nenhum lote para exportar.");
 
   let csv=["\uFEFFMes Auditoria;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
   exportRows.forEach(x=>{
@@ -431,12 +391,15 @@ async function start(){
   if(!local)return toast("Selecione o local.");
   meta={local,data_verificacao:v("date"),mes:month(),auditor_pcp:v("pcp"),auditor_unidade:v("audun"),responsavel_ubs:v("ubs")};
   $("lt").textContent=local;
+  
   let {data:b,error}=await db.from("base_dados").select("*").eq("local",local).order("lote");
   if(error)return toast(error.message);
   base=b||[];
+  
   let {data:a,error:e}=await db.from("auditorias").select("*").eq("local",meta.local);
   if(e)return toast(e.message);
   audits=a||[];
+  pendingDeletions = [];
   
   populateLotFilters();
   render();
@@ -458,7 +421,6 @@ function render(){
   let selStatus=v("lotStatus").toUpperCase();
   
   let amap=new Map(audits.map(x=>[x.lote,x]));
-  let validBase = base.filter(x => Number(x.qtd_sistema) > 0);
 
   let rows = base.filter(x => {
     let a=amap.get(x.lote);
@@ -482,27 +444,20 @@ function render(){
     </div>`
   }).join("")||"<p class='muted' style='text-align:center;padding:20px'>Nenhum lote encontrado.</p>";
 
-  let aa = audits.filter(x => x.qtd_fisica !== null);
-  let vv = aa.filter(x => x.status === "VALIDADO");
+  let totalBase = base.length;
+  let auditadosCount = audits.filter(x => x.qtd_fisica !== null).length;
+  let validadosCount = audits.filter(x => x.status === "VALIDADO").length;
+  let pendentesCount = totalBase - auditadosCount;
 
-  let totalBaseValid = validBase.length;
-  let pendentesCount = validBase.filter(x => !amap.has(x.lote)).length;
-
-  $("stot").textContent = totalBaseValid;
-  $("saud").textContent = aa.length;
+  $("stot").textContent = totalBase;
+  $("saud").textContent = auditadosCount;
   $("spen").textContent = pendentesCount;
-  $("sval").textContent = vv.length;
-  $("sacc").textContent = aa.length ? (vv.length / aa.length * 100).toFixed(1) + "%" : "0%";
+  $("sval").textContent = validadosCount;
+  $("sacc").textContent = auditadosCount > 0 ? (validadosCount / auditadosCount * 100).toFixed(1) + "%" : "0%";
 }
 
 function clearConfInputs(){
-  set("catfis","");
-  set("etq","");
-  set("qtd","");
-  set("cam","");
-  set("quad","");
-  set("fila","");
-  set("obs","");
+  set("catfis","");set("etq","");set("qtd","");set("cam","");set("quad","");set("fila","");set("obs","");
 }
 
 function openLot(l){
@@ -513,42 +468,35 @@ function openLot(l){
   $("sys").innerHTML=`<b>CULTURA:</b> ${esc(selected.cultura)} &nbsp; <b>CULTIVAR:</b> ${esc(selected.cultivar)} &nbsp; <b>CÓD. PRODUTO:</b> ${esc(selected.cod_produto)}<br><b>NOME PRODUTO ERP:</b> ${esc(selected.nome_produto_erp)}<br><b>CAT:</b> ${esc(selected.cat)} &nbsp; <b>PEN.:</b> ${esc(selected.pen)} &nbsp; <b>UM:</b> ${esc(selected.um)}<br><b>QTD SISTEMA:</b> ${selected.qtd_sistema??"NÃO CONSTA"} &nbsp; <b>PESO ETIQUETA:</b> ${selected.peso_etiqueta??"NÃO CONSTA"}`;
   
   if(a){
-    set("catfis",a.cat_fis);
-    set("etq",a.etiqueta_fisica);
-    set("qtd",a.qtd_fisica);
-    set("cam",a.camara);
-    set("quad",a.quadra);
-    set("fila",a.fileira);
-    set("obs",a.observacao);
+    set("catfis",a.cat_fis);set("etq",a.etiqueta_fisica);set("qtd",a.qtd_fisica);
+    set("cam",a.camara);set("quad",a.quadra);set("fila",a.fileira);set("obs",a.observacao);
     $("btnDeleteConf").classList.remove("hidden");
   } else {
     $("btnDeleteConf").classList.add("hidden");
   }
 
   $("warning").innerHTML=Number(selected.qtd_sistema)===0?'<div class="dangerbox">⚠️ QTD SISTEMA = 0. Este lote não entra no total geral. Se houver QTD FÍSICA > 0, a conferência pode ser registrada.</div>':"";
-
   $("conf").classList.remove("hidden");
   window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
 }
 
 function closeConf(){
-  selected=null;
-  clearConfInputs();
-  $("conf").classList.add("hidden");
+  selected=null; clearConfInputs(); $("conf").classList.add("hidden");
 }
 
-async function deleteCurrentAuditHistory(){
+function deleteCurrentAuditHistory(){
   if(!selected) return;
 
-  if(!confirm(`Tem certeza que deseja apagar TODO o histórico de auditoria do lote ${selected.lote}?`)) return;
+  let existingAuditIndex = audits.findIndex(x => x.lote === selected.lote);
+  if(existingAuditIndex !== -1){
+    let removedAudit = audits[existingAuditIndex];
+    removedAudit.deleted_at = new Date().toISOString();
+    removedAudit.action = "EXCLUIDO_E_MOVIDO_HISTORICO";
+    pendingDeletions.push(removedAudit);
+    audits.splice(existingAuditIndex, 1);
+  }
 
-  let {error} = await db.from("auditorias").delete().eq("local", meta.local).eq("lote", selected.lote);
-  if(error) return toast("Erro ao excluir: " + error.message);
-
-  toast(`Histórico do lote ${selected.lote} removido do banco.`);
-
-  audits = audits.filter(x => x.lote !== selected.lote);
-
+  toast(`Lote ${selected.lote} removido da conferência. Salve a sessão para confirmar.`);
   closeConf();
   render();
 }
@@ -564,115 +512,74 @@ async function save(){
   let payload={
     local: meta.local,
     data_verificacao: meta.data_verificacao,
-    mes: normalizeMonth(meta.mes),
+    mes: meta.mes,
     auditor_pcp: meta.auditor_pcp,
     auditor_unidade: meta.auditor_unidade,
     responsavel_ubs: meta.responsavel_ubs,
-    uf: selected.uf,
-    filial: selected.filial,
-    deposito: selected.deposito,
-    cultura: selected.cultura,
-    lote: selected.lote,
-    cultivar: selected.cultivar,
-    cod_produto: selected.cod_produto,
-    nome_produto_erp: selected.nome_produto_erp,
-    cat: selected.cat,
-    pen: selected.pen,
-    um: selected.um,
-    qtd_sistema: selected.qtd_sistema,
-    peso_etiqueta: selected.peso_etiqueta,
-    cat_fis: v("catfis"),
-    etiqueta_fisica: etq,
-    qtd_fisica: qtd,
-    camara: v("cam"),
-    quadra: v("quad"),
-    fileira: v("fila"),
-    observacao: v("obs"),
-    status: status,
-    divergencia: div.join("; ")||null
+    uf: selected.uf, filial: selected.filial, deposito: selected.deposito,
+    cultura: selected.cultura, lote: selected.lote, cultivar: selected.cultivar,
+    cod_produto: selected.cod_produto, nome_produto_erp: selected.nome_produto_erp,
+    cat: selected.cat, pen: selected.pen, um: selected.um,
+    qtd_sistema: selected.qtd_sistema, peso_etiqueta: selected.peso_etiqueta,
+    cat_fis: v("catfis"), etiqueta_fisica: etq, qtd_fisica: qtd,
+    camara: v("cam"), quadra: v("quad"), fileira: v("fila"), observacao: v("obs"),
+    status: status, divergencia: div.join("; ")||null
   };
 
-  // Usa UPSERT para atualizar ou criar sem falhar nem duplicar
-  let {error} = await db.from("auditorias").upsert(payload, { onConflict: 'local,lote' });
-  if(error) {
-    // Fallback se a restrição única não estiver configurada no Supabase
-    await db.from("auditorias").delete().eq("local", meta.local).eq("lote", selected.lote);
-    let {error: err2} = await db.from("auditorias").insert([payload]);
-    if(err2) return toast("Erro ao salvar: " + err2.message);
-  }
+  let idx = audits.findIndex(x => x.lote === selected.lote);
+  if(idx !== -1) audits[idx] = payload;
+  else audits.push(payload);
 
   toast(status==="VALIDADO"?"Lote validado!":"Lote salvo com divergência.");
-  
-  let {data:a}=await db.from("auditorias").select("*").eq("local",meta.local);
-  audits=a||[];
   render();
   closeConf();
 }
 
 async function saveFullSession(){
   if(!meta.local) return toast("Sessão inválida.");
-  
-  toast("Sincronizando registros com a nuvem...");
+  toast("Sincronizando registros com o banco...");
 
-  // 1. Limpa todas as auditorias deste local no banco
+  // 1. Grava no histórico 'auditórios_históricos' conforme tabela criada no Supabase
+  if(pendingDeletions.length > 0){
+    let {error: histErr} = await db.from("auditórios_históricos").insert(pendingDeletions);
+    if(histErr) console.warn("Aviso ao salvar histórico:", histErr.message);
+    pendingDeletions = [];
+  }
+
+  // 2. Limpa e regrava na tabela principal de auditorias ativas
   let {error: delError} = await db.from("auditorias").delete().eq("local", meta.local);
   if(delError) return toast("Erro ao sincronizar: " + delError.message);
 
-  // 2. Se houver auditorias na memória atual, reinsere a lista limpa
   if(audits && audits.length > 0) {
     let {error: insError} = await db.from("auditorias").insert(audits);
-    if(insError) return toast("Erro ao salvar lote: " + insError.message);
+    if(insError) return toast("Erro ao salvar lotes: " + insError.message);
   }
 
-  // 3. Recarrega os dados para manter total sincronia na tela
-  let {data:a, error: fetchErr}=await db.from("auditorias").select("*").eq("local",meta.local);
-  if(fetchErr) return toast("Erro ao atualizar tela: " + fetchErr.message);
-  
+  // 3. Atualiza os dados sincronizados do banco
+  let {data:a}=await db.from("auditorias").select("*").eq("local",meta.local);
   audits=a||[];
   render();
-  
-  toast("✅ Sessão salva e dados sincronizados com sucesso!");
+  toast("✅ Sessão salva e histórico atualizado no Supabase!");
 }
 
 function openNewLotModal(){
   set("nl_local", meta.local || "");
-  set("nl_uf", "");
-  set("nl_filial", "");
-  set("nl_deposito", "");
-  set("nl_cultura", "");
-  set("nl_lote", "");
-  set("nl_cultivar", "");
-  set("nl_cod_produto", "");
-  set("nl_nome_produto_erp", "");
-  set("nl_cat", "");
-  set("nl_pen", "");
-  set("nl_um", "BAG");
-  set("nl_qtd_sistema", "0");
-  set("nl_peso_etiqueta", "");
+  set("nl_uf", ""); set("nl_filial", ""); set("nl_deposito", ""); set("nl_cultura", "");
+  set("nl_lote", ""); set("nl_cultivar", ""); set("nl_cod_produto", ""); set("nl_nome_produto_erp", "");
+  set("nl_cat", ""); set("nl_pen", ""); set("nl_um", "BAG"); set("nl_qtd_sistema", "0"); set("nl_peso_etiqueta", "");
   $("newLotModal").classList.remove("hidden");
 }
 
-function closeNewLotModal(){
-  $("newLotModal").classList.add("hidden");
-}
+function closeNewLotModal(){ $("newLotModal").classList.add("hidden"); }
 
 async function saveNewLot(){
   let lote = v("nl_lote").trim();
   if(!lote) return toast("Informe o código do lote.");
 
   let payload = {
-    local: meta.local,
-    uf: v("nl_uf").trim(),
-    filial: v("nl_filial").trim(),
-    deposito: v("nl_deposito").trim(),
-    cultura: v("nl_cultura").trim(),
-    lote: lote,
-    cultivar: v("nl_cultivar").trim(),
-    cod_produto: v("nl_cod_produto").trim(),
-    nome_produto_erp: v("nl_nome_produto_erp").trim(),
-    cat: v("nl_cat").trim(),
-    pen: v("nl_pen").trim(),
-    um: v("nl_um").trim(),
+    local: meta.local, uf: v("nl_uf").trim(), filial: v("nl_filial").trim(), deposito: v("nl_deposito").trim(),
+    cultura: v("nl_cultura").trim(), lote: lote, cultivar: v("nl_cultivar").trim(), cod_produto: v("nl_cod_produto").trim(),
+    nome_produto_erp: v("nl_nome_produto_erp").trim(), cat: v("nl_cat").trim(), pen: v("nl_pen").trim(), um: v("nl_um").trim(),
     qtd_sistema: v("nl_qtd_sistema") === "" ? 0 : Number(v("nl_qtd_sistema")),
     peso_etiqueta: v("nl_peso_etiqueta") === "" ? null : Number(v("nl_peso_etiqueta"))
   };
