@@ -226,9 +226,9 @@ const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
 const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const TABLE_BASE="base_dados";
+const TABLE_BASE="basedados";
 const TABLE_ACTIVE="auditorias";
-const TABLE_HISTORY="auditorias_historico";
+const TABLE_HISTORY="auditoriashistorico";
 
 let base=[];
 let audits=[];
@@ -483,9 +483,11 @@ async function saveNewLot(){
 async function boot(){
   try{
     const {error}=await db.from(TABLE_HISTORY).select("historico_id",{count:"exact",head:true});
-    if(error)toast("⚠️ Banco conectado, mas a tabela auditorias_historico precisa ser criada/renomeada: "+error.message);
+    if(error)toast("⚠️ Banco conectado, mas a tabela auditoriashistorico precisa ser criada/renomeada: "+error.message);
   }catch(e){toast("Erro de conexão com o Supabase: "+e.message)}
   dashboard();
 }
 boot();
-</script></body></html>
+</script>
+</body>
+</html>
