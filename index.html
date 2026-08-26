@@ -161,6 +161,7 @@ table.data-table tr:hover{background:#f0f5f2}
 </div>
 </section>
 
+<!-- Outras seções permanecem mantidas -->
 <section id="start" class="hidden">
   <div class="card">
     <h3>Iniciando Sessão de Auditoria</h3>
@@ -179,92 +180,6 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
 </section>
 
-<section id="lots" class="hidden">
-  <div class="top" style="justify-content:space-between">
-    <div>
-      <h2 style="margin:0">Lotes — <span id="lt"></span></h2>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <button id="btnSaveTop" class="btn-save-top" onclick="saveFullSession()">💾 SALVAR REGISTRO/SESSÃO</button>
-      <button class="btn-newlot" onclick="openNewLotModal()">➕ NOVO LOTE</button>
-      <button class="btn-export" onclick="exportLocalAuditsCSV()">📥 EXPORTAR AUDITORIA LOCAL</button>
-      <button class="sec" onclick="go('home')">VOLTAR</button>
-    </div>
-  </div>
-
-  <div class="kpis">
-    <div class="kpi">Total<b id="stot">0</b></div>
-    <div class="kpi">Auditados<b id="saud">0</b></div>
-    <div class="kpi">Pendentes<b id="spen">0</b></div>
-    <div class="kpi">Validados<b id="sval">0</b></div>
-    <div class="kpi">Acuracidade<b id="sacc">0%</b></div>
-  </div>
-
-  <div class="card">
-    <div class="filter-box" style="grid-template-columns: 1.5fr 1fr 1fr 1fr; margin-bottom: 12px; padding: 10px;">
-      <div>
-        <label style="margin-bottom:4px">PESQUISAR LOTE</label>
-        <input id="search" placeholder="🔎 Digite o lote..." oninput="render()" style="padding:8px 10px; font-size:13px">
-      </div>
-      <div>
-        <label style="margin-bottom:4px">CULTURA</label>
-        <select id="lotCultura" onchange="render()" style="padding:8px 10px; font-size:13px">
-          <option value="">Todas</option>
-        </select>
-      </div>
-      <div>
-        <label style="margin-bottom:4px">CULTIVAR</label>
-        <select id="lotCultivar" onchange="render()" style="padding:8px 10px; font-size:13px">
-          <option value="">Todas</option>
-        </select>
-      </div>
-      <div>
-        <label style="margin-bottom:4px">STATUS</label>
-        <select id="lotStatus" onchange="render()" style="padding:8px 10px; font-size:13px">
-          <option value="">Todos</option>
-          <option value="PENDENTE">PENDENTE</option>
-          <option value="VALIDADO">VALIDADO</option>
-          <option value="DIVERGÊNCIA">DIVERGÊNCIA</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="lot-header">
-      <div>LOTE</div>
-      <div>CULTIVAR · CAT · PENERA</div>
-      <div>QTD SISTEMA</div>
-      <div>STATUS</div>
-    </div>
-
-    <div id="list"></div>
-  </div>
-
-  <div id="conf" class="modal-backdrop hidden">
-    <div class="modal-box">
-      <h2>Conferência do Lote: <span id="clote" style="color:var(--g)"></span></h2>
-      <div id="sys" class="system"></div>
-      <div class="grid" style="margin-top:14px">
-        <label>CAT. FÍS.<input id="catfis"></label>
-        <label>ETIQUETA FÍSICA<input id="etq"></label>
-        <label>QTD FÍSICA<input id="qtd" type="number" step="any" inputmode="decimal"></label>
-        <label>CÂMARA<input id="cam"></label>
-        <label>QUADRA<input id="quad"></label>
-        <label>FILEIRA<input id="fila"></label>
-      </div>
-      <label style="margin-top:10px">OBSERVAÇÃO<textarea id="obs"></textarea></label>
-      <div id="warning"></div>
-      <div class="actions" style="justify-content:space-between; margin-top:16px">
-        <div>
-          <button onclick="save()" style="background:var(--g); padding:12px 24px; font-size:15px">💾 CONFIRMAR LOTE</button>
-          <button id="btnDeleteConf" class="btn-danger hidden" onclick="deleteCurrentAuditHistory()">🗑️ EXCLUIR HISTÓRICO</button>
-        </div>
-        <button class="sec" onclick="closeConf()">FECHAR</button>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Modal de Importação de Planilha -->
 <div id="modal-importacao" class="modal-backdrop hidden">
   <div class="modal-box">
     <h3>📥 Importar Planilha de Dados</h3>
@@ -278,32 +193,6 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
 </div>
 
-<div id="newLotModal" class="modal-backdrop hidden">
-  <div class="modal-box">
-    <h3>➕ Cadastrar Novo Lote na Base</h3>
-    <div class="grid">
-      <label>LOCAL<input id="nl_local" readonly></label>
-      <label>UF<input id="nl_uf" placeholder="Ex: GO"></label>
-      <label>FILIAL<input id="nl_filial" placeholder="Ex: 01"></label>
-      <label>DEPÓSITO<input id="nl_deposito" placeholder="Ex: DEP1"></label>
-      <label>CULTURA<input id="nl_cultura" placeholder="Ex: SOJA"></label>
-      <label>LOTE<input id="nl_lote" placeholder="Ex: 11743P1417"></label>
-      <label>CULTIVAR<input id="nl_cultivar" placeholder="Ex: 22213I2X"></label>
-      <label>CÓD. PRODUTO<input id="nl_cod_produto"></label>
-      <label>NOME PRODUTO ERP<input id="nl_nome_produto_erp"></label>
-      <label>CAT<input id="nl_cat" placeholder="Ex: C2"></label>
-      <label>PENERA (PEN)<input id="nl_pen" placeholder="Ex: P1"></label>
-      <label>UNIDADE (UM)<input id="nl_um" value="BAG"></label>
-      <label>QTD SISTEMA<input id="nl_qtd_sistema" type="number" step="any" value="0" inputmode="decimal"></label>
-      <label>PESO ETIQUETA<input id="nl_peso_etiqueta" type="number" step="any" inputmode="decimal"></label>
-    </div>
-    <div class="actions" style="margin-top:16px;justify-content:flex-end">
-      <button id="btnSaveNewLot" onclick="saveNewLot()">SALVAR NOVO LOTE</button>
-      <button class="sec" onclick="closeNewLotModal()">CANCELAR</button>
-    </div>
-  </div>
-</div>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -313,238 +202,24 @@ const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const TABLE_NAME = "auditorias_historico";
-const SIGLAS_TRATAMENTO_VALIDAS = ["TSI", "ST", "FT", "IN", "FUN", "GRAO", "TRAT", "SO", "SOIE", "FD", "FDIE", "FDIEAR", "FDIEVC", "FEIE"];
+let dashData=[], filteredData=[], rawAllAudits=[];
 
-let base=[], audits=[], dashData=[], filteredData=[], selected=null, meta={};
-
-const MONTH_MAP = {
-  "01":"JAN","02":"FEV","03":"MAR","04":"ABR","05":"MAI","06":"JUN",
-  "07":"JUL","08":"AGO","09":"SET","10":"OUT","11":"NOV","12":"DEZ",
-  "JAN":"JAN","FEV":"FEV","MAR":"MAR","ABR":"ABR","MAI":"MAI","JUN":"JUN",
-  "JUL":"JUL","AGO":"AGO","SET":"SET","OUT":"OUT","NOV":"NOV","DEZ":"DEZ"
-};
-
-const ALL_MONTHS = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-
-const $=id=>document.getElementById(id), v=id=>$(id).value, set=(id,x)=>$(id).value=x??"";
+const $=id=>document.getElementById(id), v=id=>$(id).value;
 function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
-function go(id){["home","start","lots"].forEach(x=>$(x).classList.toggle("hidden",x!==id));if(id==="home")dashboard();if(id==="start")loadLocalsStart()}
+function go(id){["home","start"].forEach(x=>$(x).classList.toggle("hidden",x!==id));if(id==="home")dashboard();}
 function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
 
-function month(){
-  let parts = v("date").split("-");
-  return parts.length === 3 ? (MONTH_MAP[parts[1]] || "JAN") : "JAN";
-}
-
-$("date").value=new Date().toISOString().slice(0,10);$("month").value=month();$("date").onchange=()=>set("month",month());
-
-/* MODAL E IMPORTAÇÃO DE PLANILHA */
-function abrirModalImportacao() {
-  $("modal-importacao").classList.remove("hidden");
-  $("status-importacao").innerText = "";
-  $("input-excel").value = "";
-}
-
-function fecharModalImportacao() {
-  $("modal-importacao").classList.add("hidden");
-  $("input-excel").value = "";
-}
-
-function colParaIndice(colStr) {
-  let col = colStr.trim().toUpperCase();
-  let idx = 0;
-  for (let i = 0; i < col.length; i++) {
-    idx = idx * 26 + (col.charCodeAt(i) - 64);
-  }
-  return idx - 1;
-}
-
-const LETRAS_COLUNAS_IGNORADAS = [
-  "A", "P", "Q", "R", "S", "V", "W", "Y", "AD", 
-  "AF", "AG", "AH", "AI", "AJ", "AK", "AL", "AM", "AN", "AO", "AP"
-];
-const INDICES_IGNORADOS = new Set(LETRAS_COLUNAS_IGNORADAS.map(colParaIndice));
-const INDICE_CORTE_FINAL = colParaIndice("AQ");
-
-async function processarEEnviarPlanilha() {
-  const input = $("input-excel");
-  const divStatus = $("status-importacao");
-
-  if (!input.files || input.files.length === 0) {
-    return alert("Por favor, selecione um arquivo de planilha.");
-  }
-
-  const file = input.files[0];
-  divStatus.innerText = "Lendo e validando dados da planilha...";
-
-  const reader = new FileReader();
-  reader.onload = async function (e) {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      
-      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-      if (rows.length < 2) {
-        divStatus.innerText = "❌ A planilha precisa ter ao menos cabeçalho e linhas de dados.";
-        return;
-      }
-
-      const parseNumStrict = (val) => {
-        if (typeof val === "number") return isNaN(val) ? 0 : val;
-        if (!val) return 0;
-        let s = String(val).trim();
-        
-        if (s.includes("/") || /[a-zA-Z]/.test(s)) return 0;
-        
-        s = s.replace(/[^0-9.,-]/g, "");
-        if (!s) return 0;
-
-        if (s.includes(",") && s.includes(".")) {
-          s = s.replace(/\./g, "").replace(",", ".");
-        } else if (s.includes(",")) {
-          s = s.replace(",", ".");
-        }
-
-        const n = parseFloat(s);
-        return isNaN(n) ? 0 : n;
-      };
-
-      const registrosParaInserir = [];
-
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.length === 0) continue;
-
-        const getColVal = (idx) => (idx >= 0 && row[idx] !== undefined) ? String(row[idx]).trim() : "";
-
-        const filial = getColVal(0);              // A
-        const colB = getColVal(1);                // B
-        const colC = getColVal(2);                // C
-        const deposito = getColVal(3);            // D
-        const cultura = getColVal(4) || getColVal(5); // E ou F
-        const colI = getColVal(8);                // I
-        const lote = getColVal(9) || getColVal(8) || getColVal(7); // J (ou I/H)
-        const cat = getColVal(10);                // K
-        const pen = getColVal(11);                // L
-        const um = getColVal(12) || "BAG";        // M
-
-        let colAE = 0;
-
-        for (let c = row.length - 1; c >= 0; c--) {
-          if (INDICES_IGNORADOS.has(c) || c >= INDICE_CORTE_FINAL) {
-            continue;
-          }
-
-          let numCandidate = parseNumStrict(row[c]);
-          if (numCandidate > 0) {
-            colAE = numCandidate;
-            break;
-          }
-        }
-
-        if (!lote || colAE <= 0) continue;
-
-        let localFinal = "";
-        let ufFinal = "";
-        if (colB === "0101" && colC === "10") {
-          localFinal = "UBS I"; ufFinal = "GO";
-        } else if (colB === "102" && colC === "10") {
-          localFinal = "LPCO"; ufFinal = "GO";
-        } else if (colB.includes("BJ") || colC.includes("BJ")) {
-          localFinal = "BJ"; ufFinal = "MG";
-        } else if (colB.includes("AGROSEMEAR") || colC.includes("AGROSEMEAR")) {
-          localFinal = "AGROSEMEAR"; ufFinal = "MT";
-        } else {
-          localFinal = colB || colC || "GERAL"; ufFinal = "GO";
-        }
-
-        const partesTratamento = colI.split(/\s+/);
-        const ultimaSigla = partesTratamento[partesTratamento.length - 1].toUpperCase();
-        const tratamentoFinal = SIGLAS_TRATAMENTO_VALIDAS.includes(ultimaSigla) ? ultimaSigla : "ST";
-
-        registrosParaInserir.push({
-          local: localFinal,
-          uf: ufFinal,
-          filial: filial,
-          deposito: deposito,
-          cultura: cultura,
-          lote: lote,
-          cultivar: cultura,
-          Tratamento: tratamentoFinal,
-          cat: cat,
-          pen: pen,
-          um: um,
-          qtd_sistema: colAE,
-          peso_etiqueta: null
-        });
-      }
-
-      if (registrosParaInserir.length === 0) {
-        divStatus.innerText = "⚠️ Nenhum registro válido encontrado com quantidade numérica > 0.";
-        return;
-      }
-
-      divStatus.innerText = `Salvando ${registrosParaInserir.length} registros no Supabase...`;
-
-      const { error } = await db.from('base_dados').upsert(registrosParaInserir);
-      if (error) throw error;
-
-      divStatus.innerText = "✅ Importação concluída com sucesso!";
-      await dashboard();
-
-      setTimeout(() => { fecharModalImportacao(); }, 1500);
-    } catch (err) {
-      console.error(err);
-      divStatus.innerText = "❌ Erro ao processar planilha: " + err.message;
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-async function loadLocalsStart(){
-  let {data,error}=await db.from("base_dados").select("local").order("local");
-  if(error)return toast("Erro ao buscar locais: " + error.message);
-  let a=[...new Set((data||[]).map(x=>x.local).filter(Boolean))];
-  $("local").innerHTML='<option value="">Selecione...</option>'+a.map(x=>`<option>${esc(x)}</option>`).join("");
-}
-
-async function fetchAuditsByFilters(local, mes, cultura){
-  let query = db.from(TABLE_NAME).select("*");
-  if(local) query = query.ilike("local", local);
-  if(mes) query = query.ilike("mes", mes);
-  if(cultura) query = query.ilike("cultura", cultura);
-  
-  let { data, error } = await query;
-  if(error) {
-    console.error("Erro ao buscar histórico:", error);
-    toast("Erro na consulta de auditorias.");
-    return [];
-  }
-  return data || [];
-}
-
-async function fetchBaseByFilters(local, cultura){
-  let query = db.from("base_dados").select("*");
-  if(local) query = query.ilike("local", local);
-  if(cultura) query = query.ilike("cultura", cultura);
-
-  let { data, error } = await query;
-  if(error) {
-    console.error("Erro ao buscar base_dados:", error);
-    toast("Erro na consulta de lotes.");
-    return [];
-  }
-  return data || [];
+function normalizarTexto(valor){
+  return String(valor ?? "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function normalizarMesFiltro(valor){
-  const bruto = String(valor ?? "").trim();
-  if(!bruto) return "";
-  const u = bruto.toUpperCase();
-  const semAcento = u.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const semAcento = normalizarTexto(valor);
+  if(!semAcento) return "";
 
   const mapa = {
     "1":"JAN","01":"JAN","JAN":"JAN","JANEIRO":"JAN",
@@ -561,189 +236,132 @@ function normalizarMesFiltro(valor){
     "12":"DEZ","DEZ":"DEZ","DEZEMBRO":"DEZ"
   };
 
-  for(const chave of Object.keys(mapa)){
-    if(semAcento === chave) return mapa[chave];
-  }
-  const numero = semAcento.match(/(?:^|\D)(0?[1-9]|1[0-2])(?:\D|$)/);
-  if(numero && mapa[numero[1]]) return mapa[numero[1]];
+  if(mapa[semAcento]) return mapa[semAcento];
+  return semAcento;
+}
 
-  const nomes = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-  const encontrado = nomes.find(m => semAcento.includes(m));
-  return encontrado || bruto;
+// Busca Paginada sem limitação do Supabase
+async function fetchAllRows(tableName){
+  let allData = [];
+  let page = 0;
+  let pageSize = 1000;
+  let hasMore = true;
+
+  while(hasMore){
+    const { data, error } = await db
+      .from(tableName)
+      .select("*")
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if(error) throw error;
+
+    if(data && data.length > 0){
+      allData = allData.concat(data);
+      if(data.length < pageSize) hasMore = false;
+      else page++;
+    } else {
+      hasMore = false;
+    }
+  }
+  return allData;
 }
 
 async function loadHistoryFilters(){
-  try {
-    // Paginação para contornar a trava limite de 1.000 registros do Supabase
-    let allHist = [];
-    let pageHist = 0;
-    let stepHist = 1000;
-    let keepHist = true;
+  const monthMap = new Set();
+  const localsMap = new Set();
+  const culturasMap = new Set();
 
-    while(keepHist){
-      const { data, error } = await db.from(TABLE_NAME).select("mes, local, cultura").range(pageHist * stepHist, (pageHist + 1) * stepHist - 1);
-      if(error) throw error;
-      if(data && data.length > 0){
-        allHist = allHist.concat(data);
-        if(data.length < stepHist) keepHist = false;
-        else pageHist++;
-      } else {
-        keepHist = false;
-      }
-    }
+  rawAllAudits.forEach(x => {
+    const m = normalizarMesFiltro(x.mes);
+    const l = String(x.local ?? "").trim();
+    const c = String(x.cultura ?? "").trim();
 
-    let allBase = [];
-    let pageBase = 0;
-    let stepBase = 1000;
-    let keepBase = true;
+    if(m) monthMap.add(m);
+    if(l) localsMap.add(l);
+    if(c) culturasMap.add(c);
+  });
 
-    while(keepBase){
-      const { data, error } = await db.from("base_dados").select("local, cultura").range(pageBase * stepBase, (pageBase + 1) * stepBase - 1);
-      if(error) throw error;
-      if(data && data.length > 0){
-        allBase = allBase.concat(data);
-        if(data.length < stepBase) keepBase = false;
-        else pageBase++;
-      } else {
-        keepBase = false;
-      }
-    }
+  const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
+  const sortedMonths = [...monthMap].sort((a,b) => (ordemMes[a] || 99) - (ordemMes[b] || 99));
+  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  const sortedCulturas = [...culturasMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
 
-    const monthMap = new Map();
-    allHist.forEach(x => {
-      const valorReal = String(x.mes ?? "").trim();
-      if(!valorReal) return;
-      const chave = normalizarMesFiltro(valorReal);
-      if(!monthMap.has(chave)) monthMap.set(chave, valorReal);
-    });
+  const curMonth = v("dashMonth");
+  const curLocal = v("dashLocal");
+  const curCultura = v("dashCultura");
 
-    const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
-    const sortedMonths = [...monthMap.entries()]
-      .sort((a,b) => {
-        const oa = ordemMes[a[0]] ?? 99;
-        const ob = ordemMes[b[0]] ?? 99;
-        return oa - ob || a[1].localeCompare(b[1], 'pt-BR');
-      });
+  $("dashMonth").innerHTML = '<option value="">Todos os Meses</option>' +
+    sortedMonths.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join("");
 
-    const locals = [...new Set([...allHist.map(x => x.local), ...allBase.map(x => x.local)]
-      .map(x => String(x ?? '').trim()).filter(Boolean))]
-      .sort((a,b) => a.localeCompare(b,'pt-BR'));
+  $("dashLocal").innerHTML = '<option value="">Todos os Locais</option>' +
+    sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
 
-    const culturas = [...new Set([...allHist.map(x => x.cultura), ...allBase.map(x => x.cultura)]
-      .map(x => String(x ?? '').trim()).filter(Boolean))]
-      .sort((a,b) => a.localeCompare(b,'pt-BR'));
+  $("dashCultura").innerHTML = '<option value="">Todas as Culturas</option>' +
+    sortedCulturas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
 
-    const curMonth = v("dashMonth");
-    const curLocal = v("dashLocal");
-    const curCultura = v("dashCultura");
-
-    $("dashMonth").innerHTML = '<option value="">Todos os Meses</option>' +
-      sortedMonths.map(([chave, valorReal]) => `<option value="${esc(valorReal)}">${esc(chave)}</option>`).join("");
-
-    $("dashLocal").innerHTML = '<option value="">Todos os Locais</option>' +
-      locals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-
-    $("dashCultura").innerHTML = '<option value="">Todas as Culturas</option>' +
-      culturas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-
-    if(curMonth && [...$("dashMonth").options].some(o => o.value === curMonth)) $("dashMonth").value = curMonth;
-    if(curLocal && [...$("dashLocal").options].some(o => o.value === curLocal)) $("dashLocal").value = curLocal;
-    if(curCultura && [...$("dashCultura").options].some(o => o.value === curCultura)) $("dashCultura").value = curCultura;
-
-  } catch(e) {
-    console.error("Erro ao carregar filtros do histórico:", e);
-    toast("Erro ao carregar filtros: " + (e.message || e));
-  }
+  if(curMonth) $("dashMonth").value = curMonth;
+  if(curLocal) $("dashLocal").value = curLocal;
+  if(curCultura) $("dashCultura").value = curCultura;
 }
 
 async function dashboard(){
-  let selMonth = v("dashMonth").trim();
-  let selLocal = v("dashLocal").trim();
-  let selCultura = v("dashCultura").trim();
+  try {
+    if(rawAllAudits.length === 0){
+      rawAllAudits = await fetchAllRows(TABLE_NAME);
+      await loadHistoryFilters();
+    }
 
-  let query = db
-    .from(TABLE_NAME)
-    .select("*")
-    .order("data_verificacao", { ascending: false })
-    .order("lote", { ascending: true })
-    .range(0, 9999);
+    let selMonth = normalizarMesFiltro(v("dashMonth"));
+    let selLocal = normalizarTexto(v("dashLocal"));
+    let selCultura = normalizarTexto(v("dashCultura"));
 
-  if(selMonth) query = query.ilike("mes", selMonth);
-  if(selLocal) query = query.ilike("local", selLocal);
-  if(selCultura) query = query.ilike("cultura", selCultura);
+    dashData = rawAllAudits.filter(x => {
+      const mesItem = normalizarMesFiltro(x.mes);
+      const localItem = normalizarTexto(x.local);
+      const culturaItem = normalizarTexto(x.cultura);
 
-  let { data: rawAudits, error } = await query;
+      if(selMonth && mesItem !== selMonth) return false;
+      if(selLocal && localItem !== selLocal) return false;
+      if(selCultura && culturaItem !== selCultura) return false;
 
-  if(error){
-    console.error("ERRO AO CONSULTAR auditorias_historico:", error);
-    toast("Erro ao consultar auditorias_historico: " + error.message);
-    dashData = [];
+      return true;
+    });
+
+    // Atualização Fiel dos Cards (KPIs)
+    let totLotes = dashData.length;
+    let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
+    let validados = dashData.filter(x => normalizarTexto(x.status) === "VALIDADO").length;
+    let pendentes = dashData.filter(x => normalizarTexto(x.status) === "PENDENTE" || !x.status).length;
+    let accVal = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) : "0.0";
+
+    $("tot").textContent = totLotes;
+    $("aud").textContent = auditados;
+    $("pen").textContent = pendentes;
+    $("val").textContent = validados;
+    $("acc").textContent = accVal + "%";
+    $("accBarTxt").textContent = accVal + "%";
+    $("accBar").style.width = accVal + "%";
+
     renderDashTable();
-    return;
+  } catch(error) {
+    console.error("ERRO DADOS:", error);
+    toast("Erro ao carregar auditorias.");
   }
-
-  dashData = (rawAudits || []).filter(x => {
-    const mes = String(x.mes || "").trim().toUpperCase();
-    const local = String(x.local || "").trim().toUpperCase();
-    const cultura = String(x.cultura || "").trim().toUpperCase();
-
-    if(selMonth && mes !== selMonth.toUpperCase()) return false;
-    if(selLocal && local !== selLocal.toUpperCase()) return false;
-    if(selCultura && cultura !== selCultura.toUpperCase()) return false;
-
-    return true;
-  });
-
-  await loadHistoryFilters();
-
-  let totLotes = dashData.length;
-  let auditados = dashData.filter(x =>
-    x.qtd_fisica !== null &&
-    x.qtd_fisica !== undefined &&
-    String(x.qtd_fisica).trim() !== ""
-  ).length;
-
-  let validados = dashData.filter(x =>
-    String(x.status || "").trim().toUpperCase() === "VALIDADO"
-  ).length;
-
-  let divergencias = dashData.filter(x =>
-    String(x.status || "").trim().toUpperCase() === "DIVERGÊNCIA"
-  ).length;
-
-  let pendentes = dashData.filter(x =>
-    String(x.status || "").trim().toUpperCase() === "PENDENTE" ||
-    !x.status
-  ).length;
-
-  let accVal = auditados > 0
-    ? ((validados / auditados) * 100).toFixed(1)
-    : "0.0";
-
-  $("tot").textContent = totLotes;
-  $("aud").textContent = auditados;
-  $("pen").textContent = pendentes;
-  $("val").textContent = validados;
-  $("acc").textContent = accVal + "%";
-  $("accBarTxt").textContent = accVal + "%";
-  $("accBar").style.width = accVal + "%";
-
-  renderDashTable();
 }
 
 function renderDashTable(){
-  let q=v("dashSearch").toUpperCase();
-  filteredData=dashData.filter(x=>
-    String(x.lote||"").toUpperCase().includes(q) || 
-    String(x.cultivar||"").toUpperCase().includes(q) || 
-    String(x.local||"").toUpperCase().includes(q) ||
-    String(x.cultura||"").toUpperCase().includes(q) ||
-    String(x.mes||"").toUpperCase().includes(q)
+  let q = normalizarTexto(v("dashSearch"));
+  filteredData = dashData.filter(x =>
+    normalizarTexto(x.lote).includes(q) || 
+    normalizarTexto(x.cultivar).includes(q) || 
+    normalizarTexto(x.local).includes(q) ||
+    normalizarTexto(x.cultura).includes(q) ||
+    normalizarTexto(x.mes).includes(q)
   );
 
-  $("dashTableBody").innerHTML=filteredData.map(x=>{
-    let st = String(x.status||'').toUpperCase();
-    let cl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":st==="PENDENTE"?"warn":"muted";
+  $("dashTableBody").innerHTML = filteredData.map(x => {
+    let st = normalizarTexto(x.status);
+    let cl = st === "VALIDADO" ? "ok" : (st.includes("DIVERG") ? "bad" : "warn");
     return `<tr>
       <td><b>${esc(x.mes)}</b></td>
       <td><b>${esc(x.lote)}</b></td>
@@ -751,8 +369,8 @@ function renderDashTable(){
       <td>${esc(x.cultura)}</td>
       <td>${esc(x.cultivar)}</td>
       <td>${esc(x.cat)}</td>
-      <td>${x.qtd_sistema??"—"}</td>
-      <td>${x.qtd_fisica??"—"}</td>
+      <td>${x.qtd_sistema ?? "—"}</td>
+      <td>${x.qtd_fisica ?? "—"}</td>
       <td><span class="${cl}">${esc(x.status)}</span></td>
     </tr>`;
   }).join("") || '<tr><td colspan="9" class="muted" style="text-align:center">Nenhuma auditoria encontrada.</td></tr>';
@@ -760,17 +378,20 @@ function renderDashTable(){
 
 function exportToCSV(){
   if(!filteredData || filteredData.length===0) return toast("Nenhum dado para exportar.");
-  let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status;Auditor PCP;Auditor Unidade;Responsavel UBS;Observacao"];
-  filteredData.forEach(x=>{
-    let obs = String(x.observacao||'').replaceAll('"','""').replaceAll('\n',' ');
-    csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}";"${x.auditor_pcp||''}";"${x.auditor_unidade||''}";"${x.responsavel_ubs||''}";"${obs}"`);
+  let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
+  filteredData.forEach(x => {
+    csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
   });
   let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
   let link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `Auditoria_Export_${new Date().toISOString().slice(0,10)}.csv`;
+  link.download = `Auditoria_${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
 }
+
+window.onload = function(){
+  dashboard();
+};
 </script>
 </body>
 </html>
