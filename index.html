@@ -42,7 +42,6 @@ button:disabled{opacity:0.6;cursor:not-allowed}
 .warn{color:var(--warn);font-weight:bold}
 .toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
 .system{line-height:1.8;background:#f7f9f8;padding:12px;border-radius:8px}
-.dangerbox{background:#fff4f3;border:1px solid #f0c9c5;padding:12px;border-radius:8px;margin:12px 0}
 .brand-container{display:flex;align-items:center;gap:14px}
 .logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
 .logo-img{height:46px;width:auto;object-fit:contain}
@@ -377,7 +376,6 @@ async function processarEEnviarPlanilha() {
         return;
       }
 
-      // Validação puramente baseada no CONTEÚDO da célula (sem bloquear colunas)
       const parseNumStrict = (val) => {
         if (typeof val === "number") return isNaN(val) ? 0 : val;
         if (val === null || val === undefined) return 0;
@@ -385,10 +383,8 @@ async function processarEEnviarPlanilha() {
         let s = String(val).trim();
         if (!s) return 0;
 
-        // Se contiver barra (ex: "25/26", "2024/2025" ou "10/05/2026"), letras ou hífens de texto, descarta
         if (s.includes("/") || /[a-zA-Z]/.test(s)) return 0;
 
-        // Limpa caracteres indesejados mantendo números, vírgulas e pontos
         s = s.replace(/[^0-9.,-]/g, "");
         if (!s) return 0;
 
@@ -410,20 +406,19 @@ async function processarEEnviarPlanilha() {
 
         const getColVal = (idx) => (idx >= 0 && row[idx] !== undefined) ? String(row[idx]).trim() : "";
 
-        const filial = getColVal(0);              // A
-        const colB = getColVal(1);                // B
-        const colC = getColVal(2);                // C
-        const deposito = getColVal(3);            // D
-        const cultura = getColVal(4) || getColVal(5); // E ou F
-        const colI = getColVal(8);                // I
-        const lote = getColVal(9) || getColVal(8) || getColVal(7); // J (ou I/H)
-        const cat = getColVal(10);                // K
-        const pen = getColVal(11);                // L
-        const um = getColVal(12) || "BAG";        // M
+        const filial = getColVal(0);
+        const colB = getColVal(1);
+        const colC = getColVal(2);
+        const deposito = getColVal(3);
+        const cultura = getColVal(4) || getColVal(5);
+        const colI = getColVal(8);
+        const lote = getColVal(9) || getColVal(8) || getColVal(7);
+        const cat = getColVal(10);
+        const pen = getColVal(11);
+        const um = getColVal(12) || "BAG";
 
         let colAE = 0;
 
-        // Varredura reversa em TODAS as colunas sem bloqueios de letra
         for (let c = row.length - 1; c >= 0; c--) {
           let numCandidate = parseNumStrict(row[c]);
           if (numCandidate > 0) {
@@ -436,9 +431,14 @@ async function processarEEnviarPlanilha() {
 
         let localFinal = "";
         let ufFinal = "";
-        if (colB === "0101" && colC === "10") {
+        
+        // Validação flexível (número ou texto) para UBS I e LPCO
+        const bClean = colB.replace(/^0+/, "");
+        const cClean = colC.replace(/^0+/, "");
+
+        if ((bClean === "101" || colB === "0101") && (cClean === "10" || colC === "10")) {
           localFinal = "UBS I"; ufFinal = "GO";
-        } else if (colB === "102" && colC === "10") {
+        } else if ((bClean === "102" || colB === "102") && (cClean === "10" || colC === "10")) {
           localFinal = "LPCO"; ufFinal = "GO";
         } else if (colB.includes("BJ") || colC.includes("BJ")) {
           localFinal = "BJ"; ufFinal = "MG";
@@ -480,6 +480,7 @@ async function processarEEnviarPlanilha() {
       if (error) throw error;
 
       divStatus.innerText = "✅ Importação concluída com sucesso!";
+      await loadLocalsStart();
       await dashboard();
 
       setTimeout(() => { fecharModalImportacao(); }, 1500);
@@ -492,14 +493,15 @@ async function processarEEnviarPlanilha() {
 }
 
 async function loadLocalsStart(){
-  let {data,error}=await db.from("base_dados").select("local").order("local");
-  if(error)return toast("Erro ao buscar locais: " + error.message);
-  let a=[...new Set((data||[]).map(x=>x.local).filter(Boolean))];
-  $("local").innerHTML='<option value="">Selecione...</option>'+a.map(x=>`<option>${esc(x)}</option>`).join("");
+  let { data, error } = await db.from("base_dados").select("local").range(0, 4999);
+  if (error) return toast("Erro ao buscar locais: " + error.message);
+  
+  let a = [...new Set((data || []).map(x => x.local).filter(Boolean))].sort();
+  $("local").innerHTML = '<option value="">Selecione...</option>' + a.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
 }
 
 async function fetchAuditsByFilters(local, mes, cultura){
-  let query = db.from(TABLE_NAME).select("*");
+  let query = db.from(TABLE_NAME).select("*").range(0, 4999);
   if(local) query = query.eq("local", local);
   if(mes) query = query.eq("mes", mes);
   if(cultura) query = query.eq("cultura", cultura);
@@ -514,7 +516,7 @@ async function fetchAuditsByFilters(local, mes, cultura){
 }
 
 async function fetchBaseByFilters(local, cultura){
-  let query = db.from("base_dados").select("*");
+  let query = db.from("base_dados").select("*").range(0, 4999);
   if(local) query = query.eq("local", local);
   if(cultura) query = query.eq("cultura", cultura);
 
@@ -528,14 +530,17 @@ async function fetchBaseByFilters(local, cultura){
 }
 
 async function loadHistoryFilters(){
-  let { data: rawMonths } = await db.from(TABLE_NAME).select("mes, local, cultura");
-  let allData = rawMonths || [];
+  let { data: rawMonths } = await db.from(TABLE_NAME).select("mes, local, cultura").range(0, 4999);
+  let { data: rawBaseLocals } = await db.from("base_dados").select("local, cultura").range(0, 4999);
   
-  let recordedMonths = new Set(allData.map(x=>x.mes).filter(Boolean));
+  let allHist = rawMonths || [];
+  let allBase = rawBaseLocals || [];
+
+  let recordedMonths = new Set(allHist.map(x=>x.mes).filter(Boolean));
   let sortedMonths = ALL_MONTHS.filter(m => recordedMonths.has(m));
   
-  let locals=[...new Set(allData.map(x=>x.local).filter(Boolean))].sort();
-  let culturas=[...new Set(allData.map(x=>x.cultura).filter(Boolean))].sort();
+  let locals=[...new Set([...allHist.map(x=>x.local), ...allBase.map(x=>x.local)].filter(Boolean))].sort();
+  let culturas=[...new Set([...allHist.map(x=>x.cultura), ...allBase.map(x=>x.cultura)].filter(Boolean))].sort();
 
   let curMonth=v("dashMonth"), curLocal=v("dashLocal"), curCultura=v("dashCultura");
 
@@ -590,7 +595,7 @@ async function dashboard(){
 
   await loadHistoryFilters();
 
-  dashData = combinedData.filter(audit => Number(audit.qtd_sistema) > 0);
+  dashData = combinedData;
 
   let totLotes = dashData.length;
   let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined).length;
@@ -707,7 +712,7 @@ async function start(){
   set("lotCultivar","");
   set("lotStatus","");
   
-  let {data:b,error}=await db.from("base_dados").select("*").eq("local",local).order("lote");
+  let {data:b,error}=await db.from("base_dados").select("*").eq("local",local).order("lote").range(0, 4999);
   if(error) {
     btn.disabled = false;
     btn.textContent = "INICIAR CONFERÊNCIA";
@@ -718,7 +723,8 @@ async function start(){
   let {data:a,error:e}=await db.from(TABLE_NAME)
     .select("*")
     .eq("local",meta.local)
-    .eq("data_verificacao",meta.data_verificacao);
+    .eq("data_verificacao",meta.data_verificacao)
+    .range(0, 4999);
   if(e) {
     btn.disabled = false;
     btn.textContent = "INICIAR CONFERÊNCIA";
@@ -940,8 +946,9 @@ async function saveNewLot(){
   toast("Novo lote inserido na base!");
 }
 
-window.onload = () => {
-  dashboard();
+window.onload = async () => {
+  await loadLocalsStart();
+  await dashboard();
 };
 </script>
 </body>
