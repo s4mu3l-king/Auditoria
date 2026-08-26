@@ -25,7 +25,7 @@ button:hover{opacity:0.9}
 button:disabled{opacity:0.6;cursor:not-allowed}
 .sec{background:#e8eeea;color:var(--g2)}
 .btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
-.btn-import{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px;border:1px solid #2ecc71}
+.btn-import{background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:170px;height:44px;border:0}
 .btn-save-top{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 16px;border:1px solid #2ecc71}
 .btn-newlot{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
 .btn-danger{background:var(--bad);color:#fff}
@@ -91,7 +91,7 @@ table.data-table tr:hover{background:#f0f5f2}
 <section id="home">
 <div class="top">
   <button class="btn-import" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
-  <button onclick="go('start')">NOVA AUDITORIA</button>
+  <button class="btn-import" onclick="go('start')">NOVA AUDITORIA</button>
 </div>
 
 <div class="filter-box">
@@ -540,88 +540,193 @@ async function fetchBaseByFilters(local, cultura){
   return data || [];
 }
 
+function normalizarMesFiltro(valor){
+  const bruto = String(valor ?? "").trim();
+  if(!bruto) return "";
+  const u = bruto.toUpperCase();
+  const semAcento = u.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const mapa = {
+    "1":"JAN","01":"JAN","JAN":"JAN","JANEIRO":"JAN",
+    "2":"FEV","02":"FEV","FEV":"FEV","FEVEREIRO":"FEV",
+    "3":"MAR","03":"MAR","MAR":"MAR","MARCO":"MAR",
+    "4":"ABR","04":"ABR","ABR":"ABR","ABRIL":"ABR",
+    "5":"MAI","05":"MAI","MAI":"MAI","MAIO":"MAI",
+    "6":"JUN","06":"JUN","JUN":"JUN","JUNHO":"JUN",
+    "7":"JUL","07":"JUL","JUL":"JUL","JULHO":"JUL",
+    "8":"AGO","08":"AGO","AGO":"AGO","AGOSTO":"AGO",
+    "9":"SET","09":"SET","SET":"SET","SETEMBRO":"SET",
+    "10":"OUT","OUT":"OUT","OUTUBRO":"OUT",
+    "11":"NOV","NOV":"NOV","NOVEMBRO":"NOV",
+    "12":"DEZ","DEZ":"DEZ","DEZEMBRO":"DEZ"
+  };
+
+  // Também reconhece formatos como "04 - ABR", "04/2026", "Abril/2026" etc.
+  for(const chave of Object.keys(mapa)){
+    if(semAcento === chave) return mapa[chave];
+  }
+  const numero = semAcento.match(/(?:^|\D)(0?[1-9]|1[0-2])(?:\D|$)/);
+  if(numero && mapa[numero[1]]) return mapa[numero[1]];
+
+  const nomes = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+  const encontrado = nomes.find(m => semAcento.includes(m));
+  return encontrado || bruto;
+}
+
 async function loadHistoryFilters(){
   try {
-    let [{ data: rawHist }, { data: rawBase }] = await Promise.all([
-      db.from(TABLE_NAME).select("mes, local, cultura").limit(1000),
-      db.from("base_dados").select("local, cultura").limit(1000)
+    // Não limitar a 1000: precisamos trazer todos os meses existentes no Supabase.
+    const [{ data: rawHist, error: histError }, { data: rawBase, error: baseError }] = await Promise.all([
+      db.from(TABLE_NAME).select("mes, local, cultura").range(0, 9999),
+      db.from("base_dados").select("local, cultura").range(0, 9999)
     ]);
-    
-    let allHist = rawHist || [];
-    let allBase = rawBase || [];
 
-    let recordedMonths = [...new Set(allHist.map(x => x.mes).filter(Boolean))];
-    let sortedMonths = ALL_MONTHS.filter(m => recordedMonths.includes(m));
-    if(sortedMonths.length === 0) sortedMonths = recordedMonths;
+    if(histError) throw histError;
+    if(baseError) throw baseError;
 
-    let locals = [...new Set([...allHist.map(x => x.local), ...allBase.map(x => x.local)].filter(Boolean))].sort();
-    let culturas = [...new Set([...allHist.map(x => x.cultura), ...allBase.map(x => x.cultura)].filter(Boolean))].sort();
+    const allHist = rawHist || [];
+    const allBase = rawBase || [];
 
-    let curMonth = v("dashMonth");
-    let curLocal = v("dashLocal");
-    let curCultura = v("dashCultura");
+    // Pega TODOS os valores diferentes que existem no banco.
+    // O valor real continua sendo usado no filtro, mas a exibição fica padronizada.
+    const monthMap = new Map();
+    allHist.forEach(x => {
+      const valorReal = String(x.mes ?? "").trim();
+      if(!valorReal) return;
+      const chave = normalizarMesFiltro(valorReal);
+      if(!monthMap.has(chave)) monthMap.set(chave, valorReal);
+    });
 
-    $("dashMonth").innerHTML = '<option value="">Todos os Meses</option>' + sortedMonths.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-    $("dashLocal").innerHTML = '<option value="">Todos os Locais</option>' + locals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-    $("dashCultura").innerHTML = '<option value="">Todas as Culturas</option>' + culturas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+    const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
+    const sortedMonths = [...monthMap.entries()]
+      .sort((a,b) => {
+        const oa = ordemMes[a[0]] ?? 99;
+        const ob = ordemMes[b[0]] ?? 99;
+        return oa - ob || a[1].localeCompare(b[1], 'pt-BR');
+      });
 
-    if (curMonth) $("dashMonth").value = curMonth;
-    if (curLocal) $("dashLocal").value = curLocal;
-    if (curCultura) $("dashCultura").value = curCultura;
+    const locals = [...new Set([...allHist.map(x => x.local), ...allBase.map(x => x.local)]
+      .map(x => String(x ?? '').trim()).filter(Boolean))]
+      .sort((a,b) => a.localeCompare(b,'pt-BR'));
+
+    const culturas = [...new Set([...allHist.map(x => x.cultura), ...allBase.map(x => x.cultura)]
+      .map(x => String(x ?? '').trim()).filter(Boolean))]
+      .sort((a,b) => a.localeCompare(b,'pt-BR'));
+
+    const curMonth = v("dashMonth");
+    const curLocal = v("dashLocal");
+    const curCultura = v("dashCultura");
+
+    $("dashMonth").innerHTML = '<option value="">Todos os Meses</option>' +
+      sortedMonths.map(([chave, valorReal]) => `<option value="${esc(valorReal)}">${esc(chave)}</option>`).join("");
+
+    $("dashLocal").innerHTML = '<option value="">Todos os Locais</option>' +
+      locals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+    $("dashCultura").innerHTML = '<option value="">Todas as Culturas</option>' +
+      culturas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+    if(curMonth && [...$("dashMonth").options].some(o => o.value === curMonth)) $("dashMonth").value = curMonth;
+    if(curLocal && [...$("dashLocal").options].some(o => o.value === curLocal)) $("dashLocal").value = curLocal;
+    if(curCultura && [...$("dashCultura").options].some(o => o.value === curCultura)) $("dashCultura").value = curCultura;
+
+    console.log("Filtros de meses encontrados no Supabase:", [...monthMap.values()]);
   } catch(e) {
     console.error("Erro ao carregar filtros do histórico:", e);
+    toast("Erro ao carregar filtros: " + (e.message || e));
   }
 }
 
 async function dashboard(){
-  let selMonth=v("dashMonth").trim();
-  let selLocal=v("dashLocal").trim();
-  let selCultura=v("dashCultura").trim();
+  let selMonth = v("dashMonth").trim();
+  let selLocal = v("dashLocal").trim();
+  let selCultura = v("dashCultura").trim();
 
-  // O HISTÓRICO é a fonte principal do Dashboard.
-  // A base_dados não é mais usada para esconder ou substituir auditorias já realizadas.
-  let { data: rawAudits, error } = await db
+  // O histórico é a fonte principal desta tela.
+  // Busca os registros diretamente em auditorias_historico.
+  let query = db
     .from(TABLE_NAME)
     .select("*")
-    .order("data_verificacao", { ascending: false });
+    .order("data_verificacao", { ascending: false })
+    .order("lote", { ascending: true })
+    .range(0, 9999);
+
+  if(selMonth) query = query.ilike("mes", selMonth);
+  if(selLocal) query = query.ilike("local", selLocal);
+  if(selCultura) query = query.ilike("cultura", selCultura);
+
+  let { data: rawAudits, error } = await query;
 
   if(error){
-    console.error("Erro ao carregar histórico:", error);
-    toast("Erro ao carregar histórico: " + error.message);
+    console.error("ERRO AO CONSULTAR auditorias_historico:", error);
+    toast("Erro ao consultar auditorias_historico: " + error.message);
+    dashData = [];
+    renderDashTable();
     return;
   }
 
-  // Aplica os filtros diretamente sobre o histórico.
-  dashData=(rawAudits||[]).filter(x=>{
-    if(selMonth && String(x.mes||"").trim().toUpperCase()!==selMonth.toUpperCase()) return false;
-    if(selLocal && String(x.local||"").trim().toUpperCase()!==selLocal.toUpperCase()) return false;
-    if(selCultura && String(x.cultura||"").trim().toUpperCase()!==selCultura.toUpperCase()) return false;
+  console.log("SUPABASE - auditorias_historico:", rawAudits);
+  console.log("SUPABASE - quantidade encontrada:", (rawAudits || []).length);
+
+  // Mantém uma segunda filtragem para evitar problemas de espaços/maiúsculas.
+  dashData = (rawAudits || []).filter(x => {
+    const mes = String(x.mes || "").trim().toUpperCase();
+    const local = String(x.local || "").trim().toUpperCase();
+    const cultura = String(x.cultura || "").trim().toUpperCase();
+
+    if(selMonth && mes !== selMonth.toUpperCase()) return false;
+    if(selLocal && local !== selLocal.toUpperCase()) return false;
+    if(selCultura && cultura !== selCultura.toUpperCase()) return false;
+
     return true;
   });
 
   await loadHistoryFilters();
 
-  let totLotes=dashData.length;
-  let auditados=dashData.filter(x=>x.qtd_fisica!==null && x.qtd_fisica!==undefined && x.qtd_fisica!=="").length;
-  let validados=dashData.filter(x=>String(x.status||"").toUpperCase()==="VALIDADO").length;
-  let divergencias=dashData.filter(x=>String(x.status||"").toUpperCase()==="DIVERGÊNCIA").length;
-  let pendentes=dashData.filter(x=>String(x.status||"").toUpperCase()==="PENDENTE" || !x.status).length;
+  let totLotes = dashData.length;
+  let auditados = dashData.filter(x =>
+    x.qtd_fisica !== null &&
+    x.qtd_fisica !== undefined &&
+    String(x.qtd_fisica).trim() !== ""
+  ).length;
 
-  // Acuracidade: entre as auditorias realizadas, percentual VALIDADO.
-  let accVal=auditados>0?((validados/auditados)*100).toFixed(1):"0.0";
+  let validados = dashData.filter(x =>
+    String(x.status || "").trim().toUpperCase() === "VALIDADO"
+  ).length;
 
-  $("tot").textContent=totLotes;
-  $("aud").textContent=auditados;
-  $("pen").textContent=pendentes;
-  $("val").textContent=validados;
-  $("acc").textContent=accVal+"%";
-  $("accBarTxt").textContent=accVal+"%";
-  $("accBar").style.width=accVal+"%";
+  let divergencias = dashData.filter(x =>
+    String(x.status || "").trim().toUpperCase() === "DIVERGÊNCIA"
+  ).length;
 
-  console.log("Histórico carregado:",dashData.length,"registros | Validados:",validados,"| Divergências:",divergencias);
+  let pendentes = dashData.filter(x =>
+    String(x.status || "").trim().toUpperCase() === "PENDENTE" ||
+    !x.status
+  ).length;
+
+  let accVal = auditados > 0
+    ? ((validados / auditados) * 100).toFixed(1)
+    : "0.0";
+
+  $("tot").textContent = totLotes;
+  $("aud").textContent = auditados;
+  $("pen").textContent = pendentes;
+  $("val").textContent = validados;
+  $("acc").textContent = accVal + "%";
+  $("accBarTxt").textContent = accVal + "%";
+  $("accBar").style.width = accVal + "%";
+
+  console.log(
+    "HISTÓRICO EXIBIDO:",
+    dashData.length,
+    "registros | Validados:",
+    validados,
+    "| Divergências:",
+    divergencias
+  );
 
   renderDashTable();
 }
+
 function renderDashTable(){
   let q=v("dashSearch").toUpperCase();
   filteredData=dashData.filter(x=>
@@ -732,11 +837,12 @@ async function start(){
   base=b||[];
   
   // Carrega todos os históricos do local.
-  // A data atual é usada para identificar a auditoria que está sendo editada,
-  // mas não limita o histórico disponível para a sessão.
+  // Não limita a consulta pela data atual.
   let {data:a,error:e}=await db.from(TABLE_NAME)
     .select("*")
-    .eq("local",meta.local);
+    .eq("local",meta.local)
+    .order("data_verificacao", { ascending: false })
+    .range(0, 9999);
   if(e) {
     btn.disabled = false;
     btn.textContent = "INICIAR CONFERÊNCIA";
@@ -761,7 +867,16 @@ function populateLotFilters(){
 }
 
 function render(){
-  let amap=new Map(audits.map(x=>[x.lote,x]));
+  // Na tela de conferência, usar somente a auditoria da data selecionada.
+  // Assim um histórico antigo não sobrescreve a conferência atual.
+  let amap=new Map(
+    audits
+      .filter(x =>
+        String(x.local || "") === String(meta.local || "") &&
+        String(x.data_verificacao || "") === String(meta.data_verificacao || "")
+      )
+      .map(x => [x.lote, x])
+  );
   let search=v("search").toUpperCase();
   let cult=v("lotCultura");
   let cv=v("lotCultivar");
@@ -817,7 +932,11 @@ function openConf(loteStr){
     <b>Qtd Sistema:</b> ${selected.qtd_sistema??"0"} ${esc(selected.um)}
   `;
 
-  let exist = audits.find(x=>x.lote===loteStr);
+  let exist = audits.find(x =>
+    x.lote === loteStr &&
+    String(x.local || "") === String(meta.local || "") &&
+    String(x.data_verificacao || "") === String(meta.data_verificacao || "")
+  );
   if(exist){
     set("catfis", exist.cat_fisica || selected.cat);
     set("etq", exist.etiqueta_fisica);
