@@ -313,7 +313,8 @@ const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
 const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const TABLE_NAME = "auditorias";
+// Nome exato da tabela de histórico no Supabase
+const TABLE_NAME = "auditorias_historico";
 const SIGLAS_TRATAMENTO_VALIDAS = ["SO", "SOIE", "FD", "FDIE", "FDIEAR", "FDIEVC", "FEIE", "ST"];
 
 let base=[], audits=[], dashData=[], filteredData=[], selected=null, meta={};
