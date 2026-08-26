@@ -351,7 +351,6 @@ function fecharModalImportacao() {
   $("input-excel").value = "";
 }
 
-// Converte letras de coluna em índice numérico de array 0-based
 function colParaIndice(colStr) {
   let col = colStr.trim().toUpperCase();
   let idx = 0;
@@ -361,13 +360,12 @@ function colParaIndice(colStr) {
   return idx - 1;
 }
 
-// Bloqueio por letras explícitas de colunas
 const LETRAS_COLUNAS_IGNORADAS = [
   "A", "P", "Q", "R", "S", "V", "W", "Y", "AD", 
   "AF", "AG", "AH", "AI", "AJ", "AK", "AL", "AM", "AN", "AO", "AP"
 ];
 const INDICES_IGNORADOS = new Set(LETRAS_COLUNAS_IGNORADAS.map(colParaIndice));
-const INDICE_CORTE_FINAL = colParaIndice("AQ"); // Ignora da coluna AQ em diante
+const INDICE_CORTE_FINAL = colParaIndice("AQ");
 
 async function processarEEnviarPlanilha() {
   const input = $("input-excel");
@@ -436,7 +434,6 @@ async function processarEEnviarPlanilha() {
 
         let colAE = 0;
 
-        // Varredura reversa pulando índices bloqueados
         for (let c = row.length - 1; c >= 0; c--) {
           if (INDICES_IGNORADOS.has(c) || c >= INDICE_CORTE_FINAL) {
             continue;
@@ -517,9 +514,9 @@ async function loadLocalsStart(){
 
 async function fetchAuditsByFilters(local, mes, cultura){
   let query = db.from(TABLE_NAME).select("*");
-  if(local) query = query.eq("local", local);
-  if(mes) query = query.eq("mes", mes);
-  if(cultura) query = query.eq("cultura", cultura);
+  if(local) query = query.ilike("local", local);
+  if(mes) query = query.ilike("mes", mes);
+  if(cultura) query = query.ilike("cultura", cultura);
   
   let { data, error } = await query;
   if(error) {
@@ -532,8 +529,8 @@ async function fetchAuditsByFilters(local, mes, cultura){
 
 async function fetchBaseByFilters(local, cultura){
   let query = db.from("base_dados").select("*");
-  if(local) query = query.eq("local", local);
-  if(cultura) query = query.eq("cultura", cultura);
+  if(local) query = query.ilike("local", local);
+  if(cultura) query = query.ilike("cultura", cultura);
 
   let { data, error } = await query;
   if(error) {
@@ -545,30 +542,42 @@ async function fetchBaseByFilters(local, cultura){
 }
 
 async function loadHistoryFilters(){
-  let { data: rawMonths } = await db.from(TABLE_NAME).select("mes, local, cultura");
-  let allData = rawMonths || [];
-  
-  let recordedMonths = new Set(allData.map(x=>x.mes).filter(Boolean));
-  let sortedMonths = ALL_MONTHS.filter(m => recordedMonths.has(m));
-  
-  let locals=[...new Set(allData.map(x=>x.local).filter(Boolean))].sort();
-  let culturas=[...new Set(allData.map(x=>x.cultura).filter(Boolean))].sort();
+  try {
+    let [{ data: rawHist }, { data: rawBase }] = await Promise.all([
+      db.from(TABLE_NAME).select("mes, local, cultura").limit(1000),
+      db.from("base_dados").select("local, cultura").limit(1000)
+    ]);
+    
+    let allHist = rawHist || [];
+    let allBase = rawBase || [];
 
-  let curMonth=v("dashMonth"), curLocal=v("dashLocal"), curCultura=v("dashCultura");
+    let recordedMonths = [...new Set(allHist.map(x => x.mes).filter(Boolean))];
+    let sortedMonths = ALL_MONTHS.filter(m => recordedMonths.includes(m));
+    if(sortedMonths.length === 0) sortedMonths = recordedMonths;
 
-  $("dashMonth").innerHTML='<option value="">Todos os Meses</option>'+sortedMonths.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-  $("dashLocal").innerHTML='<option value="">Todos os Locais</option>'+locals.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-  $("dashCultura").innerHTML='<option value="">Todas as Culturas</option>'+culturas.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+    let locals = [...new Set([...allHist.map(x => x.local), ...allBase.map(x => x.local)].filter(Boolean))].sort();
+    let culturas = [...new Set([...allHist.map(x => x.cultura), ...allBase.map(x => x.cultura)].filter(Boolean))].sort();
 
-  $("dashMonth").value=curMonth;
-  $("dashLocal").value=curLocal;
-  $("dashCultura").value=curCultura;
+    let curMonth = v("dashMonth");
+    let curLocal = v("dashLocal");
+    let curCultura = v("dashCultura");
+
+    $("dashMonth").innerHTML = '<option value="">Todos os Meses</option>' + sortedMonths.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+    $("dashLocal").innerHTML = '<option value="">Todos os Locais</option>' + locals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+    $("dashCultura").innerHTML = '<option value="">Todas as Culturas</option>' + culturas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+    if (curMonth) $("dashMonth").value = curMonth;
+    if (curLocal) $("dashLocal").value = curLocal;
+    if (curCultura) $("dashCultura").value = curCultura;
+  } catch(e) {
+    console.error("Erro ao carregar filtros do histórico:", e);
+  }
 }
 
 async function dashboard(){
-  let selMonth=v("dashMonth").toUpperCase().trim();
-  let selLocal=v("dashLocal").toUpperCase().trim();
-  let selCultura=v("dashCultura").toUpperCase().trim();
+  let selMonth=v("dashMonth").trim();
+  let selLocal=v("dashLocal").trim();
+  let selCultura=v("dashCultura").trim();
 
   let [rawAudits, rawBase] = await Promise.all([
     fetchAuditsByFilters(selLocal, selMonth, selCultura),
@@ -580,7 +589,7 @@ async function dashboard(){
 
   let combinedData = [];
 
-  if (selLocal) {
+  if (selLocal && rawBase.length > 0) {
     rawBase.forEach(b => {
       let auditKey = `${b.local}_${b.lote}_${selMonth}`;
       let a = auditsMap.get(auditKey);
@@ -607,11 +616,11 @@ async function dashboard(){
 
   await loadHistoryFilters();
 
-  dashData = combinedData.filter(audit => Number(audit.qtd_sistema) > 0);
+  dashData = combinedData;
 
   let totLotes = dashData.length;
   let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined).length;
-  let validados = dashData.filter(x => x.status === "VALIDADO").length;
+  let validados = dashData.filter(x => String(x.status).toUpperCase() === "VALIDADO").length;
   let pendentes = totLotes - auditados;
   
   let accVal = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) : "0.0";
@@ -630,7 +639,7 @@ async function dashboard(){
 function renderDashTable(){
   let q=v("dashSearch").toUpperCase();
   filteredData=dashData.filter(x=>
-    String(x.lote).toUpperCase().includes(q) || 
+    String(x.lote||"").toUpperCase().includes(q) || 
     String(x.cultivar||"").toUpperCase().includes(q) || 
     String(x.local||"").toUpperCase().includes(q) ||
     String(x.cultura||"").toUpperCase().includes(q) ||
@@ -638,7 +647,8 @@ function renderDashTable(){
   );
 
   $("dashTableBody").innerHTML=filteredData.map(x=>{
-    let cl=x.status==="VALIDADO"?"ok":x.status==="DIVERGÊNCIA"?"bad":x.status==="PENDENTE"?"warn":"muted";
+    let st = String(x.status||'').toUpperCase();
+    let cl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":st==="PENDENTE"?"warn":"muted";
     return `<tr>
       <td><b>${esc(x.mes)}</b></td>
       <td><b>${esc(x.lote)}</b></td>
@@ -766,67 +776,67 @@ function render(){
   let fSt=v("lotStatus").toUpperCase();
 
   let amap=new Map(audits.map(x=>[x.lote,x]));
-  let tot=base.length, aud=0, val=0;
 
-  let html=base.map(b=>{
-    let a=amap.get(b.lote);
-    let st=a?a.status:"PENDENTE";
-    if(a) aud++;
-    if(st==="VALIDADO") val++;
+  let listHtml=base.filter(x=>{
+    let a=amap.get(x.lote);
+    let st=a?.status||"PENDENTE";
+    let matchQ = String(x.lote).toUpperCase().includes(q) || String(x.cultivar||"").toUpperCase().includes(q);
+    let matchCul = !fCul || String(x.cultura||"").toUpperCase() === fCul;
+    let matchCv = !fCv || String(x.cultivar||"").toUpperCase() === fCv;
+    let matchSt = !fSt || String(st).toUpperCase() === fSt;
+    return matchQ && matchCul && matchCv && matchSt;
+  }).map(x=>{
+    let a=amap.get(x.lote);
+    let st=a?.status||"PENDENTE";
+    let cl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":"warn";
+    let divBorder = st==="DIVERGÊNCIA"?"divergent-border":"";
 
-    if(q && !String(b.lote).toUpperCase().includes(q)) return "";
-    if(fCul && String(b.cultura||"").toUpperCase()!==fCul) return "";
-    if(fCv && String(b.cultivar||"").toUpperCase()!==fCv) return "";
-    if(fSt && st!==fSt) return "";
-
-    let stCl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":"warn";
-    let divClass=st==="DIVERGÊNCIA"?"divergent-border":"";
-
-    return `<div class="lot ${divClass}" onclick="openConf('${esc(b.lote)}')">
-      <div><b>${esc(b.lote)}</b></div>
-      <div>${esc(b.cultivar||'—')} · ${esc(b.cat||'—')} · ${esc(b.pen||'—')}</div>
-      <div><b>${b.qtd_sistema}</b> ${esc(b.um||'')}</div>
-      <div><span class="${stCl}">${st}</span></div>
+    return `<div class="lot ${divBorder}" onclick="openConf('${esc(x.lote)}')">
+      <div><b>${esc(x.lote)}</b></div>
+      <div>${esc(x.cultivar||"")} · ${esc(x.cat||"")} · ${esc(x.pen||"")}</div>
+      <div>${x.qtd_sistema??"—"} ${esc(x.um||"")}</div>
+      <div><span class="${cl}">${esc(st)}</span></div>
     </div>`;
   }).join("");
 
-  $("list").innerHTML = html || '<div class="muted" style="padding:20px;text-align:center">Nenhum lote encontrado.</div>';
+  $("list").innerHTML = listHtml || '<div class="muted" style="text-align:center;padding:20px">Nenhum lote encontrado.</div>';
 
-  $("stot").textContent = tot;
-  $("saud").textContent = aud;
-  $("spen").textContent = tot - aud;
-  $("sval").textContent = val;
-  $("sacc").textContent = (aud > 0 ? ((val / aud) * 100).toFixed(1) : "0.0") + "%";
+  let tot=base.length;
+  let aud=audits.filter(x=>x.qtd_fisica!==null&&x.qtd_fisica!==undefined).length;
+  let val=audits.filter(x=>String(x.status).toUpperCase()==="VALIDADO").length;
+  let pen=tot-aud;
+  let acc=aud>0?((val/aud)*100).toFixed(1):"0.0";
+
+  $("stot").textContent=tot;
+  $("saud").textContent=aud;
+  $("spen").textContent=pen<0?0:pen;
+  $("sval").textContent=val;
+  $("sacc").textContent=acc+"%";
 }
 
 function openConf(loteStr){
-  selected = base.find(x => x.lote === loteStr);
-  if (!selected) return;
+  selected=base.find(x=>x.lote===loteStr);
+  if(!selected) return;
 
-  $("clote").textContent = selected.lote;
-  $("sys").innerHTML = `
-    <b>Cultivar:</b> ${esc(selected.cultivar||'—')} | <b>Cat:</b> ${esc(selected.cat||'—')} | <b>Penera:</b> ${esc(selected.pen||'—')}<br>
-    <b>Qtd Sistema:</b> ${selected.qtd_sistema} ${esc(selected.um||'')} | <b>Tratamento:</b> ${esc(selected.Tratamento||'—')}
+  let a=audits.find(x=>x.lote===loteStr);
+
+  $("clote").textContent=selected.lote;
+  $("sys").innerHTML=`
+    <b>Local:</b> ${esc(selected.local)} | <b>Cultura:</b> ${esc(selected.cultura)} | <b>Cultivar:</b> ${esc(selected.cultivar)}<br>
+    <b>Categoria Sis.:</b> ${esc(selected.cat)} | <b>Penera:</b> ${esc(selected.pen)} | <b>Qtd Sistema:</b> ${selected.qtd_sistema} ${esc(selected.um)}
   `;
 
-  let a = audits.find(x => x.lote === selected.lote);
-  if (a) {
-    set("catfis", a.cat_fisica);
-    set("etq", a.etiqueta_fisica);
-    set("qtd", a.qtd_fisica);
-    set("cam", a.camara);
-    set("quad", a.quadra);
-    set("fila", a.fileira);
-    set("obs", a.observacao);
+  set("catfis", a?.cat_fisica || selected.cat || "");
+  set("etq", a?.etiqueta_fisica || "");
+  set("qtd", a?.qtd_fisica ?? "");
+  set("cam", a?.camara || "");
+  set("quad", a?.quadra || "");
+  set("fila", a?.fileira || "");
+  set("obs", a?.observacao || "");
+
+  if(a) {
     $("btnDeleteConf").classList.remove("hidden");
   } else {
-    set("catfis", selected.cat);
-    set("etq", "");
-    set("qtd", "");
-    set("cam", "");
-    set("quad", "");
-    set("fila", "");
-    set("obs", "");
     $("btnDeleteConf").classList.add("hidden");
   }
 
@@ -835,21 +845,28 @@ function openConf(loteStr){
 
 function closeConf(){
   $("conf").classList.add("hidden");
-  selected = null;
+  selected=null;
 }
 
 async function save(){
-  if (!selected) return;
+  if(!selected) return;
 
-  let qtdFis = parseFloat(v("qtd"));
-  if (isNaN(qtdFis)) return toast("Informe a quantidade física.");
+  let qFis = v("qtd");
+  let numQFis = qFis !== "" ? parseFloat(qFis) : null;
+  let status = "PENDENTE";
 
-  let status = (qtdFis === Number(selected.qtd_sistema)) ? "VALIDADO" : "DIVERGÊNCIA";
+  if (numQFis !== null) {
+    if (numQFis === parseFloat(selected.qtd_sistema)) {
+      status = "VALIDADO";
+    } else {
+      status = "DIVERGÊNCIA";
+    }
+  }
 
   let record = {
     local: meta.local,
-    data_verificacao: meta.data_verificacao,
     mes: meta.mes,
+    data_verificacao: meta.data_verificacao,
     auditor_pcp: meta.auditor_pcp,
     auditor_unidade: meta.auditor_unidade,
     responsavel_ubs: meta.responsavel_ubs,
@@ -857,10 +874,10 @@ async function save(){
     cultura: selected.cultura,
     cultivar: selected.cultivar,
     cat: selected.cat,
+    qtd_sistema: selected.qtd_sistema,
     cat_fisica: v("catfis"),
     etiqueta_fisica: v("etq"),
-    qtd_sistema: selected.qtd_sistema,
-    qtd_fisica: qtdFis,
+    qtd_fisica: numQFis,
     camara: v("cam"),
     quadra: v("quad"),
     fileira: v("fila"),
@@ -868,43 +885,61 @@ async function save(){
     status: status
   };
 
-  let { error } = await db.from(TABLE_NAME).upsert(record, { onConflict: 'local,lote,data_verificacao' });
-  if (error) return toast("Erro ao salvar auditoria: " + error.message);
-
   let idx = audits.findIndex(x => x.lote === selected.lote);
-  if (idx >= 0) audits[idx] = record;
-  else audits.push(record);
+  if (idx >= 0) {
+    audits[idx] = { ...audits[idx], ...record };
+  } else {
+    audits.push(record);
+  }
 
-  toast("Lote conferido com sucesso!");
-  closeConf();
   render();
+  closeConf();
+  toast("Lote conferido localmente!");
 }
 
 async function deleteCurrentAuditHistory(){
-  if (!selected) return;
-  if (!confirm(`Deseja realmente excluir o histórico de auditoria do lote ${selected.lote}?`)) return;
+  if(!selected) return;
+  if(!confirm(`Deseja realmente excluir a auditoria do lote ${selected.lote}?`)) return;
 
   let { error } = await db.from(TABLE_NAME)
     .delete()
     .eq("local", meta.local)
-    .eq("lote", selected.lote)
-    .eq("data_verificacao", meta.data_verificacao);
+    .eq("data_verificacao", meta.data_verificacao)
+    .eq("lote", selected.lote);
 
-  if (error) return toast("Erro ao excluir histórico: " + error.message);
+  if(error) {
+    return toast("Erro ao excluir: " + error.message);
+  }
 
   audits = audits.filter(x => x.lote !== selected.lote);
-  toast("Histórico excluído com sucesso.");
-  closeConf();
   render();
+  closeConf();
+  toast("Histórico excluído com sucesso!");
 }
 
 async function saveFullSession(){
-  toast("Sessão sincronizada com o banco de dados.");
+  if(audits.length === 0) return toast("Nenhuma conferência para salvar.");
+
+  let btn = $("btnSaveTop");
+  btn.disabled = true;
+  btn.textContent = "Salvando...";
+
+  let { error } = await db.from(TABLE_NAME).upsert(audits, { onConflict: "local,data_verificacao,lote" });
+
+  btn.disabled = false;
+  btn.textContent = "💾 SALVAR REGISTRO/SESSÃO";
+
+  if(error) {
+    console.error("Erro ao salvar sessão:", error);
+    toast("Erro ao salvar no Supabase: " + error.message);
+  } else {
+    toast("Sessão salva com sucesso no Supabase!");
+  }
 }
 
 function openNewLotModal(){
   set("nl_local", meta.local || "");
-  set("nl_uf", "GO");
+  set("nl_uf", "");
   set("nl_filial", "");
   set("nl_deposito", "");
   set("nl_cultura", "");
@@ -926,38 +961,46 @@ function closeNewLotModal(){
 
 async function saveNewLot(){
   let lote = v("nl_lote").trim();
-  let local = v("nl_local").trim();
-  let qtd = parseFloat(v("nl_qtd_sistema"));
+  if(!lote) return alert("O campo Lote é obrigatório.");
 
-  if (!lote || !local) return toast("Preencha o local e o lote.");
-  if (isNaN(qtd)) qtd = 0;
-
-  let record = {
-    local: local,
+  let newRecord = {
+    local: v("nl_local"),
     uf: v("nl_uf"),
     filial: v("nl_filial"),
     deposito: v("nl_deposito"),
     cultura: v("nl_cultura"),
     lote: lote,
     cultivar: v("nl_cultivar"),
+    cod_produto: v("nl_cod_produto"),
+    nome_produto_erp: v("nl_nome_produto_erp"),
     cat: v("nl_cat"),
     pen: v("nl_pen"),
-    um: v("nl_um"),
-    qtd_sistema: qtd,
-    peso_etiqueta: parseFloat(v("nl_peso_etiqueta")) || null
+    um: v("nl_um") || "BAG",
+    qtd_sistema: parseFloat(v("nl_qtd_sistema")) || 0,
+    peso_etiqueta: v("nl_peso_etiqueta") ? parseFloat(v("nl_peso_etiqueta")) : null
   };
 
-  let { error } = await db.from("base_dados").upsert(record);
-  if (error) return toast("Erro ao cadastrar novo lote: " + error.message);
+  let btn = $("btnSaveNewLot");
+  btn.disabled = true;
+  btn.textContent = "Salvando...";
 
-  base.push(record);
-  populateLotFilters();
-  render();
-  closeNewLotModal();
-  toast("Novo lote inserido na base!");
+  let { error } = await db.from("base_dados").upsert([newRecord]);
+
+  btn.disabled = false;
+  btn.textContent = "SALVAR NOVO LOTE";
+
+  if(error) {
+    alert("Erro ao cadastrar lote: " + error.message);
+  } else {
+    toast("Novo lote cadastrado!");
+    closeNewLotModal();
+    base.push(newRecord);
+    populateLotFilters();
+    render();
+  }
 }
 
-window.onload = () => {
+window.onload = function(){
   dashboard();
 };
 </script>
