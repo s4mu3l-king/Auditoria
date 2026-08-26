@@ -77,9 +77,9 @@ table.data-table tr:hover{background:#f0f5f2}
 <div class="wrap">
 <div id="toast" class="toast hidden"></div>
 
+<!-- TELA 1: DASHBOARD -->
 <section id="home">
 <div class="top">
-  <button class="btn-import" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
   <button class="btn-import" onclick="go('start')">NOVA AUDITORIA</button>
 </div>
 
@@ -150,6 +150,7 @@ table.data-table tr:hover{background:#f0f5f2}
 </div>
 </section>
 
+<!-- TELA 2: FORMULÁRIO DE INÍCIO -->
 <section id="start" class="hidden">
   <div class="card">
     <h3>Iniciando Sessão de Auditoria</h3>
@@ -168,6 +169,7 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
 </section>
 
+<!-- TELA 3: SESSÃO DE CONFERÊNCIA ATIVA -->
 <section id="audit-session" class="hidden">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -222,6 +224,7 @@ let dashData=[], filteredData=[], rawAllAudits=[], activeAuditLotes=[];
 const $=id=>document.getElementById(id), v=id=>$(id).value;
 function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
 
+// FUNÇÃO DE TROCA DE TELAS (Home / Start / Audit-Session)
 function go(id){
   ["home","start","audit-session"].forEach(x=>$(x).classList.toggle("hidden",x!==id));
   if(id==="home") {
@@ -244,7 +247,6 @@ function normalizarTexto(valor){
 function normalizarMesFiltro(valor){
   if(!valor) return "";
   let txt = String(valor).trim().toUpperCase();
-
   const mapa = {
     "1":"JAN","01":"JAN","JAN":"JAN","JANEIRO":"JAN",
     "2":"FEV","02":"FEV","FEV":"FEV","FEVEREIRO":"FEV",
@@ -259,7 +261,6 @@ function normalizarMesFiltro(valor){
     "11":"NOV","NOV":"NOV","NOVEMBRO":"NOV",
     "12":"DEZ","DEZ":"DEZ","DEZEMBRO":"DEZ"
   };
-
   for(let key in mapa){
     if(txt.includes(key)) return mapa[key];
   }
@@ -307,7 +308,6 @@ async function fetchAllRows(tableName){
 function carregarOpcoesMeses(){
   const monthMap = new Set();
   rawAllAudits.forEach(x => { if(x.mes) monthMap.add(x.mes); });
-
   const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
   const sortedMonths = [...monthMap].sort((a,b) => (ordemMes[a] || 99) - (ordemMes[b] || 99));
 
@@ -381,6 +381,7 @@ async function prepararTelaNovaAuditoria(){
   atualizarMesPorData();
 }
 
+// EXECUTA A TRANSIÇÃO DE TELA E CARREGA OS LOTES
 function executarInicioAuditoria(){
   const localSel = v("local");
   const mesSel = v("month");
