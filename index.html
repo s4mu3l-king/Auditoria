@@ -45,9 +45,6 @@ table.data-table tr:hover{background:#f0f5f2}
 .filter-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8faf9;padding:14px;border-radius:10px;border:1px solid var(--line)}
 .table-header-tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px}
 
-.info-bar{display:flex;gap:20px;background:#f8faf9;padding:12px 16px;border-radius:8px;border:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap;font-size:14px}
-.info-bar span{display:flex;gap:6px}
-
 @media(max-width:800px){
   .grid,.kpis{grid-template-columns:1fr 1fr}
   .top{display:block}
@@ -77,10 +74,10 @@ table.data-table tr:hover{background:#f0f5f2}
 <div class="wrap">
 <div id="toast" class="toast hidden"></div>
 
-<!-- TELA 1: DASHBOARD -->
 <section id="home">
 <div class="top">
-  <button class="btn-import" onclick="go('start')">NOVA AUDITORIA</button>
+  <button class="btn-import" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
+  <button class="btn-import" onclick="iniciarNovaAuditoria()">NOVA AUDITORIA</button>
 </div>
 
 <div class="filter-box">
@@ -150,7 +147,6 @@ table.data-table tr:hover{background:#f0f5f2}
 </div>
 </section>
 
-<!-- TELA 2: FORMULÁRIO DE INÍCIO -->
 <section id="start" class="hidden">
   <div class="card">
     <h3>Iniciando Sessão de Auditoria</h3>
@@ -163,49 +159,8 @@ table.data-table tr:hover{background:#f0f5f2}
       <label>RESPONSÁVEL UBS<input id="ubs" placeholder="Nome do responsável"></label>
     </div>
     <div class="actions">
-      <button id="btnStartAudit" onclick="executarInicioAuditoria()">INICIAR CONFERÊNCIA</button>
+      <button id="btnStartAudit" onclick="toast('Conferência Iniciada!')">INICIAR CONFERÊNCIA</button>
       <button class="sec" onclick="go('home')">CANCELAR</button>
-    </div>
-  </div>
-</section>
-
-<!-- TELA 3: SESSÃO DE CONFERÊNCIA ATIVA -->
-<section id="audit-session" class="hidden">
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <h3>Sessão de Conferência em Andamento</h3>
-      <button class="sec" onclick="go('home')">VOLTAR AO DASHBOARD</button>
-    </div>
-    
-    <div class="info-bar">
-      <span><b>Local:</b> <div id="lblLocal">—</div></span>
-      <span><b>Data:</b> <div id="lblData">—</div></span>
-      <span><b>Mês:</b> <div id="lblMes">—</div></span>
-      <span><b>PCP:</b> <div id="lblPcp">—</div></span>
-      <span><b>Unidade:</b> <div id="lblAudun">—</div></span>
-    </div>
-
-    <div class="table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Lote</th>
-            <th>Cultura</th>
-            <th>Cultivar</th>
-            <th>Categoria</th>
-            <th>Qtd. Sistema</th>
-            <th>Qtd. Física (Contagem)</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="sessionTableBody">
-          <tr><td colspan="7" class="muted" style="text-align:center">Nenhum lote carregado.</td></tr>
-        </tbody>
-      </table>
-    </div>
-    
-    <div class="actions" style="margin-top:16px;">
-      <button onclick="salvarAuditoriaSessao()">FINALIZAR E SALVAR SESSÃO</button>
     </div>
   </div>
 </section>
@@ -219,19 +174,14 @@ const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const TABLE_NAME = "auditorias_historico";
-let dashData=[], filteredData=[], rawAllAudits=[], activeAuditLotes=[];
+let dashData=[], filteredData=[], rawAllAudits=[];
 
 const $=id=>document.getElementById(id), v=id=>$(id).value;
 function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
 
-// FUNÇÃO DE TROCA DE TELAS (Home / Start / Audit-Session)
 function go(id){
-  ["home","start","audit-session"].forEach(x=>$(x).classList.toggle("hidden",x!==id));
-  if(id==="home") {
-    dashboard();
-  } else if(id==="start") {
-    prepararTelaNovaAuditoria();
-  }
+  ["home","start"].forEach(x=>$(x).classList.toggle("hidden",x!==id));
+  if(id==="home") dashboard();
 }
 
 function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
@@ -247,6 +197,7 @@ function normalizarTexto(valor){
 function normalizarMesFiltro(valor){
   if(!valor) return "";
   let txt = String(valor).trim().toUpperCase();
+
   const mapa = {
     "1":"JAN","01":"JAN","JAN":"JAN","JANEIRO":"JAN",
     "2":"FEV","02":"FEV","FEV":"FEV","FEVEREIRO":"FEV",
@@ -261,6 +212,7 @@ function normalizarMesFiltro(valor){
     "11":"NOV","NOV":"NOV","NOVEMBRO":"NOV",
     "12":"DEZ","DEZ":"DEZ","DEZEMBRO":"DEZ"
   };
+
   for(let key in mapa){
     if(txt.includes(key)) return mapa[key];
   }
@@ -269,7 +221,6 @@ function normalizarMesFiltro(valor){
 
 function extrairCampos(item){
   return {
-    id: item.id || null,
     mes: normalizarMesFiltro(item.mes || item.mes_auditoria || item.mes_conferencia || ""),
     lote: item.lote || item.numero_lote || "—",
     local: String(item.local || item.unidade || item.local_unidade || "").trim(),
@@ -308,6 +259,7 @@ async function fetchAllRows(tableName){
 function carregarOpcoesMeses(){
   const monthMap = new Set();
   rawAllAudits.forEach(x => { if(x.mes) monthMap.add(x.mes); });
+
   const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
   const sortedMonths = [...monthMap].sort((a,b) => (ordemMes[a] || 99) - (ordemMes[b] || 99));
 
@@ -348,92 +300,27 @@ function onMonthChange(){
   dashboard();
 }
 
-function atualizarMesPorData(){
-  const dataVal = $("date").value;
-  if(!dataVal){
-    $("month").value = "";
-    return;
-  }
-  const partes = dataVal.split("-");
-  if(partes.length === 3){
-    const mesNum = parseInt(partes[1], 10);
-    const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-    $("month").value = meses[mesNum - 1] || "";
-  }
-}
-
-async function prepararTelaNovaAuditoria(){
+async function iniciarNovaAuditoria(){
   if(rawAllAudits.length === 0){
     rawAllAudits = await fetchAllRows(TABLE_NAME);
   }
 
   const localsMap = new Set();
   rawAllAudits.forEach(x => { if(x.local) localsMap.add(x.local); });
+
   const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
-  
+
   $("local").innerHTML = '<option value="">Selecione o local...</option>' +
     sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
 
-  if(!$("date").value){
-    const hoj = new Date().toISOString().slice(0,10);
-    $("date").value = hoj;
-  }
-  atualizarMesPorData();
-}
+  const hoj = new Date().toISOString().slice(0,10);
+  $("date").value = hoj;
 
-// EXECUTA A TRANSIÇÃO DE TELA E CARREGA OS LOTES
-function executarInicioAuditoria(){
-  const localSel = v("local");
-  const mesSel = v("month");
+  const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+  const mesAtualNum = new Date().getMonth();
+  $("month").value = meses[mesAtualNum];
 
-  if(!localSel){
-    return toast("Por favor, selecione um Local!");
-  }
-
-  $("lblLocal").textContent = localSel;
-  $("lblData").textContent = v("date");
-  $("lblMes").textContent = mesSel;
-  $("lblPcp").textContent = v("pcp") || "—";
-  $("lblAudun").textContent = v("audun") || "—";
-
-  const localNorm = normalizarTexto(localSel);
-  const mesNorm = normalizarMesFiltro(mesSel);
-
-  activeAuditLotes = rawAllAudits.filter(x => {
-    const locItem = normalizarTexto(x.local);
-    const mesItem = normalizarMesFiltro(x.mes);
-    return locItem === localNorm && (!mesNorm || mesItem === mesNorm);
-  });
-
-  renderSessionTable();
-  go("audit-session");
-  toast("Sessão iniciada com sucesso!");
-}
-
-function renderSessionTable(){
-  if(activeAuditLotes.length === 0){
-    $("sessionTableBody").innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center">Nenhum lote encontrado para esta combinação de Local e Mês.</td></tr>';
-    return;
-  }
-
-  $("sessionTableBody").innerHTML = activeAuditLotes.map((x, i) => `
-    <tr>
-      <td><b>${esc(x.lote)}</b></td>
-      <td>${esc(x.cultura)}</td>
-      <td>${esc(x.cultivar)}</td>
-      <td>${esc(x.cat)}</td>
-      <td>${x.qtd_sistema ?? "—"}</td>
-      <td>
-        <input type="number" style="width:120px;padding:6px 10px;" value="${x.qtd_fisica ?? ''}" oninput="activeAuditLotes[${i}].qtd_fisica = this.value">
-      </td>
-      <td><span>${esc(x.status)}</span></td>
-    </tr>
-  `).join("");
-}
-
-function salvarAuditoriaSessao(){
-  toast("Contagens gravadas com sucesso!");
-  go("home");
+  go('start');
 }
 
 async function dashboard(){
@@ -521,12 +408,7 @@ function exportToCSV(){
   link.click();
 }
 
-window.onload = function(){
-  $("date").addEventListener("input", atualizarMesPorData);
-  $("date").addEventListener("change", atualizarMesPorData);
-  
-  dashboard();
-};
+window.onload = dashboard;
 </script>
 </body>
 </html>
