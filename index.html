@@ -578,63 +578,50 @@ async function dashboard(){
   let selLocal=v("dashLocal").trim();
   let selCultura=v("dashCultura").trim();
 
-  let [rawAudits, rawBase] = await Promise.all([
-    fetchAuditsByFilters(selLocal, selMonth, selCultura),
-    fetchBaseByFilters(selLocal, selCultura)
-  ]);
+  // O HISTÓRICO é a fonte principal do Dashboard.
+  // A base_dados não é mais usada para esconder ou substituir auditorias já realizadas.
+  let { data: rawAudits, error } = await db
+    .from(TABLE_NAME)
+    .select("*")
+    .order("data_verificacao", { ascending: false });
 
-  let auditsMap = new Map();
-  rawAudits.forEach(a => auditsMap.set(`${a.local}_${a.lote}_${a.mes}`, a));
-
-  let combinedData = [];
-
-  if (selLocal && rawBase.length > 0) {
-    rawBase.forEach(b => {
-      let auditKey = `${b.local}_${b.lote}_${selMonth}`;
-      let a = auditsMap.get(auditKey);
-      combinedData.push({
-        mes: a?.mes || selMonth || "—",
-        lote: b.lote,
-        local: b.local,
-        cultura: b.cultura,
-        cultivar: b.cultivar,
-        cat: b.cat,
-        qtd_sistema: b.qtd_sistema,
-        qtd_fisica: a?.qtd_fisica ?? null,
-        status: a?.status || "PENDENTE",
-        data_verificacao: a?.data_verificacao || null,
-        auditor_pcp: a?.auditor_pcp || null,
-        auditor_unidade: a?.auditor_unidade || null,
-        responsavel_ubs: a?.responsavel_ubs || null,
-        observacao: a?.observacao || null
-      });
-    });
-  } else {
-    combinedData = rawAudits;
+  if(error){
+    console.error("Erro ao carregar histórico:", error);
+    toast("Erro ao carregar histórico: " + error.message);
+    return;
   }
+
+  // Aplica os filtros diretamente sobre o histórico.
+  dashData=(rawAudits||[]).filter(x=>{
+    if(selMonth && String(x.mes||"").trim().toUpperCase()!==selMonth.toUpperCase()) return false;
+    if(selLocal && String(x.local||"").trim().toUpperCase()!==selLocal.toUpperCase()) return false;
+    if(selCultura && String(x.cultura||"").trim().toUpperCase()!==selCultura.toUpperCase()) return false;
+    return true;
+  });
 
   await loadHistoryFilters();
 
-  dashData = combinedData;
+  let totLotes=dashData.length;
+  let auditados=dashData.filter(x=>x.qtd_fisica!==null && x.qtd_fisica!==undefined && x.qtd_fisica!=="").length;
+  let validados=dashData.filter(x=>String(x.status||"").toUpperCase()==="VALIDADO").length;
+  let divergencias=dashData.filter(x=>String(x.status||"").toUpperCase()==="DIVERGÊNCIA").length;
+  let pendentes=dashData.filter(x=>String(x.status||"").toUpperCase()==="PENDENTE" || !x.status).length;
 
-  let totLotes = dashData.length;
-  let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined).length;
-  let validados = dashData.filter(x => String(x.status).toUpperCase() === "VALIDADO").length;
-  let pendentes = totLotes - auditados;
-  
-  let accVal = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) : "0.0";
+  // Acuracidade: entre as auditorias realizadas, percentual VALIDADO.
+  let accVal=auditados>0?((validados/auditados)*100).toFixed(1):"0.0";
 
-  $("tot").textContent = totLotes;
-  $("aud").textContent = auditados;
-  $("pen").textContent = pendentes < 0 ? 0 : pendentes;
-  $("val").textContent = validados;
-  $("acc").textContent = accVal + "%";
-  $("accBarTxt").textContent = accVal + "%";
-  $("accBar").style.width = accVal + "%";
+  $("tot").textContent=totLotes;
+  $("aud").textContent=auditados;
+  $("pen").textContent=pendentes;
+  $("val").textContent=validados;
+  $("acc").textContent=accVal+"%";
+  $("accBarTxt").textContent=accVal+"%";
+  $("accBar").style.width=accVal+"%";
+
+  console.log("Histórico carregado:",dashData.length,"registros | Validados:",validados,"| Divergências:",divergencias);
 
   renderDashTable();
 }
-
 function renderDashTable(){
   let q=v("dashSearch").toUpperCase();
   filteredData=dashData.filter(x=>
@@ -679,7 +666,10 @@ function exportToCSV(){
 }
 
 function exportLocalAuditsCSV(){
-  let amap=new Map(audits.map(x=>[x.lote,x]));
+  // Para a tela de conferência, prioriza a auditoria da data atual.
+  // Se houver registros antigos do mesmo lote, eles não substituem o registro atual.
+  let auditsDaData=audits.filter(x=>x.data_verificacao===meta.data_verificacao);
+  let amap=new Map(auditsDaData.map(x=>[x.lote,x]));
   let exportRows = base.map(x=>{
     let a=amap.get(x.lote);
     return {
@@ -741,10 +731,12 @@ async function start(){
   }
   base=b||[];
   
+  // Carrega todos os históricos do local.
+  // A data atual é usada para identificar a auditoria que está sendo editada,
+  // mas não limita o histórico disponível para a sessão.
   let {data:a,error:e}=await db.from(TABLE_NAME)
     .select("*")
-    .eq("local",meta.local)
-    .eq("data_verificacao",meta.data_verificacao);
+    .eq("local",meta.local);
   if(e) {
     btn.disabled = false;
     btn.textContent = "INICIAR CONFERÊNCIA";
@@ -891,7 +883,7 @@ async function save(){
     toast("Erro ao salvar: " + error.message);
   } else {
     toast("Lote conferido com sucesso!");
-    let idx = audits.findIndex(x=>x.lote===selected.lote);
+    let idx = audits.findIndex(x=>x.lote===selected.lote && x.data_verificacao===meta.data_verificacao && x.local===meta.local);
     if(idx>=0) audits[idx] = payload;
     else audits.push(payload);
     
@@ -914,7 +906,7 @@ async function deleteCurrentAuditHistory(){
     toast("Erro ao excluir: " + error.message);
   } else {
     toast("Histórico excluído.");
-    audits = audits.filter(x=>x.lote!==selected.lote);
+    audits = audits.filter(x=>!(x.lote===selected.lote && x.data_verificacao===meta.data_verificacao && x.local===meta.local));
     closeConf();
     render();
   }
