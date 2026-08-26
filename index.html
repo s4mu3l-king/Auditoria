@@ -25,14 +25,13 @@ button:hover{opacity:0.9}
 button:disabled{opacity:0.6;cursor:not-allowed}
 .sec{background:#e8eeea;color:var(--g2)}
 .btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
-.btn-import{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px;border:1px solid #2ecc71}
 .btn-save-top{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 16px;border:1px solid #2ecc71}
 .btn-newlot{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
 .btn-danger{background:var(--bad);color:#fff}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .muted{color:var(--muted)}
 .hidden{display:none !important}
-.top{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-bottom:16px}
+.top{display:flex;justify-flex:flex-end;gap:12px;align-items:center;margin-bottom:16px}
 .lot{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:9px;margin:7px 0;background:#fff;align-items:center;cursor:pointer;transition:border-color 0.2s}
 .lot:hover{border-color:var(--g)}
 .lot.divergent-border{border-left:5px solid var(--bad)}
@@ -90,7 +89,6 @@ table.data-table tr:hover{background:#f0f5f2}
 
 <section id="home">
 <div class="top">
-  <button class="btn-import" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
   <button onclick="go('start')">NOVA AUDITORIA</button>
 </div>
 
@@ -264,20 +262,6 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
 </section>
 
-<!-- Modal de Importação de Planilha -->
-<div id="modal-importacao" class="modal-backdrop hidden">
-  <div class="modal-box">
-    <h3>📥 Importar Planilha de Dados</h3>
-    <label style="margin-top:12px">SELECIONE A PLANILHA (.XLSX / .CSV)</label>
-    <input type="file" id="input-excel" accept=".xlsx, .xls, .csv" style="margin-top:6px" />
-    <div id="status-importacao" style="margin-top:15px; font-weight:bold; color:var(--g)"></div>
-    <div class="actions" style="margin-top:20px; justify-content:flex-end">
-      <button onclick="processarEEnviarPlanilha()" style="background:var(--g)">Processar e Salvar</button>
-      <button onclick="fecharModalImportacao()" class="sec">Cancelar</button>
-    </div>
-  </div>
-</div>
-
 <div id="newLotModal" class="modal-backdrop hidden">
   <div class="modal-box">
     <h3>➕ Cadastrar Novo Lote na Base</h3>
@@ -313,7 +297,6 @@ const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const TABLE_NAME = "auditorias_historico";
-const SIGLAS_TRATAMENTO_VALIDAS = ["TSI", "ST", "FT", "IN", "FUN", "GRAO", "TRAT", "SO", "SOIE", "FD", "FDIE", "FDIEAR", "FDIEVC", "FEIE"];
 
 let base=[], audits=[], dashData=[], filteredData=[], selected=null, meta={};
 
@@ -337,172 +320,6 @@ function month(){
 }
 
 $("date").value=new Date().toISOString().slice(0,10);$("month").value=month();$("date").onchange=()=>set("month",month());
-
-/* MODAL E IMPORTAÇÃO DE PLANILHA */
-function abrirModalImportacao() {
-  $("modal-importacao").classList.remove("hidden");
-  $("status-importacao").innerText = "";
-  $("input-excel").value = "";
-}
-
-function fecharModalImportacao() {
-  $("modal-importacao").classList.add("hidden");
-  $("input-excel").value = "";
-}
-
-function colParaIndice(colStr) {
-  let col = colStr.trim().toUpperCase();
-  let idx = 0;
-  for (let i = 0; i < col.length; i++) {
-    idx = idx * 26 + (col.charCodeAt(i) - 64);
-  }
-  return idx - 1;
-}
-
-const LETRAS_COLUNAS_IGNORADAS = [
-  "A", "P", "Q", "R", "S", "V", "W", "Y", "AD", 
-  "AF", "AG", "AH", "AI", "AJ", "AK", "AL", "AM", "AN", "AO", "AP"
-];
-const INDICES_IGNORADOS = new Set(LETRAS_COLUNAS_IGNORADAS.map(colParaIndice));
-const INDICE_CORTE_FINAL = colParaIndice("AQ");
-
-async function processarEEnviarPlanilha() {
-  const input = $("input-excel");
-  const divStatus = $("status-importacao");
-
-  if (!input.files || input.files.length === 0) {
-    return alert("Por favor, selecione um arquivo de planilha.");
-  }
-
-  const file = input.files[0];
-  divStatus.innerText = "Lendo e validando dados da planilha...";
-
-  const reader = new FileReader();
-  reader.onload = async function (e) {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      
-      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-      if (rows.length < 2) {
-        divStatus.innerText = "❌ A planilha precisa ter ao menos cabeçalho e linhas de dados.";
-        return;
-      }
-
-      const parseNumStrict = (val) => {
-        if (typeof val === "number") return isNaN(val) ? 0 : val;
-        if (!val) return 0;
-        let s = String(val).trim();
-        
-        if (s.includes("/") || /[a-zA-Z]/.test(s)) return 0;
-        
-        s = s.replace(/[^0-9.,-]/g, "");
-        if (!s) return 0;
-
-        if (s.includes(",") && s.includes(".")) {
-          s = s.replace(/\./g, "").replace(",", ".");
-        } else if (s.includes(",")) {
-          s = s.replace(",", ".");
-        }
-
-        const n = parseFloat(s);
-        return isNaN(n) ? 0 : n;
-      };
-
-      const registrosParaInserir = [];
-
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.length === 0) continue;
-
-        const getColVal = (idx) => (idx >= 0 && row[idx] !== undefined) ? String(row[idx]).trim() : "";
-
-        const filial = getColVal(0);              // A
-        const colB = getColVal(1);                // B
-        const colC = getColVal(2);                // C
-        const deposito = getColVal(3);            // D
-        const cultura = getColVal(4) || getColVal(5); // E ou F
-        const colI = getColVal(8);                // I
-        const lote = getColVal(9) || getColVal(8) || getColVal(7); // J (ou I/H)
-        const cat = getColVal(10);                // K
-        const pen = getColVal(11);                // L
-        const um = getColVal(12) || "BAG";        // M
-
-        let colAE = 0;
-
-        for (let c = row.length - 1; c >= 0; c--) {
-          if (INDICES_IGNORADOS.has(c) || c >= INDICE_CORTE_FINAL) {
-            continue;
-          }
-
-          let numCandidate = parseNumStrict(row[c]);
-          if (numCandidate > 0) {
-            colAE = numCandidate;
-            break;
-          }
-        }
-
-        if (!lote || colAE <= 0) continue;
-
-        let localFinal = "";
-        let ufFinal = "";
-        if (colB === "0101" && colC === "10") {
-          localFinal = "UBS I"; ufFinal = "GO";
-        } else if (colB === "102" && colC === "10") {
-          localFinal = "LPCO"; ufFinal = "GO";
-        } else if (colB.includes("BJ") || colC.includes("BJ")) {
-          localFinal = "BJ"; ufFinal = "MG";
-        } else if (colB.includes("AGROSEMEAR") || colC.includes("AGROSEMEAR")) {
-          localFinal = "AGROSEMEAR"; ufFinal = "MT";
-        } else {
-          localFinal = colB || colC || "GERAL"; ufFinal = "GO";
-        }
-
-        const partesTratamento = colI.split(/\s+/);
-        const ultimaSigla = partesTratamento[partesTratamento.length - 1].toUpperCase();
-        const tratamentoFinal = SIGLAS_TRATAMENTO_VALIDAS.includes(ultimaSigla) ? ultimaSigla : "ST";
-
-        registrosParaInserir.push({
-          local: localFinal,
-          uf: ufFinal,
-          filial: filial,
-          deposito: deposito,
-          cultura: cultura,
-          lote: lote,
-          cultivar: cultura,
-          Tratamento: tratamentoFinal,
-          cat: cat,
-          pen: pen,
-          um: um,
-          qtd_sistema: colAE,
-          peso_etiqueta: null
-        });
-      }
-
-      if (registrosParaInserir.length === 0) {
-        divStatus.innerText = "⚠️ Nenhum registro válido encontrado com quantidade numérica > 0.";
-        return;
-      }
-
-      divStatus.innerText = `Salvando ${registrosParaInserir.length} registros no Supabase...`;
-
-      const { error } = await db.from('base_dados').upsert(registrosParaInserir);
-      if (error) throw error;
-
-      divStatus.innerText = "✅ Importação concluída com sucesso!";
-      await dashboard();
-
-      setTimeout(() => { fecharModalImportacao(); }, 1500);
-    } catch (err) {
-      console.error(err);
-      divStatus.innerText = "❌ Erro ao processar planilha: " + err.message;
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
 
 async function loadLocalsStart(){
   let {data,error}=await db.from("base_dados").select("local").order("local");
@@ -578,50 +395,63 @@ async function dashboard(){
   let selLocal=v("dashLocal").trim();
   let selCultura=v("dashCultura").trim();
 
-  // O HISTÓRICO é a fonte principal do Dashboard.
-  // A base_dados não é mais usada para esconder ou substituir auditorias já realizadas.
-  let { data: rawAudits, error } = await db
-    .from(TABLE_NAME)
-    .select("*")
-    .order("data_verificacao", { ascending: false });
+  let [rawAudits, rawBase] = await Promise.all([
+    fetchAuditsByFilters(selLocal, selMonth, selCultura),
+    fetchBaseByFilters(selLocal, selCultura)
+  ]);
 
-  if(error){
-    console.error("Erro ao carregar histórico:", error);
-    toast("Erro ao carregar histórico: " + error.message);
-    return;
+  let auditsMap = new Map();
+  rawAudits.forEach(a => auditsMap.set(`${a.local}_${a.lote}_${a.mes}`, a));
+
+  let combinedData = [];
+
+  if (selLocal && rawBase.length > 0) {
+    rawBase.forEach(b => {
+      let auditKey = `${b.local}_${b.lote}_${selMonth}`;
+      let a = auditsMap.get(auditKey);
+      combinedData.push({
+        mes: a?.mes || selMonth || "—",
+        lote: b.lote,
+        local: b.local,
+        cultura: b.cultura,
+        cultivar: b.cultivar,
+        cat: b.cat,
+        qtd_sistema: b.qtd_sistema,
+        qtd_fisica: a?.qtd_fisica ?? null,
+        status: a?.status || "PENDENTE",
+        data_verificacao: a?.data_verificacao || null,
+        auditor_pcp: a?.auditor_pcp || null,
+        auditor_unidade: a?.auditor_unidade || null,
+        responsavel_ubs: a?.responsavel_ubs || null,
+        observacao: a?.observacao || null
+      });
+    });
+  } else {
+    combinedData = rawAudits;
   }
-
-  // Aplica os filtros diretamente sobre o histórico.
-  dashData=(rawAudits||[]).filter(x=>{
-    if(selMonth && String(x.mes||"").trim().toUpperCase()!==selMonth.toUpperCase()) return false;
-    if(selLocal && String(x.local||"").trim().toUpperCase()!==selLocal.toUpperCase()) return false;
-    if(selCultura && String(x.cultura||"").trim().toUpperCase()!==selCultura.toUpperCase()) return false;
-    return true;
-  });
 
   await loadHistoryFilters();
 
-  let totLotes=dashData.length;
-  let auditados=dashData.filter(x=>x.qtd_fisica!==null && x.qtd_fisica!==undefined && x.qtd_fisica!=="").length;
-  let validados=dashData.filter(x=>String(x.status||"").toUpperCase()==="VALIDADO").length;
-  let divergencias=dashData.filter(x=>String(x.status||"").toUpperCase()==="DIVERGÊNCIA").length;
-  let pendentes=dashData.filter(x=>String(x.status||"").toUpperCase()==="PENDENTE" || !x.status).length;
+  dashData = combinedData;
 
-  // Acuracidade: entre as auditorias realizadas, percentual VALIDADO.
-  let accVal=auditados>0?((validados/auditados)*100).toFixed(1):"0.0";
+  let totLotes = dashData.length;
+  let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined).length;
+  let validados = dashData.filter(x => String(x.status).toUpperCase() === "VALIDADO").length;
+  let pendentes = totLotes - auditados;
+  
+  let accVal = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) : "0.0";
 
-  $("tot").textContent=totLotes;
-  $("aud").textContent=auditados;
-  $("pen").textContent=pendentes;
-  $("val").textContent=validados;
-  $("acc").textContent=accVal+"%";
-  $("accBarTxt").textContent=accVal+"%";
-  $("accBar").style.width=accVal+"%";
-
-  console.log("Histórico carregado:",dashData.length,"registros | Validados:",validados,"| Divergências:",divergencias);
+  $("tot").textContent = totLotes;
+  $("aud").textContent = auditados;
+  $("pen").textContent = pendentes < 0 ? 0 : pendentes;
+  $("val").textContent = validados;
+  $("acc").textContent = accVal + "%";
+  $("accBarTxt").textContent = accVal + "%";
+  $("accBar").style.width = accVal + "%";
 
   renderDashTable();
 }
+
 function renderDashTable(){
   let q=v("dashSearch").toUpperCase();
   filteredData=dashData.filter(x=>
@@ -666,10 +496,7 @@ function exportToCSV(){
 }
 
 function exportLocalAuditsCSV(){
-  // Para a tela de conferência, prioriza a auditoria da data atual.
-  // Se houver registros antigos do mesmo lote, eles não substituem o registro atual.
-  let auditsDaData=audits.filter(x=>x.data_verificacao===meta.data_verificacao);
-  let amap=new Map(auditsDaData.map(x=>[x.lote,x]));
+  let amap=new Map(audits.map(x=>[x.lote,x]));
   let exportRows = base.map(x=>{
     let a=amap.get(x.lote);
     return {
@@ -731,12 +558,10 @@ async function start(){
   }
   base=b||[];
   
-  // Carrega todos os históricos do local.
-  // A data atual é usada para identificar a auditoria que está sendo editada,
-  // mas não limita o histórico disponível para a sessão.
   let {data:a,error:e}=await db.from(TABLE_NAME)
     .select("*")
-    .eq("local",meta.local);
+    .eq("local",meta.local)
+    .eq("data_verificacao",meta.data_verificacao);
   if(e) {
     btn.disabled = false;
     btn.textContent = "INICIAR CONFERÊNCIA";
@@ -883,7 +708,7 @@ async function save(){
     toast("Erro ao salvar: " + error.message);
   } else {
     toast("Lote conferido com sucesso!");
-    let idx = audits.findIndex(x=>x.lote===selected.lote && x.data_verificacao===meta.data_verificacao && x.local===meta.local);
+    let idx = audits.findIndex(x=>x.lote===selected.lote);
     if(idx>=0) audits[idx] = payload;
     else audits.push(payload);
     
@@ -906,7 +731,7 @@ async function deleteCurrentAuditHistory(){
     toast("Erro ao excluir: " + error.message);
   } else {
     toast("Histórico excluído.");
-    audits = audits.filter(x=>!(x.lote===selected.lote && x.data_verificacao===meta.data_verificacao && x.local===meta.local));
+    audits = audits.filter(x=>x.lote!==selected.lote);
     closeConf();
     render();
   }
@@ -968,7 +793,6 @@ async function saveNewLot(){
   }
 }
 
-// Inicializa a consulta assim que a página é totalmente carregada
 document.addEventListener("DOMContentLoaded", () => {
   dashboard();
 });
