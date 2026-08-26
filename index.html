@@ -1,311 +1,3 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Auditoria de Conferência</title>
-<!-- Lib para leitura de arquivos Excel (.xlsx / .csv) no navegador -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<style>
-:root{--g:#145c3a;--g2:#0d442b;--bg:#f3f6f4;--card:#fff;--line:#dce5df;--text:#17231d;--muted:#66736c;--ok:#16804a;--bad:#b3261e;--warn:#a76b00}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
-header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
-.wrap{max-width:1250px;margin:auto;padding:22px 16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 15px #0000000a}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}
-.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
-.kpi b{display:block;font-size:26px;margin-top:4px}
-label{font-size:12px;font-weight:bold;color:#59655f;display:block;margin-bottom:6px}
-input,select,textarea{width:100%;padding:12px;border:1px solid #cbd6cf;border-radius:8px;font-size:15px;background:#fff;transition:border-color 0.2s}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
-textarea{min-height:80px}
-button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer;transition:background 0.2s, opacity 0.2s}
-button:hover{opacity:0.9}
-button:disabled{opacity:0.6;cursor:not-allowed}
-.sec{background:#e8eeea;color:var(--g2)}
-.btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
-.btn-import{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px;border:1px solid #2ecc71}
-.btn-save-top{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 16px;border:1px solid #2ecc71}
-.btn-newlot{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
-.btn-danger{background:var(--bad);color:#fff}
-.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
-.muted{color:var(--muted)}
-.hidden{display:none !important}
-.top{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-bottom:16px}
-.lot{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:9px;margin:7px 0;background:#fff;align-items:center;cursor:pointer;transition:border-color 0.2s}
-.lot:hover{border-color:var(--g)}
-.lot.divergent-border{border-left:5px solid var(--bad)}
-.ok{color:var(--ok);font-weight:bold}
-.bad{color:var(--bad);font-weight:bold}
-.warn{color:var(--warn);font-weight:bold}
-.toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
-.system{line-height:1.8;background:#f7f9f8;padding:12px;border-radius:8px}
-.brand-container{display:flex;align-items:center;gap:14px}
-.logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
-.logo-img{height:46px;width:auto;object-fit:contain}
-.progress-bg{width:100%;background:#e2e9e4;height:24px;border-radius:12px;overflow:hidden;margin-top:10px;position:relative}
-.progress-fill{height:100%;background:linear-gradient(90deg, #16804a, #2ecc71);width:0%;transition:width 0.5s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#fff;font-size:12px;font-weight:bold}
-.table-container{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:8px}
-table.data-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
-table.data-table th{background:var(--g);color:#fff;padding:10px 12px;white-space:nowrap}
-table.data-table td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
-table.data-table tr:hover{background:#f0f5f2}
-.filter-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8faf9;padding:14px;border-radius:10px;border:1px solid var(--line)}
-.table-header-tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px}
-.lot-header{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:10px 12px;background:var(--g);color:#fff;font-weight:bold;font-size:13px;border-radius:8px;margin-bottom:8px}
-.modal-backdrop{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999}
-.modal-box{background:#fff;border-radius:12px;padding:22px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 5px 25px rgba(0,0,0,0.2)}
-
-@media(max-width:800px){
-  .grid,.kpis{grid-template-columns:1fr 1fr}
-  .lot,.lot-header{grid-template-columns:1fr}
-  .top{display:block}
-  .filter-box{grid-template-columns:1fr}
-  .table-header-tools{flex-direction:column;align-items:stretch}
-  input,select,button{min-height:44px}
-}
-@media(max-width:520px){
-  .grid,.kpis{grid-template-columns:1fr}
-  header{padding:10px 15px}
-  .logo-box{height:44px;padding:4px 10px}
-  .logo-img{height:34px}
-}
-</style>
-</head>
-<body>
-<header>
-  <div class="brand-container">
-    <div class="logo-box">
-      <img src="https://github.com/s4mu3l-king/Auditoria/blob/main/logo.png%20-%20Copia.png?raw=true" alt="Logo Cereal Ouro" class="logo-img">
-    </div>
-    <div><b>♟ AUDITORIA</b> <small>Conferência de Estoque</small></div>
-  </div>
-  <button class="sec" onclick="go('home')">Dashboard</button>
-</header>
-
-<div class="wrap">
-<div id="toast" class="toast hidden"></div>
-
-<section id="home">
-<div class="top">
-  <button class="btn-import" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
-  <button onclick="go('start')">NOVA AUDITORIA</button>
-</div>
-
-<div class="filter-box">
-  <label>FILTRAR POR MÊS DA AUDITORIA
-    <select id="dashMonth" onchange="dashboard()">
-      <option value="">Todos os Meses</option>
-    </select>
-  </label>
-  <label>FILTRAR POR LOCAL
-    <select id="dashLocal" onchange="dashboard()">
-      <option value="">Todos os Locais</option>
-    </select>
-  </label>
-  <label>FILTRAR POR CULTURA
-    <select id="dashCultura" onchange="dashboard()">
-      <option value="">Todas as Culturas</option>
-    </select>
-  </label>
-</div>
-
-<div class="kpis">
-  <div class="kpi">Lotes<b id="tot">0</b></div>
-  <div class="kpi">Auditados<b id="aud">0</b></div>
-  <div class="kpi">Pendentes<b id="pen">0</b></div>
-  <div class="kpi">Validados<b id="val">0</b></div>
-  <div class="kpi">Acuracidade<b id="acc">0%</b></div>
-</div>
-
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <b>Nível de Acuracidade Apurada</b>
-    <span id="accBarTxt" style="font-weight:bold;color:var(--g)">0%</span>
-  </div>
-  <div class="progress-bg">
-    <div id="accBar" class="progress-fill"></div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="table-header-tools">
-    <b>Visão Geral dos Lotes e Auditorias</b>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <input id="dashSearch" placeholder="🔎 Filtrar tabela..." oninput="renderDashTable()" style="width:200px;padding:8px 12px;font-size:13px">
-      <button class="btn-export" onclick="exportToCSV()">📥 EXPORTAR EXCEL / CSV</button>
-    </div>
-  </div>
-  <div class="table-container">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Mês Auditoria</th>
-          <th>Lote</th>
-          <th>Local</th>
-          <th>Cultura</th>
-          <th>Cultivar</th>
-          <th>Categoria</th>
-          <th>Qtd. Sistema</th>
-          <th>Qtd. Física</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="dashTableBody">
-        <tr><td colspan="9" class="muted" style="text-align:center">Carregando dados...</td></tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-</section>
-
-<section id="start" class="hidden">
-  <div class="card">
-    <h3>Iniciando Sessão de Auditoria</h3>
-    <div class="grid">
-      <label>LOCAL<select id="local"></select></label>
-      <label>DATA VERIFICAÇÃO<input id="date" type="date"></label>
-      <label>MÊS<input id="month" disabled></label>
-      <label>AUDITOR PCP<input id="pcp" placeholder="Nome do auditor"></label>
-      <label>AUDITOR UNIDADE<input id="audun" placeholder="Nome do auditor"></label>
-      <label>RESPONSÁVEL UBS<input id="ubs" placeholder="Nome do responsável"></label>
-    </div>
-    <div class="actions">
-      <button id="btnStartAudit" onclick="start()">INICIAR CONFERÊNCIA</button>
-      <button class="sec" onclick="go('home')">CANCELAR</button>
-    </div>
-  </div>
-</section>
-
-<section id="lots" class="hidden">
-  <div class="top" style="justify-content:space-between">
-    <div>
-      <h2 style="margin:0">Lotes — <span id="lt"></span></h2>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <button id="btnSaveTop" class="btn-save-top" onclick="saveFullSession()">💾 SALVAR REGISTRO/SESSÃO</button>
-      <button class="btn-newlot" onclick="openNewLotModal()">➕ NOVO LOTE</button>
-      <button class="btn-export" onclick="exportLocalAuditsCSV()">📥 EXPORTAR AUDITORIA LOCAL</button>
-      <button class="sec" onclick="go('home')">VOLTAR</button>
-    </div>
-  </div>
-
-  <div class="kpis">
-    <div class="kpi">Total<b id="stot">0</b></div>
-    <div class="kpi">Auditados<b id="saud">0</b></div>
-    <div class="kpi">Pendentes<b id="spen">0</b></div>
-    <div class="kpi">Validados<b id="sval">0</b></div>
-    <div class="kpi">Acuracidade<b id="sacc">0%</b></div>
-  </div>
-
-  <div class="card">
-    <div class="filter-box" style="grid-template-columns: 1.5fr 1fr 1fr 1fr; margin-bottom: 12px; padding: 10px;">
-      <div>
-        <label style="margin-bottom:4px">PESQUISAR LOTE</label>
-        <input id="search" placeholder="🔎 Digite o lote..." oninput="render()" style="padding:8px 10px; font-size:13px">
-      </div>
-      <div>
-        <label style="margin-bottom:4px">CULTURA</label>
-        <select id="lotCultura" onchange="render()" style="padding:8px 10px; font-size:13px">
-          <option value="">Todas</option>
-        </select>
-      </div>
-      <div>
-        <label style="margin-bottom:4px">CULTIVAR</label>
-        <select id="lotCultivar" onchange="render()" style="padding:8px 10px; font-size:13px">
-          <option value="">Todas</option>
-        </select>
-      </div>
-      <div>
-        <label style="margin-bottom:4px">STATUS</label>
-        <select id="lotStatus" onchange="render()" style="padding:8px 10px; font-size:13px">
-          <option value="">Todos</option>
-          <option value="PENDENTE">PENDENTE</option>
-          <option value="VALIDADO">VALIDADO</option>
-          <option value="DIVERGÊNCIA">DIVERGÊNCIA</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="lot-header">
-      <div>LOTE</div>
-      <div>CULTIVAR · CAT · PENERA</div>
-      <div>QTD SISTEMA</div>
-      <div>STATUS</div>
-    </div>
-
-    <div id="list"></div>
-  </div>
-
-  <div id="conf" class="modal-backdrop hidden">
-    <div class="modal-box">
-      <h2>Conferência do Lote: <span id="clote" style="color:var(--g)"></span></h2>
-      <div id="sys" class="system"></div>
-      <div class="grid" style="margin-top:14px">
-        <label>CAT. FÍS.<input id="catfis"></label>
-        <label>ETIQUETA FÍSICA<input id="etq"></label>
-        <label>QTD FÍSICA<input id="qtd" type="number" step="any" inputmode="decimal"></label>
-        <label>CÂMARA<input id="cam"></label>
-        <label>QUADRA<input id="quad"></label>
-        <label>FILEIRA<input id="fila"></label>
-      </div>
-      <label style="margin-top:10px">OBSERVAÇÃO<textarea id="obs"></textarea></label>
-      <div id="warning"></div>
-      <div class="actions" style="justify-content:space-between; margin-top:16px">
-        <div>
-          <button onclick="save()" style="background:var(--g); padding:12px 24px; font-size:15px">💾 CONFIRMAR LOTE</button>
-          <button id="btnDeleteConf" class="btn-danger hidden" onclick="deleteCurrentAuditHistory()">🗑️ EXCLUIR HISTÓRICO</button>
-        </div>
-        <button class="sec" onclick="closeConf()">FECHAR</button>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Modal de Importação de Planilha -->
-<div id="modal-importacao" class="modal-backdrop hidden">
-  <div class="modal-box">
-    <h3>📥 Importar Planilha de Dados</h3>
-    <label style="margin-top:12px">SELECIONE A PLANILHA (.XLSX / .CSV)</label>
-    <input type="file" id="input-excel" accept=".xlsx, .xls, .csv" style="margin-top:6px" />
-    <div id="status-importacao" style="margin-top:15px; font-weight:bold; color:var(--g)"></div>
-    <div class="actions" style="margin-top:20px; justify-content:flex-end">
-      <button onclick="processarEEnviarPlanilha()" style="background:var(--g)">Processar e Salvar</button>
-      <button onclick="fecharModalImportacao()" class="sec">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<div id="newLotModal" class="modal-backdrop hidden">
-  <div class="modal-box">
-    <h3>➕ Cadastrar Novo Lote na Base</h3>
-    <div class="grid">
-      <label>LOCAL<input id="nl_local" readonly></label>
-      <label>UF<input id="nl_uf" placeholder="Ex: GO"></label>
-      <label>FILIAL<input id="nl_filial" placeholder="Ex: 01"></label>
-      <label>DEPÓSITO<input id="nl_deposito" placeholder="Ex: DEP1"></label>
-      <label>CULTURA<input id="nl_cultura" placeholder="Ex: SOJA"></label>
-      <label>LOTE<input id="nl_lote" placeholder="Ex: 11743P1417"></label>
-      <label>CULTIVAR<input id="nl_cultivar" placeholder="Ex: 22213I2X"></label>
-      <label>CÓD. PRODUTO<input id="nl_cod_produto"></label>
-      <label>NOME PRODUTO ERP<input id="nl_nome_produto_erp"></label>
-      <label>CAT<input id="nl_cat" placeholder="Ex: C2"></label>
-      <label>PENERA (PEN)<input id="nl_pen" placeholder="Ex: P1"></label>
-      <label>UNIDADE (UM)<input id="nl_um" value="BAG"></label>
-      <label>QTD SISTEMA<input id="nl_qtd_sistema" type="number" step="any" value="0" inputmode="decimal"></label>
-      <label>PESO ETIQUETA<input id="nl_peso_etiqueta" type="number" step="any" inputmode="decimal"></label>
-    </div>
-    <div class="actions" style="margin-top:16px;justify-content:flex-end">
-      <button id="btnSaveNewLot" onclick="saveNewLot()">SALVAR NOVO LOTE</button>
-      <button class="sec" onclick="closeNewLotModal()">CANCELAR</button>
-    </div>
-  </div>
-</div>
-
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
@@ -432,7 +124,6 @@ async function processarEEnviarPlanilha() {
         let localFinal = "";
         let ufFinal = "";
         
-        // Validação flexível (número ou texto) para UBS I e LPCO
         const bClean = colB.replace(/^0+/, "");
         const cClean = colC.replace(/^0+/, "");
 
@@ -500,41 +191,14 @@ async function loadLocalsStart(){
   $("local").innerHTML = '<option value="">Selecione...</option>' + a.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
 }
 
-async function fetchAuditsByFilters(local, mes, cultura){
-  let query = db.from(TABLE_NAME).select("*").range(0, 4999);
-  if(local) query = query.eq("local", local);
-  if(mes) query = query.eq("mes", mes);
-  if(cultura) query = query.eq("cultura", cultura);
-  
-  let { data, error } = await query;
-  if(error) {
-    console.error("Erro ao buscar histórico:", error);
-    toast("Erro na consulta de auditorias.");
-    return [];
-  }
-  return data || [];
-}
-
-async function fetchBaseByFilters(local, cultura){
-  let query = db.from("base_dados").select("*").range(0, 4999);
-  if(local) query = query.eq("local", local);
-  if(cultura) query = query.eq("cultura", cultura);
-
-  let { data, error } = await query;
-  if(error) {
-    console.error("Erro ao buscar base_dados:", error);
-    toast("Erro na consulta de lotes.");
-    return [];
-  }
-  return data || [];
-}
-
 async function loadHistoryFilters(){
-  let { data: rawMonths } = await db.from(TABLE_NAME).select("mes, local, cultura").range(0, 4999);
-  let { data: rawBaseLocals } = await db.from("base_dados").select("local, cultura").range(0, 4999);
+  let [{ data: rawHist }, { data: rawBase }] = await Promise.all([
+    db.from(TABLE_NAME).select("mes, local, cultura").range(0, 4999),
+    db.from("base_dados").select("local, cultura").range(0, 4999)
+  ]);
   
-  let allHist = rawMonths || [];
-  let allBase = rawBaseLocals || [];
+  let allHist = rawHist || [];
+  let allBase = rawBase || [];
 
   let recordedMonths = new Set(allHist.map(x=>x.mes).filter(Boolean));
   let sortedMonths = ALL_MONTHS.filter(m => recordedMonths.has(m));
@@ -554,22 +218,35 @@ async function loadHistoryFilters(){
 }
 
 async function dashboard(){
+  await loadHistoryFilters();
+
   let selMonth=v("dashMonth").toUpperCase().trim();
   let selLocal=v("dashLocal").toUpperCase().trim();
   let selCultura=v("dashCultura").toUpperCase().trim();
 
-  let [rawAudits, rawBase] = await Promise.all([
-    fetchAuditsByFilters(selLocal, selMonth, selCultura),
-    fetchBaseByFilters(selLocal, selCultura)
-  ]);
+  let queryAudits = db.from(TABLE_NAME).select("*").range(0, 4999);
+  if(selLocal) queryAudits = queryAudits.eq("local", selLocal);
+  if(selMonth) queryAudits = queryAudits.eq("mes", selMonth);
+  if(selCultura) queryAudits = queryAudits.eq("cultura", selCultura);
 
-  let auditsMap = new Map();
-  rawAudits.forEach(a => auditsMap.set(`${a.local}_${a.lote}_${a.mes}`, a));
+  let { data: rawAudits, error: errAudits } = await queryAudits;
+  if(errAudits) {
+    console.error("Erro ao buscar histórico:", errAudits);
+    toast("Erro ao carregar auditorias.");
+    return;
+  }
 
   let combinedData = [];
 
   if (selLocal) {
-    rawBase.forEach(b => {
+    let queryBase = db.from("base_dados").select("*").eq("local", selLocal).range(0, 4999);
+    if(selCultura) queryBase = queryBase.eq("cultura", selCultura);
+    let { data: rawBase } = await queryBase;
+    
+    let auditsMap = new Map();
+    (rawAudits || []).forEach(a => auditsMap.set(`${a.local}_${a.lote}_${a.mes}`, a));
+
+    (rawBase || []).forEach(b => {
       let auditKey = `${b.local}_${b.lote}_${selMonth}`;
       let a = auditsMap.get(auditKey);
       combinedData.push({
@@ -590,10 +267,8 @@ async function dashboard(){
       });
     });
   } else {
-    combinedData = rawAudits;
+    combinedData = rawAudits || [];
   }
-
-  await loadHistoryFilters();
 
   dashData = combinedData;
 
@@ -951,5 +626,3 @@ window.onload = async () => {
   await dashboard();
 };
 </script>
-</body>
-</html>
