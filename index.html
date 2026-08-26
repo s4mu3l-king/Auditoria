@@ -396,20 +396,27 @@ async function processarEEnviarPlanilha() {
         const pen = getColVal(11);
         const um = getColVal(12) || "BAG";
 
-        const parseNum = (val) => {
-          if (typeof val === "number") return val;
+        const parseNumStrict = (val) => {
+          if (typeof val === "number") return isNaN(val) ? 0 : val;
           if (!val) return 0;
-          let s = String(val).trim().replace(/[^0-9.,-]/g, "");
+          let s = String(val).trim();
+          
+          if (s.includes("/")) return 0;
+          
+          s = s.replace(/[^0-9.,-]/g, "");
           if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
           const n = parseFloat(s);
           return isNaN(n) ? 0 : n;
         };
 
-        let colAE = parseNum(row[30]);
+        let colAE = parseNumStrict(row[30]);
 
         if (colAE <= 0) {
           for (let c = row.length - 1; c >= 0; c--) {
-            let numCandidate = parseNum(row[c]);
+            let cellStr = String(row[c]).trim();
+            if (cellStr.includes("/")) continue; 
+
+            let numCandidate = parseNumStrict(row[c]);
             if (numCandidate > 0) {
               colAE = numCandidate;
               break;
@@ -763,184 +770,12 @@ function render(){
   let pen = tot - aud;
   let acc = aud > 0 ? ((val / aud) * 100).toFixed(1) : "0.0";
 
-  $("stot").textContent = tot;
-  $("saud").textContent = aud;
-  $("spen").textContent = pen < 0 ? 0 : pen;
-  $("sval").textContent = val;
-  $("sacc").textContent = acc + "%";
+  $("stot").textContent=tot;
+  $("saud").textContent=aud;
+  $("spen").textContent=pen;
+  $("sval").textContent=val;
+  $("sacc").textContent=acc+"%";
 }
-
-function openConf(loteStr){
-  selected = base.find(x => x.lote === loteStr);
-  if(!selected) return;
-
-  $("clote").textContent = selected.lote;
-  $("sys").innerHTML = `
-    <b>Cultura:</b> ${esc(selected.cultura)} | <b>Cultivar:</b> ${esc(selected.cultivar)}<br>
-    <b>Categoria:</b> ${esc(selected.cat)} | <b>Peneira:</b> ${esc(selected.pen)} | <b>Tratamento:</b> ${esc(selected.Tratamento||'—')}<br>
-    <b>Qtd. Sistema:</b> ${selected.qtd_sistema} ${esc(selected.um)}
-  `;
-
-  let a = audits.find(x => x.lote === loteStr);
-  if(a){
-    set("catfis", a.cat_fisica);
-    set("etq", a.etiqueta_fisica);
-    set("qtd", a.qtd_fisica);
-    set("cam", a.camara);
-    set("quad", a.quadra);
-    set("fila", a.fileira);
-    set("obs", a.observacao);
-    $("btnDeleteConf").classList.remove("hidden");
-  } else {
-    set("catfis", selected.cat);
-    set("etq", "");
-    set("qtd", "");
-    set("cam", "");
-    set("quad", "");
-    set("fila", "");
-    set("obs", "");
-    $("btnDeleteConf").classList.add("hidden");
-  }
-
-  $("conf").classList.remove("hidden");
-}
-
-function closeConf(){
-  $("conf").classList.add("hidden");
-  selected = null;
-}
-
-async function save(){
-  if(!selected) return;
-  let qFis = parseFloat(v("qtd"));
-
-  if(isNaN(qFis)){
-    return toast("Informe uma quantidade física válida.");
-  }
-
-  let st = qFis === selected.qtd_sistema ? "VALIDADO" : "DIVERGÊNCIA";
-
-  let record = {
-    local: meta.local,
-    mes: meta.mes,
-    data_verificacao: meta.data_verificacao,
-    auditor_pcp: meta.auditor_pcp,
-    auditor_unidade: meta.auditor_unidade,
-    responsavel_ubs: meta.responsavel_ubs,
-    lote: selected.lote,
-    cultura: selected.cultura,
-    cultivar: selected.cultivar,
-    cat: selected.cat,
-    qtd_sistema: selected.qtd_sistema,
-    qtd_fisica: qFis,
-    cat_fisica: v("catfis"),
-    etiqueta_fisica: v("etq"),
-    camara: v("cam"),
-    quadra: v("quad"),
-    fileira: v("fila"),
-    observacao: v("obs"),
-    status: st
-  };
-
-  let { error } = await db.from(TABLE_NAME).upsert(record, { onConflict: 'local,lote,mes,data_verificacao' });
-
-  if(error){
-    toast("Erro ao salvar: " + error.message);
-  } else {
-    toast("Lote conferido com sucesso!");
-    let idx = audits.findIndex(x => x.lote === selected.lote);
-    if(idx >= 0) audits[idx] = record;
-    else audits.push(record);
-
-    closeConf();
-    render();
-  }
-}
-
-async function deleteCurrentAuditHistory(){
-  if(!selected) return;
-  if(!confirm(`Deseja realmente remover o histórico do lote ${selected.lote}?`)) return;
-
-  let { error } = await db.from(TABLE_NAME)
-    .delete()
-    .eq("local", meta.local)
-    .eq("lote", selected.lote)
-    .eq("data_verificacao", meta.data_verificacao);
-
-  if(error){
-    toast("Erro ao excluir: " + error.message);
-  } else {
-    toast("Histórico removido.");
-    audits = audits.filter(x => x.lote !== selected.lote);
-    closeConf();
-    render();
-  }
-}
-
-async function saveFullSession(){
-  toast("Sessão sincronizada com o banco de dados.");
-}
-
-function openNewLotModal(){
-  set("nl_local", meta.local || "");
-  set("nl_uf", "GO");
-  set("nl_filial", "");
-  set("nl_deposito", "");
-  set("nl_cultura", "");
-  set("nl_lote", "");
-  set("nl_cultivar", "");
-  set("nl_cod_produto", "");
-  set("nl_nome_produto_erp", "");
-  set("nl_cat", "");
-  set("nl_pen", "");
-  set("nl_um", "BAG");
-  set("nl_qtd_sistema", "0");
-  set("nl_peso_etiqueta", "");
-  $("newLotModal").classList.remove("hidden");
-}
-
-function closeNewLotModal(){
-  $("newLotModal").classList.add("hidden");
-}
-
-async function saveNewLot(){
-  let lote = v("nl_lote").trim();
-  let qtd = parseFloat(v("nl_qtd_sistema"));
-
-  if(!lote){
-    return toast("Informe o número do lote.");
-  }
-
-  let record = {
-    local: v("nl_local"),
-    uf: v("nl_uf"),
-    filial: v("nl_filial"),
-    deposito: v("nl_deposito"),
-    cultura: v("nl_cultura"),
-    lote: lote,
-    cultivar: v("nl_cultivar"),
-    cat: v("nl_cat"),
-    pen: v("nl_pen"),
-    um: v("nl_um"),
-    qtd_sistema: isNaN(qtd) ? 0 : qtd,
-    peso_etiqueta: parseFloat(v("nl_peso_etiqueta")) || null
-  };
-
-  let { error } = await db.from("base_dados").upsert(record);
-
-  if(error){
-    toast("Erro ao salvar novo lote: " + error.message);
-  } else {
-    toast("Novo lote cadastrado!");
-    base.push(record);
-    closeNewLotModal();
-    populateLotFilters();
-    render();
-  }
-}
-
-// Inicialização
-dashboard();
 </script>
 </body>
 </html>
