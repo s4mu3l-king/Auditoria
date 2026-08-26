@@ -574,95 +574,54 @@ async function loadHistoryFilters(){
 }
 
 async function dashboard(){
-  let selMonth = v("dashMonth").trim();
-  let selLocal = v("dashLocal").trim();
-  let selCultura = v("dashCultura").trim();
+  let selMonth=v("dashMonth").trim();
+  let selLocal=v("dashLocal").trim();
+  let selCultura=v("dashCultura").trim();
 
-  // O histórico é a fonte principal desta tela.
-  // Busca os registros diretamente em auditorias_historico.
-  let query = db
+  // O HISTÓRICO é a fonte principal do Dashboard.
+  // A base_dados não é mais usada para esconder ou substituir auditorias já realizadas.
+  let { data: rawAudits, error } = await db
     .from(TABLE_NAME)
     .select("*")
-    .order("data_verificacao", { ascending: false })
-    .order("lote", { ascending: true })
-    .range(0, 9999);
-
-  if(selMonth) query = query.ilike("mes", selMonth);
-  if(selLocal) query = query.ilike("local", selLocal);
-  if(selCultura) query = query.ilike("cultura", selCultura);
-
-  let { data: rawAudits, error } = await query;
+    .order("data_verificacao", { ascending: false });
 
   if(error){
-    console.error("ERRO AO CONSULTAR auditorias_historico:", error);
-    toast("Erro ao consultar auditorias_historico: " + error.message);
-    dashData = [];
-    renderDashTable();
+    console.error("Erro ao carregar histórico:", error);
+    toast("Erro ao carregar histórico: " + error.message);
     return;
   }
 
-  console.log("SUPABASE - auditorias_historico:", rawAudits);
-  console.log("SUPABASE - quantidade encontrada:", (rawAudits || []).length);
-
-  // Mantém uma segunda filtragem para evitar problemas de espaços/maiúsculas.
-  dashData = (rawAudits || []).filter(x => {
-    const mes = String(x.mes || "").trim().toUpperCase();
-    const local = String(x.local || "").trim().toUpperCase();
-    const cultura = String(x.cultura || "").trim().toUpperCase();
-
-    if(selMonth && mes !== selMonth.toUpperCase()) return false;
-    if(selLocal && local !== selLocal.toUpperCase()) return false;
-    if(selCultura && cultura !== selCultura.toUpperCase()) return false;
-
+  // Aplica os filtros diretamente sobre o histórico.
+  dashData=(rawAudits||[]).filter(x=>{
+    if(selMonth && String(x.mes||"").trim().toUpperCase()!==selMonth.toUpperCase()) return false;
+    if(selLocal && String(x.local||"").trim().toUpperCase()!==selLocal.toUpperCase()) return false;
+    if(selCultura && String(x.cultura||"").trim().toUpperCase()!==selCultura.toUpperCase()) return false;
     return true;
   });
 
   await loadHistoryFilters();
 
-  let totLotes = dashData.length;
-  let auditados = dashData.filter(x =>
-    x.qtd_fisica !== null &&
-    x.qtd_fisica !== undefined &&
-    String(x.qtd_fisica).trim() !== ""
-  ).length;
+  let totLotes=dashData.length;
+  let auditados=dashData.filter(x=>x.qtd_fisica!==null && x.qtd_fisica!==undefined && x.qtd_fisica!=="").length;
+  let validados=dashData.filter(x=>String(x.status||"").toUpperCase()==="VALIDADO").length;
+  let divergencias=dashData.filter(x=>String(x.status||"").toUpperCase()==="DIVERGÊNCIA").length;
+  let pendentes=dashData.filter(x=>String(x.status||"").toUpperCase()==="PENDENTE" || !x.status).length;
 
-  let validados = dashData.filter(x =>
-    String(x.status || "").trim().toUpperCase() === "VALIDADO"
-  ).length;
+  // Acuracidade: entre as auditorias realizadas, percentual VALIDADO.
+  let accVal=auditados>0?((validados/auditados)*100).toFixed(1):"0.0";
 
-  let divergencias = dashData.filter(x =>
-    String(x.status || "").trim().toUpperCase() === "DIVERGÊNCIA"
-  ).length;
+  $("tot").textContent=totLotes;
+  $("aud").textContent=auditados;
+  $("pen").textContent=pendentes;
+  $("val").textContent=validados;
+  $("acc").textContent=accVal+"%";
+  $("accBarTxt").textContent=accVal+"%";
+  $("accBar").style.width=accVal+"%";
 
-  let pendentes = dashData.filter(x =>
-    String(x.status || "").trim().toUpperCase() === "PENDENTE" ||
-    !x.status
-  ).length;
-
-  let accVal = auditados > 0
-    ? ((validados / auditados) * 100).toFixed(1)
-    : "0.0";
-
-  $("tot").textContent = totLotes;
-  $("aud").textContent = auditados;
-  $("pen").textContent = pendentes;
-  $("val").textContent = validados;
-  $("acc").textContent = accVal + "%";
-  $("accBarTxt").textContent = accVal + "%";
-  $("accBar").style.width = accVal + "%";
-
-  console.log(
-    "HISTÓRICO EXIBIDO:",
-    dashData.length,
-    "registros | Validados:",
-    validados,
-    "| Divergências:",
-    divergencias
-  );
+  console.log("Histórico carregado:",dashData.length,"registros | Validados:",validados,"| Divergências:",divergencias);
 
   renderDashTable();
 }
-
 function renderDashTable(){
   let q=v("dashSearch").toUpperCase();
   filteredData=dashData.filter(x=>
@@ -773,12 +732,11 @@ async function start(){
   base=b||[];
   
   // Carrega todos os históricos do local.
-  // Não limita a consulta pela data atual.
+  // A data atual é usada para identificar a auditoria que está sendo editada,
+  // mas não limita o histórico disponível para a sessão.
   let {data:a,error:e}=await db.from(TABLE_NAME)
     .select("*")
-    .eq("local",meta.local)
-    .order("data_verificacao", { ascending: false })
-    .range(0, 9999);
+    .eq("local",meta.local);
   if(e) {
     btn.disabled = false;
     btn.textContent = "INICIAR CONFERÊNCIA";
@@ -803,16 +761,7 @@ function populateLotFilters(){
 }
 
 function render(){
-  // Na tela de conferência, usar somente a auditoria da data selecionada.
-  // Assim um histórico antigo não sobrescreve a conferência atual.
-  let amap=new Map(
-    audits
-      .filter(x =>
-        String(x.local || "") === String(meta.local || "") &&
-        String(x.data_verificacao || "") === String(meta.data_verificacao || "")
-      )
-      .map(x => [x.lote, x])
-  );
+  let amap=new Map(audits.map(x=>[x.lote,x]));
   let search=v("search").toUpperCase();
   let cult=v("lotCultura");
   let cv=v("lotCultivar");
@@ -868,11 +817,7 @@ function openConf(loteStr){
     <b>Qtd Sistema:</b> ${selected.qtd_sistema??"0"} ${esc(selected.um)}
   `;
 
-  let exist = audits.find(x =>
-    x.lote === loteStr &&
-    String(x.local || "") === String(meta.local || "") &&
-    String(x.data_verificacao || "") === String(meta.data_verificacao || "")
-  );
+  let exist = audits.find(x=>x.lote===loteStr);
   if(exist){
     set("catfis", exist.cat_fisica || selected.cat);
     set("etq", exist.etiqueta_fisica);
