@@ -1,1009 +1,965 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AUDITORIA - Conferência de Estoque</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    :root {
-      --bg-color: #f4f6f8;
-      --card-bg: #ffffff;
-      --primary: #045233;
-      --primary-hover: #033d26;
-      --text-main: #2c3e50;
-      --text-muted: #7f8c8d;
-      --border-color: #e2e8f0;
-      --accent-green: #27ae60;
-      --accent-red: #e74c3c;
-      --accent-yellow: #f39c12;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Auditoria de Conferência</title>
+<!-- Lib para leitura de arquivos Excel (.xlsx / .csv) no navegador -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--g:#145c3a;--g2:#0d442b;--bg:#f3f6f4;--card:#fff;--line:#dce5df;--text:#17231d;--muted:#66736c;--ok:#16804a;--bad:#b3261e;--warn:#a76b00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
+header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+.wrap{max-width:1250px;margin:auto;padding:22px 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 15px #0000000a}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi b{display:block;font-size:26px;margin-top:4px}
+label{font-size:12px;font-weight:bold;color:#59655f;display:block;margin-bottom:6px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #cbd6cf;border-radius:8px;font-size:15px;background:#fff;transition:border-color 0.2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
+textarea{min-height:80px}
+button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer;transition:background 0.2s, opacity 0.2s}
+button:hover{opacity:0.9}
+button:disabled{opacity:0.6;cursor:not-allowed}
+.sec{background:#e8eeea;color:var(--g2)}
+.btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
+.btn-import{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px;border:1px solid #2ecc71}
+.btn-save-top{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 16px;border:1px solid #2ecc71}
+.btn-newlot{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
+.btn-danger{background:var(--bad);color:#fff}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.muted{color:var(--muted)}
+.hidden{display:none !important}
+.top{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-bottom:16px}
+.lot{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:9px;margin:7px 0;background:#fff;align-items:center;cursor:pointer;transition:border-color 0.2s}
+.lot:hover{border-color:var(--g)}
+.lot.divergent-border{border-left:5px solid var(--bad)}
+.ok{color:var(--ok);font-weight:bold}
+.bad{color:var(--bad);font-weight:bold}
+.warn{color:var(--warn);font-weight:bold}
+.toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+.system{line-height:1.8;background:#f7f9f8;padding:12px;border-radius:8px}
+.dangerbox{background:#fff4f3;border:1px solid #f0c9c5;padding:12px;border-radius:8px;margin:12px 0}
+.brand-container{display:flex;align-items:center;gap:14px}
+.logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
+.logo-img{height:46px;width:auto;object-fit:contain}
+.progress-bg{width:100%;background:#e2e9e4;height:24px;border-radius:12px;overflow:hidden;margin-top:10px;position:relative}
+.progress-fill{height:100%;background:linear-gradient(90deg, #16804a, #2ecc71);width:0%;transition:width 0.5s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#fff;font-size:12px;font-weight:bold}
+.table-container{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:8px}
+table.data-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+table.data-table th{background:var(--g);color:#fff;padding:10px 12px;white-space:nowrap}
+table.data-table td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.data-table tr:hover{background:#f0f5f2}
+.filter-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8faf9;padding:14px;border-radius:10px;border:1px solid var(--line)}
+.table-header-tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.lot-header{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:10px 12px;background:var(--g);color:#fff;font-weight:bold;font-size:13px;border-radius:8px;margin-bottom:8px}
+.modal-backdrop{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal-box{background:#fff;border-radius:12px;padding:22px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 5px 25px rgba(0,0,0,0.2)}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 40px; }
-
-    header {
-      background-color: var(--primary);
-      color: white;
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    .brand { display: flex; align-items: center; gap: 15px; font-size: 1.2rem; font-weight: bold; }
-    .brand img { height: 40px; }
-    .nav-btn {
-      background-color: rgba(255,255,255,0.2);
-      color: white; border: none; padding: 8px 16px; border-radius: 6px;
-      cursor: pointer; font-weight: 600; transition: 0.2s;
-    }
-    .nav-btn:hover { background-color: rgba(255,255,255,0.3); }
-
-    .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-    .hidden { display: none !important; }
-
-    /* CARDS E PAINÉIS */
-    .panel { background: var(--card-bg); border-radius: 10px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
-    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .panel-title { font-size: 1.1rem; font-weight: bold; color: var(--primary); }
-
-    /* FILTROS */
-    .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-    .form-group input, .form-group select, .form-group textarea {
-      padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; outline: none;
-    }
-    .form-group input:focus, .form-group select:focus { border-color: var(--primary); }
-
-    /* CARDS DE MÉTRICAS */
-    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
-    .metric-card { background: var(--card-bg); padding: 18px; border-radius: 8px; border: 1px solid var(--border-color); text-align: left; }
-    .metric-card .title { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 5px; }
-    .metric-card .value { font-size: 1.8rem; font-weight: bold; color: var(--text-main); }
-
-    /* BARRA DE ACCURACY */
-    .acc-container { background: var(--card-bg); padding: 15px 20px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 25px; }
-    .acc-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px; font-size: 0.95rem; }
-    .acc-bar-bg { width: 100%; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; }
-    .acc-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.4s ease; }
-
-    /* BOTÕES */
-    .btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn:hover { background: var(--primary-hover); }
-    .btn-secondary { background: #6c757d; }
-    .btn-secondary:hover { background: #5a6268; }
-    .btn-danger { background: var(--accent-red); }
-    .btn-danger:hover { background: #c0392b; }
-    .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
-    .btn-outline:hover { background: var(--primary); color: white; }
-
-    /* TABELA */
-    .table-responsive { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-    th { background: var(--primary); color: white; padding: 12px 15px; font-weight: 600; }
-    td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
-    tr:hover { background-color: #f8fafc; }
-
-    /* STATUS BADGES */
-    .ok { color: var(--accent-green); font-weight: bold; }
-    .bad { color: var(--accent-red); font-weight: bold; }
-    .warn { color: var(--accent-yellow); font-weight: bold; }
-    .muted { color: var(--text-muted); }
-
-    /* LISTA DE LOTES NA CONFERÊNCIA */
-    .lot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; }
-    .lot { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; cursor: pointer; transition: 0.2s; }
-    .lot:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
-    .lot.divergent-border { border-left: 5px solid var(--accent-red); }
-
-    /* MODAL */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-    .modal-content { background: white; padding: 30px; border-radius: 10px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
-
-    /* TOAST */
-    #toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 24px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 9999; }
-  </style>
+@media(max-width:800px){
+  .grid,.kpis{grid-template-columns:1fr 1fr}
+  .lot,.lot-header{grid-template-columns:1fr}
+  .top{display:block}
+  .filter-box{grid-template-columns:1fr}
+  .table-header-tools{flex-direction:column;align-items:stretch}
+  input,select,button{min-height:44px}
+}
+@media(max-width:520px){
+  .grid,.kpis{grid-template-columns:1fr}
+  header{padding:10px 15px}
+  .logo-box{height:44px;padding:4px 10px}
+  .logo-img{height:34px}
+}
+</style>
 </head>
 <body>
-
-  <header>
-    <div class="brand">
-      <span>♟ AUDITORIA</span> <small style="font-size: 0.8rem; opacity: 0.8;">Conferência de Estoque</small>
+<header>
+  <div class="brand-container">
+    <div class="logo-box">
+      <img src="https://github.com/s4mu3l-king/Auditoria/blob/main/logo.png%20-%20Copia.png?raw=true" alt="Logo Cereal Ouro" class="logo-img">
     </div>
-    <button class="nav-btn" onclick="go('home')">Dashboard</button>
-  </header>
+    <div><b>♟ AUDITORIA</b> <small>Conferência de Estoque</small></div>
+  </div>
+  <button class="sec" onclick="go('home')">Dashboard</button>
+</header>
 
-  <div class="container">
+<div class="wrap">
+<div id="toast" class="toast hidden"></div>
 
-    <!-- DASHBOARD PRINCIPAL -->
-    <div id="home">
-      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px;">
-        <button class="btn btn-outline" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
-        <button class="btn" onclick="go('start')">NOVA AUDITORIA</button>
-      </div>
+<section id="home">
+<div class="top">
+  <button class="btn-import" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
+  <button onclick="go('start')">NOVA AUDITORIA</button>
+</div>
 
-      <div class="panel">
-        <div class="filters-grid">
-          <div class="form-group">
-            <label>Filtrar por Mês da Auditoria</label>
-            <select id="dashMonth" onchange="dashboard()"></select>
-          </div>
-          <div class="form-group">
-            <label>Filtrar por Local</label>
-            <select id="dashLocal" onchange="dashboard()"></select>
-          </div>
-          <div class="form-group">
-            <label>Filtrar por Cultura</label>
-            <select id="dashCultura" onchange="dashboard()"></select>
-          </div>
-        </div>
+<div class="filter-box">
+  <label>FILTRAR POR MÊS DA AUDITORIA
+    <select id="dashMonth" onchange="dashboard()">
+      <option value="">Todos os Meses</option>
+    </select>
+  </label>
+  <label>FILTRAR POR LOCAL
+    <select id="dashLocal" onchange="dashboard()">
+      <option value="">Todos os Locais</option>
+    </select>
+  </label>
+  <label>FILTRAR POR CULTURA
+    <select id="dashCultura" onchange="dashboard()">
+      <option value="">Todas as Culturas</option>
+    </select>
+  </label>
+</div>
 
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="title">Lotes</div>
-            <div class="value" id="tot">0</div>
-          </div>
-          <div class="metric-card">
-            <div class="title">Auditados</div>
-            <div class="value" id="aud">0</div>
-          </div>
-          <div class="metric-card">
-            <div class="title">Pendentes</div>
-            <div class="value" id="pen">0</div>
-          </div>
-          <div class="metric-card">
-            <div class="title">Validados</div>
-            <div class="value" id="val">0</div>
-          </div>
-          <div class="metric-card">
-            <div class="title">Acuracidade</div>
-            <div class="value" id="acc">0.0%</div>
-          </div>
-        </div>
+<div class="kpis">
+  <div class="kpi">Lotes<b id="tot">0</b></div>
+  <div class="kpi">Auditados<b id="aud">0</b></div>
+  <div class="kpi">Pendentes<b id="pen">0</b></div>
+  <div class="kpi">Validados<b id="val">0</b></div>
+  <div class="kpi">Acuracidade<b id="acc">0%</b></div>
+</div>
 
-        <div class="acc-container">
-          <div class="acc-header">
-            <span>Nível de Acuracidade Apurada</span>
-            <span id="accBarTxt">0.0%</span>
-          </div>
-          <div class="acc-bar-bg">
-            <div class="acc-bar-fill" id="accBar"></div>
-          </div>
-        </div>
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <b>Nível de Acuracidade Apurada</b>
+    <span id="accBarTxt" style="font-weight:bold;color:var(--g)">0%</span>
+  </div>
+  <div class="progress-bg">
+    <div id="accBar" class="progress-fill"></div>
+  </div>
+</div>
 
-        <div class="panel-header">
-          <div class="panel-title">Visão Geral dos Lotes e Auditorias</div>
-          <div style="display: flex; gap: 10px;">
-            <input type="text" id="dashSearch" placeholder="Filtrar tabela..." oninput="renderDashTable()" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
-            <button class="btn btn-outline" onclick="exportToCSV()">📊 EXPORTAR EXCEL / CSV</button>
-          </div>
-        </div>
-
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Mês Auditoria</th>
-                <th>Lote</th>
-                <th>Local</th>
-                <th>Cultura</th>
-                <th>Cultivar</th>
-                <th>Categoria</th>
-                <th>Qtd. Sistema</th>
-                <th>Qtd. Física</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="dashTableBody">
-              <tr><td colspan="9" class="muted" style="text-align:center">Nenhuma auditoria encontrada.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+<div class="card">
+  <div class="table-header-tools">
+    <b>Visão Geral dos Lotes e Auditorias</b>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input id="dashSearch" placeholder="🔎 Filtrar tabela..." oninput="renderDashTable()" style="width:200px;padding:8px 12px;font-size:13px">
+      <button class="btn-export" onclick="exportToCSV()">📥 EXPORTAR EXCEL / CSV</button>
     </div>
+  </div>
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Mês Auditoria</th>
+          <th>Lote</th>
+          <th>Local</th>
+          <th>Cultura</th>
+          <th>Cultivar</th>
+          <th>Categoria</th>
+          <th>Qtd. Sistema</th>
+          <th>Qtd. Física</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="dashTableBody">
+        <tr><td colspan="9" class="muted" style="text-align:center">Carregando dados...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
 
-    <!-- TELA DE INÍCIO DA AUDITORIA -->
-    <div id="start" class="hidden">
-      <div class="panel" style="max-width: 600px; margin: 0 auto;">
-        <div class="panel-title" style="margin-bottom: 20px;">Parâmetros da Nova Auditoria</div>
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label>Local de Conferência</label>
-          <select id="local"></select>
-        </div>
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label>Data da Verificação</label>
-          <input type="date" id="date">
-        </div>
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label>Mês de Referência</label>
-          <input type="text" id="month" readonly style="background: #e9ecef;">
-        </div>
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label>Auditor PCP</label>
-          <input type="text" id="pcp" placeholder="Nome do auditor PCP">
-        </div>
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label>Auditor Unidade</label>
-          <input type="text" id="audun" placeholder="Nome do auditor da unidade">
-        </div>
-        <div class="form-group" style="margin-bottom: 25px;">
-          <label>Responsável UBS</label>
-          <input type="text" id="ubs" placeholder="Nome do responsável UBS">
-        </div>
-        <div style="display: flex; gap: 10px;">
-          <button class="btn-secondary btn" onclick="go('home')">CANCELAR</button>
-          <button class="btn" id="btnStartAudit" style="flex: 1;" onclick="start()">INICIAR CONFERÊNCIA</button>
-        </div>
-      </div>
+<section id="start" class="hidden">
+  <div class="card">
+    <h3>Iniciando Sessão de Auditoria</h3>
+    <div class="grid">
+      <label>LOCAL<select id="local"></select></label>
+      <label>DATA VERIFICAÇÃO<input id="date" type="date"></label>
+      <label>MÊS<input id="month" disabled></label>
+      <label>AUDITOR PCP<input id="pcp" placeholder="Nome do auditor"></label>
+      <label>AUDITOR UNIDADE<input id="audun" placeholder="Nome do auditor"></label>
+      <label>RESPONSÁVEL UBS<input id="ubs" placeholder="Nome do responsável"></label>
     </div>
-
-    <!-- TELA DE LISTAGEM E AUDITORIA DE LOTES -->
-    <div id="lots" class="hidden">
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <span class="panel-title">Auditoria em Andamento - Local: </span>
-            <span id="lt" class="panel-title" style="color: var(--accent-green);"></span>
-          </div>
-          <div style="display: flex; gap: 10px;">
-            <button class="btn btn-outline" onclick="openNewLotModal()">+ Novo Lote</button>
-            <button class="btn btn-outline" onclick="exportLocalAuditsCSV()">📊 Exportar Local</button>
-            <button class="btn" onclick="go('home')">Finalizar / Voltar</button>
-          </div>
-        </div>
-
-        <div class="metrics-grid">
-          <div class="metric-card"><div class="title">Total Lotes</div><div class="value" id="stot">0</div></div>
-          <div class="metric-card"><div class="title">Auditados</div><div class="value" id="saud">0</div></div>
-          <div class="metric-card"><div class="title">Pendentes</div><div class="value" id="spen">0</div></div>
-          <div class="metric-card"><div class="title">Validados</div><div class="value" id="sval">0</div></div>
-          <div class="metric-card"><div class="title">Acuracidade</div><div class="value" id="sacc">0.0%</div></div>
-        </div>
-
-        <div class="filters-grid" style="margin-bottom: 20px;">
-          <div class="form-group">
-            <label>Buscar Lote</label>
-            <input type="text" id="search" placeholder="Digite o número do lote..." oninput="render()">
-          </div>
-          <div class="form-group">
-            <label>Cultura</label>
-            <select id="lotCultura" onchange="render()"></select>
-          </div>
-          <div class="form-group">
-            <label>Cultivar</label>
-            <select id="lotCultivar" onchange="render()"></select>
-          </div>
-          <div class="form-group">
-            <label>Status</label>
-            <select id="lotStatus" onchange="render()">
-              <option value="">Todos</option>
-              <option value="PENDENTE">PENDENTE</option>
-              <option value="VALIDADO">VALIDADO</option>
-              <option value="DIVERGÊNCIA">DIVERGÊNCIA</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="lot-grid" id="list"></div>
-      </div>
+    <div class="actions">
+      <button id="btnStartAudit" onclick="start()">INICIAR CONFERÊNCIA</button>
+      <button class="sec" onclick="go('home')">CANCELAR</button>
     </div>
+  </div>
+</section>
 
+<section id="lots" class="hidden">
+  <div class="top" style="justify-content:space-between">
+    <div>
+      <h2 style="margin:0">Lotes — <span id="lt"></span></h2>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button id="btnSaveTop" class="btn-save-top" onclick="saveFullSession()">💾 SALVAR REGISTRO/SESSÃO</button>
+      <button class="btn-newlot" onclick="openNewLotModal()">➕ NOVO LOTE</button>
+      <button class="btn-export" onclick="exportLocalAuditsCSV()">📥 EXPORTAR AUDITORIA LOCAL</button>
+      <button class="sec" onclick="go('home')">VOLTAR</button>
+    </div>
   </div>
 
-  <!-- MODAL DE CONFERÊNCIA DE LOTE -->
-  <div id="conf" class="modal-overlay hidden">
-    <div class="modal-content">
-      <h3 style="margin-bottom: 10px; color: var(--primary);">Conferência do Lote: <span id="clote"></span></h3>
-      <div id="sys" style="font-size: 0.85rem; background: #eef2f5; padding: 10px; border-radius: 6px; margin-bottom: 15px;"></div>
+  <div class="kpis">
+    <div class="kpi">Total<b id="stot">0</b></div>
+    <div class="kpi">Auditados<b id="saud">0</b></div>
+    <div class="kpi">Pendentes<b id="spen">0</b></div>
+    <div class="kpi">Validados<b id="sval">0</b></div>
+    <div class="kpi">Acuracidade<b id="sacc">0%</b></div>
+  </div>
+
+  <div class="card">
+    <div class="filter-box" style="grid-template-columns: 1.5fr 1fr 1fr 1fr; margin-bottom: 12px; padding: 10px;">
+      <div>
+        <label style="margin-bottom:4px">PESQUISAR LOTE</label>
+        <input id="search" placeholder="🔎 Digite o lote..." oninput="render()" style="padding:8px 10px; font-size:13px">
+      </div>
+      <div>
+        <label style="margin-bottom:4px">CULTURA</label>
+        <select id="lotCultura" onchange="render()" style="padding:8px 10px; font-size:13px">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div>
+        <label style="margin-bottom:4px">CULTIVAR</label>
+        <select id="lotCultivar" onchange="render()" style="padding:8px 10px; font-size:13px">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div>
+        <label style="margin-bottom:4px">STATUS</label>
+        <select id="lotStatus" onchange="render()" style="padding:8px 10px; font-size:13px">
+          <option value="">Todos</option>
+          <option value="PENDENTE">PENDENTE</option>
+          <option value="VALIDADO">VALIDADO</option>
+          <option value="DIVERGÊNCIA">DIVERGÊNCIA</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="lot-header">
+      <div>LOTE</div>
+      <div>CULTIVAR · CAT · PENERA</div>
+      <div>QTD SISTEMA</div>
+      <div>STATUS</div>
+    </div>
+
+    <div id="list"></div>
+  </div>
+
+  <div id="conf" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <h2>Conferência do Lote: <span id="clote" style="color:var(--g)"></span></h2>
+      <div id="sys" class="system"></div>
+      <div class="grid" style="margin-top:14px">
+        <label>CAT. FÍS.<input id="catfis"></label>
+        <label>ETIQUETA FÍSICA<input id="etq"></label>
+        <label>QTD FÍSICA<input id="qtd" type="number" step="any" inputmode="decimal"></label>
+        <label>CÂMARA<input id="cam"></label>
+        <label>QUADRA<input id="quad"></label>
+        <label>FILEIRA<input id="fila"></label>
+      </div>
+      <label style="margin-top:10px">OBSERVAÇÃO<textarea id="obs"></textarea></label>
+      <div id="warning"></div>
+      <div class="actions" style="justify-content:space-between; margin-top:16px">
+        <div>
+          <button onclick="save()" style="background:var(--g); padding:12px 24px; font-size:15px">💾 CONFIRMAR LOTE</button>
+          <button id="btnDeleteConf" class="btn-danger hidden" onclick="deleteCurrentAuditHistory()">🗑️ EXCLUIR HISTÓRICO</button>
+        </div>
+        <button class="sec" onclick="closeConf()">FECHAR</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal de Importação de Planilha -->
+<div id="modal-importacao" class="modal-backdrop hidden">
+  <div class="modal-box">
+    <h3>📥 Importar Planilha de Dados</h3>
+    <label style="margin-top:12px">SELECIONE A PLANILHA (.XLSX / .CSV)</label>
+    <input type="file" id="input-excel" accept=".xlsx, .xls, .csv" style="margin-top:6px" />
+    <div id="status-importacao" style="margin-top:15px; font-weight:bold; color:var(--g)"></div>
+    <div class="actions" style="margin-top:20px; justify-content:flex-end">
+      <button onclick="processarEEnviarPlanilha()" style="background:var(--g)">Processar e Salvar</button>
+      <button onclick="fecharModalImportacao()" class="sec">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="newLotModal" class="modal-backdrop hidden">
+  <div class="modal-box">
+    <h3>➕ Cadastrar Novo Lote na Base</h3>
+    <div class="grid">
+      <label>LOCAL<input id="nl_local" readonly></label>
+      <label>UF<input id="nl_uf" placeholder="Ex: GO"></label>
+      <label>FILIAL<input id="nl_filial" placeholder="Ex: 01"></label>
+      <label>DEPÓSITO<input id="nl_deposito" placeholder="Ex: DEP1"></label>
+      <label>CULTURA<input id="nl_cultura" placeholder="Ex: SOJA"></label>
+      <label>LOTE<input id="nl_lote" placeholder="Ex: 11743P1417"></label>
+      <label>CULTIVAR<input id="nl_cultivar" placeholder="Ex: 22213I2X"></label>
+      <label>CÓD. PRODUTO<input id="nl_cod_produto"></label>
+      <label>NOME PRODUTO ERP<input id="nl_nome_produto_erp"></label>
+      <label>CAT<input id="nl_cat" placeholder="Ex: C2"></label>
+      <label>PENERA (PEN)<input id="nl_pen" placeholder="Ex: P1"></label>
+      <label>UNIDADE (UM)<input id="nl_um" value="BAG"></label>
+      <label>QTD SISTEMA<input id="nl_qtd_sistema" type="number" step="any" value="0" inputmode="decimal"></label>
+      <label>PESO ETIQUETA<input id="nl_peso_etiqueta" type="number" step="any" inputmode="decimal"></label>
+    </div>
+    <div class="actions" style="margin-top:16px;justify-content:flex-end">
+      <button id="btnSaveNewLot" onclick="saveNewLot()">SALVAR NOVO LOTE</button>
+      <button class="sec" onclick="closeNewLotModal()">CANCELAR</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
+const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const TABLE_NAME = "auditorias_historico";
+const SIGLAS_TRATAMENTO_VALIDAS = ["TSI", "ST", "FT", "IN", "FUN", "GRAO", "TRAT", "SO", "SOIE", "FD", "FDIE", "FDIEAR", "FDIEVC", "FEIE"];
+
+let base=[], audits=[], dashData=[], filteredData=[], selected=null, meta={};
+
+const MONTH_MAP = {
+  "01":"JAN","02":"FEV","03":"MAR","04":"ABR","05":"MAI","06":"JUN",
+  "07":"JUL","08":"AGO","09":"SET","10":"OUT","11":"NOV","12":"DEZ",
+  "JAN":"JAN","FEV":"FEV","MAR":"MAR","ABR":"ABR","MAI":"MAI","JUN":"JUN",
+  "JUL":"JUL","AGO":"AGO","SET":"SET","OUT":"OUT","NOV":"NOV","DEZ":"DEZ"
+};
+
+const ALL_MONTHS = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+
+const $=id=>document.getElementById(id), v=id=>$(id).value, set=(id,x)=>$(id).value=x??"";
+function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
+function go(id){["home","start","lots"].forEach(x=>$(x).classList.toggle("hidden",x!==id));if(id==="home")dashboard();if(id==="start")loadLocalsStart()}
+function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
+
+function month(){
+  let parts = v("date").split("-");
+  return parts.length === 3 ? (MONTH_MAP[parts[1]] || "JAN") : "JAN";
+}
+
+$("date").value=new Date().toISOString().slice(0,10);$("month").value=month();$("date").onchange=()=>set("month",month());
+
+/* MODAL E IMPORTAÇÃO DE PLANILHA */
+function abrirModalImportacao() {
+  $("modal-importacao").classList.remove("hidden");
+  $("status-importacao").innerText = "";
+  $("input-excel").value = "";
+}
+
+function fecharModalImportacao() {
+  $("modal-importacao").classList.add("hidden");
+  $("input-excel").value = "";
+}
+
+// Converte letras de coluna em índice numérico de array 0-based
+function colParaIndice(colStr) {
+  let col = colStr.trim().toUpperCase();
+  let idx = 0;
+  for (let i = 0; i < col.length; i++) {
+    idx = idx * 26 + (col.charCodeAt(i) - 64);
+  }
+  return idx - 1;
+}
+
+// Bloqueio por letras explícitas de colunas
+const LETRAS_COLUNAS_IGNORADAS = [
+  "A", "P", "Q", "R", "S", "V", "W", "Y", "AD", 
+  "AF", "AG", "AH", "AI", "AJ", "AK", "AL", "AM", "AN", "AO", "AP"
+];
+const INDICES_IGNORADOS = new Set(LETRAS_COLUNAS_IGNORADAS.map(colParaIndice));
+const INDICE_CORTE_FINAL = colParaIndice("AQ"); // Ignora da coluna AQ em diante
+
+async function processarEEnviarPlanilha() {
+  const input = $("input-excel");
+  const divStatus = $("status-importacao");
+
+  if (!input.files || input.files.length === 0) {
+    return alert("Por favor, selecione um arquivo de planilha.");
+  }
+
+  const file = input.files[0];
+  divStatus.innerText = "Lendo e validando dados da planilha...";
+
+  const reader = new FileReader();
+  reader.onload = async function (e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
       
-      <div class="form-group" style="margin-bottom: 10px;">
-        <label>Categoria Física</label>
-        <input type="text" id="catfis">
-      </div>
-      <div class="form-group" style="margin-bottom: 10px;">
-        <label>Etiqueta Física</label>
-        <input type="text" id="etq">
-      </div>
-      <div class="form-group" style="margin-bottom: 10px;">
-        <label>Quantidade Física Apurada</label>
-        <input type="number" id="qtd" step="any">
-      </div>
-      <div class="form-group" style="margin-bottom: 10px;">
-        <label>Câmara</label>
-        <input type="text" id="cam">
-      </div>
-      <div class="form-group" style="margin-bottom: 10px;">
-        <label>Quadra</label>
-        <input type="text" id="quad">
-      </div>
-      <div class="form-group" style="margin-bottom: 10px;">
-        <label>Fileira</label>
-        <input type="text" id="fila">
-      </div>
-      <div class="form-group" style="margin-bottom: 20px;">
-        <label>Observação</label>
-        <textarea id="obs" rows="2"></textarea>
-      </div>
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
-      <div style="display: flex; gap: 10px; justify-content: flex-end;">
-        <button class="btn btn-danger hidden" id="btnDeleteConf" onclick="deleteCurrentAuditHistory()">Excluir</button>
-        <button class="btn btn-secondary" onclick="closeConf()">Cancelar</button>
-        <button class="btn" onclick="save()">Salvar Conferência</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL DE IMPORTAÇÃO DE EXCEL -->
-  <div id="modal-importacao" class="modal-overlay hidden">
-    <div class="modal-content">
-      <h3 style="margin-bottom: 15px; color: var(--primary);">Importar Dados de Planilha</h3>
-      <div class="form-group" style="margin-bottom: 15px;">
-        <label>Selecione o Arquivo Excel (.xlsx / .xls)</label>
-        <input type="file" id="input-excel" accept=".xlsx, .xls">
-      </div>
-      <div id="status-importacao" style="font-size: 0.85rem; margin-bottom: 15px; color: var(--text-muted);"></div>
-      <div style="display: flex; gap: 10px; justify-content: flex-end;">
-        <button class="btn btn-secondary" onclick="fecharModalImportacao()">Cancelar</button>
-        <button class="btn" onclick="processarEEnviarPlanilha()">Processar e Salvar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL NOVO LOTE -->
-  <div id="newLotModal" class="modal-overlay hidden">
-    <div class="modal-content">
-      <h3 style="margin-bottom: 15px; color: var(--primary);">Cadastrar Novo Lote na Base</h3>
-      <div class="form-group" style="margin-bottom: 10px;"><label>Local</label><input type="text" id="nl_local"></div>
-      <div class="form-group" style="margin-bottom: 10px;"><label>UF</label><input type="text" id="nl_uf" value="GO"></div>
-      <div class="form-group" style="margin-bottom: 10px;"><label>Filial</label><input type="text" id="nl_filial"></div>
-      <div class="form-group" style="margin-bottom: 10px;"><label>Depósito</label><input type="text" id="nl_deposito"></div>
-      <div class="form-group" style="margin-bottom: 10px;"><label>Cultura</label><input type="text" id="nl_cultura"></div>
-      <div class="form-group" style="margin-bottom: 10px;"><label>Lote</label><input type="text" id="nl_lote"></div>
-      <div class="form-group" style="margin-bottom: 10px;"><label>Cultivar</label><input type="text" id="nl_cultivar"></div>
-      <div class="form-group" style="margin-bottom: 10px;"><label>Categoria</label><input type="text" id="nl_cat"></div>
-      <div class="form-group" style="margin-bottom: 10px;"><label>Penera</label><input type="text" id="nl_pen"></div>
-      <div class="form-group" style="margin-bottom: 10px;"><label>UM</label><input type="text" id="nl_um" value="BAG"></div>
-      <div class="form-group" style="margin-bottom: 10px;"><label>Qtd Sistema</label><input type="number" id="nl_qtd_sistema" value="0"></div>
-      <div class="form-group" style="margin-bottom: 20px;"><label>Peso Etiqueta</label><input type="number" id="nl_peso_etiqueta"></div>
-
-      <div style="display: flex; gap: 10px; justify-content: flex-end;">
-        <button class="btn btn-secondary" onclick="closeNewLotModal()">Cancelar</button>
-        <button class="btn" onclick="saveNewLot()">Salvar Lote</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="toast" class="hidden"></div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-  const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
-  const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
-  const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-  const TABLE_NAME = "auditorias_historico";
-  const SIGLAS_TRATAMENTO_VALIDAS = ["TSI", "ST", "FT", "IN", "FUN", "GRAO", "TRAT", "SO", "SOIE", "FD", "FDIE", "FDIEAR", "FDIEVC", "FEIE"];
-
-  let base=[], audits=[], dashData=[], filteredData=[], selected=null, meta={};
-
-  const MONTH_MAP = {
-    "01":"JAN","02":"FEV","03":"MAR","04":"ABR","05":"MAI","06":"JUN",
-    "07":"JUL","08":"AGO","09":"SET","10":"OUT","11":"NOV","12":"DEZ",
-    "JAN":"JAN","FEV":"FEV","MAR":"MAR","ABR":"ABR","MAI":"MAI","JUN":"JUN",
-    "JUL":"JUL","AGO":"AGO","SET":"SET","OUT":"OUT","NOV":"NOV","DEZ":"DEZ"
-  };
-
-  const ALL_MONTHS = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-
-  const $=id=>document.getElementById(id), v=id=>$(id).value, set=(id,x)=>$(id).value=x??"";
-  function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
-  function go(id){["home","start","lots"].forEach(x=>$(x).classList.toggle("hidden",x!==id));if(id==="home")dashboard();if(id==="start")loadLocalsStart()}
-  function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
-
-  function month(){
-    let parts = v("date").split("-");
-    return parts.length === 3 ? (MONTH_MAP[parts[1]] || "JAN") : "JAN";
-  }
-
-  $("date").value=new Date().toISOString().slice(0,10);$("month").value=month();$("date").onchange=()=>set("month",month());
-
-  /* MODAL E IMPORTAÇÃO DE PLANILHA */
-  function abrirModalImportacao() {
-    $("modal-importacao").classList.remove("hidden");
-    $("status-importacao").innerText = "";
-    $("input-excel").value = "";
-  }
-
-  function fecharModalImportacao() {
-    $("modal-importacao").classList.add("hidden");
-    $("input-excel").value = "";
-  }
-
-  async function processarEEnviarPlanilha() {
-    const input = $("input-excel");
-    const divStatus = $("status-importacao");
-
-    if (!input.files || input.files.length === 0) {
-      return alert("Por favor, selecione um arquivo de planilha.");
-    }
-
-    const file = input.files[0];
-    divStatus.innerText = "Lendo e validando dados da planilha...";
-
-    const reader = new FileReader();
-    reader.onload = async function (e) {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        
-        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-        if (rows.length < 2) {
-          divStatus.innerText = "❌ A planilha precisa ter ao menos cabeçalho e linhas de dados.";
-          return;
-        }
-
-        const parseNumStrict = (val) => {
-          if (typeof val === "number") return isNaN(val) ? 0 : val;
-          if (val === null || val === undefined) return 0;
-          
-          let s = String(val).trim();
-          if (!s) return 0;
-
-          if (s.includes("/") || /[a-zA-Z]/.test(s)) return 0;
-
-          s = s.replace(/[^0-9.,-]/g, "");
-          if (!s) return 0;
-
-          if (s.includes(",") && s.includes(".")) {
-            s = s.replace(/\./g, "").replace(",", ".");
-          } else if (s.includes(",")) {
-            s = s.replace(",", ".");
-          }
-
-          const n = parseFloat(s);
-          return isNaN(n) ? 0 : n;
-        };
-
-        const registrosParaInserir = [];
-
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length === 0) continue;
-
-          const getColVal = (idx) => (idx >= 0 && row[idx] !== undefined) ? String(row[idx]).trim() : "";
-
-          const filial = getColVal(0);
-          const colB = getColVal(1);
-          const colC = getColVal(2);
-          const deposito = getColVal(3);
-          const cultura = getColVal(4) || getColVal(5);
-          const colI = getColVal(8);
-          const lote = getColVal(9) || getColVal(8) || getColVal(7);
-          const cat = getColVal(10);
-          const pen = getColVal(11);
-          const um = getColVal(12) || "BAG";
-
-          let colAE = 0;
-
-          for (let c = row.length - 1; c >= 0; c--) {
-            let numCandidate = parseNumStrict(row[c]);
-            if (numCandidate > 0) {
-              colAE = numCandidate;
-              break;
-            }
-          }
-
-          if (!lote || colAE <= 0) continue;
-
-          let localFinal = "";
-          let ufFinal = "";
-          
-          const bClean = colB.replace(/^0+/, "");
-          const cClean = colC.replace(/^0+/, "");
-
-          if ((bClean === "101" || colB === "0101") && (cClean === "10" || colC === "10")) {
-            localFinal = "UBS I"; ufFinal = "GO";
-          } else if ((bClean === "102" || colB === "102") && (cClean === "10" || colC === "10")) {
-            localFinal = "LPCO"; ufFinal = "GO";
-          } else if (colB.includes("BJ") || colC.includes("BJ")) {
-            localFinal = "BJ"; ufFinal = "MG";
-          } else if (colB.includes("AGROSEMEAR") || colC.includes("AGROSEMEAR")) {
-            localFinal = "AGROSEMEAR"; ufFinal = "MT";
-          } else {
-            localFinal = colB || colC || "GERAL"; ufFinal = "GO";
-          }
-
-          const partesTratamento = colI.split(/\s+/);
-          const ultimaSigla = partesTratamento[partesTratamento.length - 1].toUpperCase();
-          const tratamentoFinal = SIGLAS_TRATAMENTO_VALIDAS.includes(ultimaSigla) ? ultimaSigla : "ST";
-
-          registrosParaInserir.push({
-            local: localFinal,
-            uf: ufFinal,
-            filial: filial,
-            deposito: deposito,
-            cultura: cultura,
-            lote: lote,
-            cultivar: cultura,
-            Tratamento: tratamentoFinal,
-            cat: cat,
-            pen: pen,
-            um: um,
-            qtd_sistema: colAE,
-            peso_etiqueta: null
-          });
-        }
-
-        if (registrosParaInserir.length === 0) {
-          divStatus.innerText = "⚠️ Nenhum registro válido encontrado com quantidade numérica > 0.";
-          return;
-        }
-
-        divStatus.innerText = `Salvando ${registrosParaInserir.length} registros no Supabase...`;
-
-        const { error } = await db.from('base_dados').upsert(registrosParaInserir);
-        if (error) throw error;
-
-        divStatus.innerText = "✅ Importação concluída com sucesso!";
-        await loadLocalsStart();
-        await dashboard();
-
-        setTimeout(() => { fecharModalImportacao(); }, 1500);
-      } catch (err) {
-        console.error(err);
-        divStatus.innerText = "❌ Erro ao processar planilha: " + err.message;
+      if (rows.length < 2) {
+        divStatus.innerText = "❌ A planilha precisa ter ao menos cabeçalho e linhas de dados.";
+        return;
       }
-    };
-    reader.readAsArrayBuffer(file);
-  }
 
-  async function loadLocalsStart(){
-    let { data, error } = await db.from("base_dados").select("local").range(0, 4999);
-    if (error) return toast("Erro ao buscar locais: " + error.message);
-    
-    let a = [...new Set((data || []).map(x => x.local).filter(Boolean))].sort();
-    $("local").innerHTML = '<option value="">Selecione...</option>' + a.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-  }
+      const parseNumStrict = (val) => {
+        if (typeof val === "number") return isNaN(val) ? 0 : val;
+        if (!val) return 0;
+        let s = String(val).trim();
+        
+        if (s.includes("/") || /[a-zA-Z]/.test(s)) return 0;
+        
+        s = s.replace(/[^0-9.,-]/g, "");
+        if (!s) return 0;
 
-  async function loadHistoryFilters(){
-    let [{ data: rawHist }, { data: rawBase }] = await Promise.all([
-      db.from(TABLE_NAME).select("mes, local, cultura").range(0, 4999),
-      db.from("base_dados").select("local, cultura").range(0, 4999)
-    ]);
-    
-    let allHist = rawHist || [];
-    let allBase = rawBase || [];
+        if (s.includes(",") && s.includes(".")) {
+          s = s.replace(/\./g, "").replace(",", ".");
+        } else if (s.includes(",")) {
+          s = s.replace(",", ".");
+        }
 
-    let recordedMonths = new Set(allHist.map(x=>x.mes).filter(Boolean));
-    let sortedMonths = ALL_MONTHS.filter(m => recordedMonths.has(m));
-    
-    let locals=[...new Set([...allHist.map(x=>x.local), ...allBase.map(x=>x.local)].filter(Boolean))].sort();
-    let culturas=[...new Set([...allHist.map(x=>x.cultura), ...allBase.map(x=>x.cultura)].filter(Boolean))].sort();
-
-    let curMonth=v("dashMonth"), curLocal=v("dashLocal"), curCultura=v("dashCultura");
-
-    $("dashMonth").innerHTML='<option value="">Todos os Meses</option>'+sortedMonths.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-    $("dashLocal").innerHTML='<option value="">Todos os Locais</option>'+locals.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-    $("dashCultura").innerHTML='<option value="">Todas as Culturas</option>'+culturas.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-
-    $("dashMonth").value=curMonth;
-    $("dashLocal").value=curLocal;
-    $("dashCultura").value=curCultura;
-  }
-
-  async function dashboard(){
-    await loadHistoryFilters();
-
-    let selMonth=v("dashMonth").toUpperCase().trim();
-    let selLocal=v("dashLocal").toUpperCase().trim();
-    let selCultura=v("dashCultura").toUpperCase().trim();
-
-    let queryAudits = db.from(TABLE_NAME).select("*").range(0, 4999);
-    if(selLocal) queryAudits = queryAudits.eq("local", selLocal);
-    if(selMonth) queryAudits = queryAudits.eq("mes", selMonth);
-    if(selCultura) queryAudits = queryAudits.eq("cultura", selCultura);
-
-    let { data: rawAudits, error: errAudits } = await queryAudits;
-    if(errAudits) {
-      console.error("Erro ao buscar histórico:", errAudits);
-      toast("Erro ao carregar auditorias.");
-      return;
-    }
-
-    let combinedData = [];
-
-    if (selLocal) {
-      let queryBase = db.from("base_dados").select("*").eq("local", selLocal).range(0, 4999);
-      if(selCultura) queryBase = queryBase.eq("cultura", selCultura);
-      let { data: rawBase } = await queryBase;
-      
-      let auditsMap = new Map();
-      (rawAudits || []).forEach(a => auditsMap.set(`${a.local}_${a.lote}_${a.mes}`, a));
-
-      (rawBase || []).forEach(b => {
-        let auditKey = `${b.local}_${b.lote}_${selMonth}`;
-        let a = auditsMap.get(auditKey);
-        combinedData.push({
-          mes: a?.mes || selMonth || "—",
-          lote: b.lote,
-          local: b.local,
-          cultura: b.cultura,
-          cultivar: b.cultivar,
-          cat: b.cat,
-          qtd_sistema: b.qtd_sistema,
-          qtd_fisica: a?.qtd_fisica ?? null,
-          status: a?.status || "PENDENTE",
-          data_verificacao: a?.data_verificacao || null,
-          auditor_pcp: a?.auditor_pcp || null,
-          auditor_unidade: a?.auditor_unidade || null,
-          responsavel_ubs: a?.responsavel_ubs || null,
-          observacao: a?.observacao || null
-        });
-      });
-    } else {
-      combinedData = rawAudits || [];
-    }
-
-    dashData = combinedData;
-
-    let totLotes = dashData.length;
-    let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined).length;
-    let validados = dashData.filter(x => x.status === "VALIDADO").length;
-    let pendentes = totLotes - auditados;
-    
-    let accVal = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) : "0.0";
-
-    $("tot").textContent = totLotes;
-    $("aud").textContent = auditados;
-    $("pen").textContent = pendentes < 0 ? 0 : pendentes;
-    $("val").textContent = validados;
-    $("acc").textContent = accVal + "%";
-    $("accBarTxt").textContent = accVal + "%";
-    $("accBar").style.width = accVal + "%";
-
-    renderDashTable();
-  }
-
-  function renderDashTable(){
-    let q=v("dashSearch").toUpperCase();
-    filteredData=dashData.filter(x=>
-      String(x.lote).toUpperCase().includes(q) || 
-      String(x.cultivar||"").toUpperCase().includes(q) || 
-      String(x.local||"").toUpperCase().includes(q) ||
-      String(x.cultura||"").toUpperCase().includes(q) ||
-      String(x.mes||"").toUpperCase().includes(q)
-    );
-
-    $("dashTableBody").innerHTML=filteredData.map(x=>{
-      let cl=x.status==="VALIDADO"?"ok":x.status==="DIVERGÊNCIA"?"bad":x.status==="PENDENTE"?"warn":"muted";
-      return `<tr>
-        <td><b>${esc(x.mes)}</b></td>
-        <td><b>${esc(x.lote)}</b></td>
-        <td>${esc(x.local)}</td>
-        <td>${esc(x.cultura)}</td>
-        <td>${esc(x.cultivar)}</td>
-        <td>${esc(x.cat)}</td>
-        <td>${x.qtd_sistema??"—"}</td>
-        <td>${x.qtd_fisica??"—"}</td>
-        <td><span class="${cl}">${esc(x.status)}</span></td>
-      </tr>`;
-    }).join("") || '<tr><td colspan="9" class="muted" style="text-align:center">Nenhuma auditoria encontrada.</td></tr>';
-  }
-
-  function exportToCSV(){
-    if(!filteredData || filteredData.length===0) return toast("Nenhum dado para exportar.");
-    let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status;Auditor PCP;Auditor Unidade;Responsavel UBS;Observacao"];
-    filteredData.forEach(x=>{
-      let obs = String(x.observacao||'').replaceAll('"','""').replaceAll('\n',' ');
-      csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}";"${x.auditor_pcp||''}";"${x.auditor_unidade||''}";"${x.responsavel_ubs||''}";"${obs}"`);
-    });
-    let blob=new Blob([csv.join("\n")], {type:"text/csv;charset=utf-8;"});
-    let link=document.createElement("a");
-    link.href=URL.createObjectURL(blob);
-    link.setAttribute("download", `historico_auditorias_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  function exportLocalAuditsCSV(){
-    let amap=new Map(audits.map(x=>[x.lote,x]));
-    let exportRows = base.map(x=>{
-      let a=amap.get(x.lote);
-      return {
-        mes: meta.mes, 
-        data_verificacao: meta.data_verificacao,
-        lote: x.lote, 
-        local: meta.local, 
-        cultura: x.cultura, 
-        cultivar: x.cultivar,
-        cat: x.cat, 
-        qtd_sistema: x.qtd_sistema, 
-        qtd_fisica: a?.qtd_fisica ?? null, 
-        status: a?.status || "PENDENTE",
-        auditor_pcp: meta.auditor_pcp,
-        auditor_unidade: meta.auditor_unidade,
-        responsavel_ubs: meta.responsavel_ubs,
-        observacao: a?.observacao || null
+        const n = parseFloat(s);
+        return isNaN(n) ? 0 : n;
       };
+
+      const registrosParaInserir = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+
+        const getColVal = (idx) => (idx >= 0 && row[idx] !== undefined) ? String(row[idx]).trim() : "";
+
+        const filial = getColVal(0);              // A
+        const colB = getColVal(1);                // B
+        const colC = getColVal(2);                // C
+        const deposito = getColVal(3);            // D
+        const cultura = getColVal(4) || getColVal(5); // E ou F
+        const colI = getColVal(8);                // I
+        const lote = getColVal(9) || getColVal(8) || getColVal(7); // J (ou I/H)
+        const cat = getColVal(10);                // K
+        const pen = getColVal(11);                // L
+        const um = getColVal(12) || "BAG";        // M
+
+        let colAE = 0;
+
+        // Varredura reversa pulando índices bloqueados
+        for (let c = row.length - 1; c >= 0; c--) {
+          if (INDICES_IGNORADOS.has(c) || c >= INDICE_CORTE_FINAL) {
+            continue;
+          }
+
+          let numCandidate = parseNumStrict(row[c]);
+          if (numCandidate > 0) {
+            colAE = numCandidate;
+            break;
+          }
+        }
+
+        if (!lote || colAE <= 0) continue;
+
+        let localFinal = "";
+        let ufFinal = "";
+        if (colB === "0101" && colC === "10") {
+          localFinal = "UBS I"; ufFinal = "GO";
+        } else if (colB === "102" && colC === "10") {
+          localFinal = "LPCO"; ufFinal = "GO";
+        } else if (colB.includes("BJ") || colC.includes("BJ")) {
+          localFinal = "BJ"; ufFinal = "MG";
+        } else if (colB.includes("AGROSEMEAR") || colC.includes("AGROSEMEAR")) {
+          localFinal = "AGROSEMEAR"; ufFinal = "MT";
+        } else {
+          localFinal = colB || colC || "GERAL"; ufFinal = "GO";
+        }
+
+        const partesTratamento = colI.split(/\s+/);
+        const ultimaSigla = partesTratamento[partesTratamento.length - 1].toUpperCase();
+        const tratamentoFinal = SIGLAS_TRATAMENTO_VALIDAS.includes(ultimaSigla) ? ultimaSigla : "ST";
+
+        registrosParaInserir.push({
+          local: localFinal,
+          uf: ufFinal,
+          filial: filial,
+          deposito: deposito,
+          cultura: cultura,
+          lote: lote,
+          cultivar: cultura,
+          Tratamento: tratamentoFinal,
+          cat: cat,
+          pen: pen,
+          um: um,
+          qtd_sistema: colAE,
+          peso_etiqueta: null
+        });
+      }
+
+      if (registrosParaInserir.length === 0) {
+        divStatus.innerText = "⚠️ Nenhum registro válido encontrado com quantidade numérica > 0.";
+        return;
+      }
+
+      divStatus.innerText = `Salvando ${registrosParaInserir.length} registros no Supabase...`;
+
+      const { error } = await db.from('base_dados').upsert(registrosParaInserir);
+      if (error) throw error;
+
+      divStatus.innerText = "✅ Importação concluída com sucesso!";
+      await dashboard();
+
+      setTimeout(() => { fecharModalImportacao(); }, 1500);
+    } catch (err) {
+      console.error(err);
+      divStatus.innerText = "❌ Erro ao processar planilha: " + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function loadLocalsStart(){
+  let {data,error}=await db.from("base_dados").select("local").order("local");
+  if(error)return toast("Erro ao buscar locais: " + error.message);
+  let a=[...new Set((data||[]).map(x=>x.local).filter(Boolean))];
+  $("local").innerHTML='<option value="">Selecione...</option>'+a.map(x=>`<option>${esc(x)}</option>`).join("");
+}
+
+async function fetchAuditsByFilters(local, mes, cultura){
+  let query = db.from(TABLE_NAME).select("*");
+  if(local) query = query.eq("local", local);
+  if(mes) query = query.eq("mes", mes);
+  if(cultura) query = query.eq("cultura", cultura);
+  
+  let { data, error } = await query;
+  if(error) {
+    console.error("Erro ao buscar histórico:", error);
+    toast("Erro na consulta de auditorias.");
+    return [];
+  }
+  return data || [];
+}
+
+async function fetchBaseByFilters(local, cultura){
+  let query = db.from("base_dados").select("*");
+  if(local) query = query.eq("local", local);
+  if(cultura) query = query.eq("cultura", cultura);
+
+  let { data, error } = await query;
+  if(error) {
+    console.error("Erro ao buscar base_dados:", error);
+    toast("Erro na consulta de lotes.");
+    return [];
+  }
+  return data || [];
+}
+
+async function loadHistoryFilters(){
+  let { data: rawMonths } = await db.from(TABLE_NAME).select("mes, local, cultura");
+  let allData = rawMonths || [];
+  
+  let recordedMonths = new Set(allData.map(x=>x.mes).filter(Boolean));
+  let sortedMonths = ALL_MONTHS.filter(m => recordedMonths.has(m));
+  
+  let locals=[...new Set(allData.map(x=>x.local).filter(Boolean))].sort();
+  let culturas=[...new Set(allData.map(x=>x.cultura).filter(Boolean))].sort();
+
+  let curMonth=v("dashMonth"), curLocal=v("dashLocal"), curCultura=v("dashCultura");
+
+  $("dashMonth").innerHTML='<option value="">Todos os Meses</option>'+sortedMonths.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  $("dashLocal").innerHTML='<option value="">Todos os Locais</option>'+locals.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  $("dashCultura").innerHTML='<option value="">Todas as Culturas</option>'+culturas.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+  $("dashMonth").value=curMonth;
+  $("dashLocal").value=curLocal;
+  $("dashCultura").value=curCultura;
+}
+
+async function dashboard(){
+  let selMonth=v("dashMonth").toUpperCase().trim();
+  let selLocal=v("dashLocal").toUpperCase().trim();
+  let selCultura=v("dashCultura").toUpperCase().trim();
+
+  let [rawAudits, rawBase] = await Promise.all([
+    fetchAuditsByFilters(selLocal, selMonth, selCultura),
+    fetchBaseByFilters(selLocal, selCultura)
+  ]);
+
+  let auditsMap = new Map();
+  rawAudits.forEach(a => auditsMap.set(`${a.local}_${a.lote}_${a.mes}`, a));
+
+  let combinedData = [];
+
+  if (selLocal) {
+    rawBase.forEach(b => {
+      let auditKey = `${b.local}_${b.lote}_${selMonth}`;
+      let a = auditsMap.get(auditKey);
+      combinedData.push({
+        mes: a?.mes || selMonth || "—",
+        lote: b.lote,
+        local: b.local,
+        cultura: b.cultura,
+        cultivar: b.cultivar,
+        cat: b.cat,
+        qtd_sistema: b.qtd_sistema,
+        qtd_fisica: a?.qtd_fisica ?? null,
+        status: a?.status || "PENDENTE",
+        data_verificacao: a?.data_verificacao || null,
+        auditor_pcp: a?.auditor_pcp || null,
+        auditor_unidade: a?.auditor_unidade || null,
+        responsavel_ubs: a?.responsavel_ubs || null,
+        observacao: a?.observacao || null
+      });
     });
-
-    if(exportRows.length === 0) return toast("Nenhum lote para exportar.");
-
-    let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status;Auditor PCP;Auditor Unidade;Responsavel UBS;Observacao"];
-    exportRows.forEach(x=>{
-      let obs = String(x.observacao||'').replaceAll('"','""').replaceAll('\n',' ');
-      csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}";"${x.auditor_pcp||''}";"${x.auditor_unidade||''}";"${x.responsavel_ubs||''}";"${obs}"`);
-    });
-
-    let blob=new Blob([csv.join("\n")], {type:"text/csv;charset=utf-8;"});
-    let link=document.createElement("a");
-    link.href=URL.createObjectURL(blob);
-    link.setAttribute("download", `auditoria_local_${meta.local}_${meta.data_verificacao}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  } else {
+    combinedData = rawAudits;
   }
 
-  async function start(){
-    let local=v("local");
-    if(!local)return toast("Selecione o local.");
-    
-    let btn = $("btnStartAudit");
-    btn.disabled = true;
-    btn.textContent = "Carregando...";
+  await loadHistoryFilters();
 
-    meta={local,data_verificacao:v("date"),mes:month(),auditor_pcp:v("pcp"),auditor_unidade:v("audun"),responsavel_ubs:v("ubs")};
-    $("lt").textContent=local;
+  dashData = combinedData.filter(audit => Number(audit.qtd_sistema) > 0);
 
-    set("search","");
-    set("lotCultura","");
-    set("lotCultivar","");
-    set("lotStatus","");
-    
-    let {data:b,error}=await db.from("base_dados").select("*").eq("local",local).order("lote").range(0, 4999);
-    if(error) {
-      btn.disabled = false;
-      btn.textContent = "INICIAR CONFERÊNCIA";
-      return toast(error.message);
-    }
-    base=b||[];
-    
-    let {data:a,error:e}=await db.from(TABLE_NAME)
-      .select("*")
-      .eq("local",meta.local)
-      .eq("data_verificacao",meta.data_verificacao)
-      .range(0, 4999);
-    if(e) {
-      btn.disabled = false;
-      btn.textContent = "INICIAR CONFERÊNCIA";
-      return toast(e.message);
-    }
-    audits=a||[];
-    
-    populateLotFilters();
-    render();
-    go("lots");
-    
-    btn.disabled = false;
-    btn.textContent = "INICIAR CONFERÊNCIA";
-  }
+  let totLotes = dashData.length;
+  let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined).length;
+  let validados = dashData.filter(x => x.status === "VALIDADO").length;
+  let pendentes = totLotes - auditados;
+  
+  let accVal = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) : "0.0";
 
-  function populateLotFilters(){
-    let culturas=[...new Set(base.map(x=>x.cultura).filter(Boolean))].sort();
-    let cultivares=[...new Set(base.map(x=>x.cultivar).filter(Boolean))].sort();
-    
-    $("lotCultura").innerHTML='<option value="">Todas</option>'+culturas.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-    $("lotCultivar").innerHTML='<option value="">Todas</option>'+cultivares.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-  }
+  $("tot").textContent = totLotes;
+  $("aud").textContent = auditados;
+  $("pen").textContent = pendentes < 0 ? 0 : pendentes;
+  $("val").textContent = validados;
+  $("acc").textContent = accVal + "%";
+  $("accBarTxt").textContent = accVal + "%";
+  $("accBar").style.width = accVal + "%";
 
-  function render(){
-    let q=v("search").toUpperCase();
-    let fCul=v("lotCultura").toUpperCase();
-    let fCv=v("lotCultivar").toUpperCase();
-    let fSt=v("lotStatus").toUpperCase();
+  renderDashTable();
+}
 
-    let amap=new Map(audits.map(x=>[x.lote,x]));
-    let tot=base.length, aud=0, val=0;
+function renderDashTable(){
+  let q=v("dashSearch").toUpperCase();
+  filteredData=dashData.filter(x=>
+    String(x.lote).toUpperCase().includes(q) || 
+    String(x.cultivar||"").toUpperCase().includes(q) || 
+    String(x.local||"").toUpperCase().includes(q) ||
+    String(x.cultura||"").toUpperCase().includes(q) ||
+    String(x.mes||"").toUpperCase().includes(q)
+  );
 
-    let html=base.map(b=>{
-      let a=amap.get(b.lote);
-      let st=a?a.status:"PENDENTE";
-      if(a) aud++;
-      if(st==="VALIDADO") val++;
+  $("dashTableBody").innerHTML=filteredData.map(x=>{
+    let cl=x.status==="VALIDADO"?"ok":x.status==="DIVERGÊNCIA"?"bad":x.status==="PENDENTE"?"warn":"muted";
+    return `<tr>
+      <td><b>${esc(x.mes)}</b></td>
+      <td><b>${esc(x.lote)}</b></td>
+      <td>${esc(x.local)}</td>
+      <td>${esc(x.cultura)}</td>
+      <td>${esc(x.cultivar)}</td>
+      <td>${esc(x.cat)}</td>
+      <td>${x.qtd_sistema??"—"}</td>
+      <td>${x.qtd_fisica??"—"}</td>
+      <td><span class="${cl}">${esc(x.status)}</span></td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="9" class="muted" style="text-align:center">Nenhuma auditoria encontrada.</td></tr>';
+}
 
-      if(q && !String(b.lote).toUpperCase().includes(q)) return "";
-      if(fCul && String(b.cultura||"").toUpperCase()!==fCul) return "";
-      if(fCv && String(b.cultivar||"").toUpperCase()!==fCv) return "";
-      if(fSt && st!==fSt) return "";
+function exportToCSV(){
+  if(!filteredData || filteredData.length===0) return toast("Nenhum dado para exportar.");
+  let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status;Auditor PCP;Auditor Unidade;Responsavel UBS;Observacao"];
+  filteredData.forEach(x=>{
+    let obs = String(x.observacao||'').replaceAll('"','""').replaceAll('\n',' ');
+    csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}";"${x.auditor_pcp||''}";"${x.auditor_unidade||''}";"${x.responsavel_ubs||''}";"${obs}"`);
+  });
+  let blob=new Blob([csv.join("\n")], {type:"text/csv;charset=utf-8;"});
+  let link=document.createElement("a");
+  link.href=URL.createObjectURL(blob);
+  link.setAttribute("download", `historico_auditorias_${new Date().toISOString().slice(0,10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
-      let stCl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":"warn";
-      let divClass=st==="DIVERGÊNCIA"?"divergent-border":"";
-
-      return `<div class="lot ${divClass}" onclick="openConf('${esc(b.lote)}')">
-        <div><b>${esc(b.lote)}</b></div>
-        <div>${esc(b.cultivar||'—')} · ${esc(b.cat||'—')} · ${esc(b.pen||'—')}</div>
-        <div><b>${b.qtd_sistema}</b> ${esc(b.um||'')}</div>
-        <div><span class="${stCl}">${st}</span></div>
-      </div>`;
-    }).join("");
-
-    $("list").innerHTML = html || '<div class="muted" style="padding:20px;text-align:center">Nenhum lote encontrado.</div>';
-
-    $("stot").textContent = tot;
-    $("saud").textContent = aud;
-    $("spen").textContent = tot - aud;
-    $("sval").textContent = val;
-    $("sacc").textContent = (aud > 0 ? ((val / aud) * 100).toFixed(1) : "0.0") + "%";
-  }
-
-  function openConf(loteStr){
-    selected = base.find(x => x.lote === loteStr);
-    if (!selected) return;
-
-    $("clote").textContent = selected.lote;
-    $("sys").innerHTML = `
-      <b>Cultivar:</b> ${esc(selected.cultivar||'—')} | <b>Cat:</b> ${esc(selected.cat||'—')} | <b>Penera:</b> ${esc(selected.pen||'—')}<br>
-      <b>Qtd Sistema:</b> ${selected.qtd_sistema} ${esc(selected.um||'')} | <b>Tratamento:</b> ${esc(selected.Tratamento||'—')}
-    `;
-
-    let a = audits.find(x => x.lote === selected.lote);
-    if (a) {
-      set("catfis", a.cat_fisica);
-      set("etq", a.etiqueta_fisica);
-      set("qtd", a.qtd_fisica);
-      set("cam", a.camara);
-      set("quad", a.quadra);
-      set("fila", a.fileira);
-      set("obs", a.observacao);
-      $("btnDeleteConf").classList.remove("hidden");
-    } else {
-      set("catfis", selected.cat);
-      set("etq", "");
-      set("qtd", "");
-      set("cam", "");
-      set("quad", "");
-      set("fila", "");
-      set("obs", "");
-      $("btnDeleteConf").classList.add("hidden");
-    }
-
-    $("conf").classList.remove("hidden");
-  }
-
-  function closeConf(){
-    $("conf").classList.add("hidden");
-    selected = null;
-  }
-
-  async function save(){
-    if (!selected) return;
-
-    let qtdFis = parseFloat(v("qtd"));
-    if (isNaN(qtdFis)) return toast("Informe a quantidade física.");
-
-    let status = (qtdFis === Number(selected.qtd_sistema)) ? "VALIDADO" : "DIVERGÊNCIA";
-
-    let record = {
-      local: meta.local,
+function exportLocalAuditsCSV(){
+  let amap=new Map(audits.map(x=>[x.lote,x]));
+  let exportRows = base.map(x=>{
+    let a=amap.get(x.lote);
+    return {
+      mes: meta.mes, 
       data_verificacao: meta.data_verificacao,
-      mes: meta.mes,
+      lote: x.lote, 
+      local: meta.local, 
+      cultura: x.cultura, 
+      cultivar: x.cultivar,
+      cat: x.cat, 
+      qtd_sistema: x.qtd_sistema, 
+      qtd_fisica: a?.qtd_fisica ?? null, 
+      status: a?.status || "PENDENTE",
       auditor_pcp: meta.auditor_pcp,
       auditor_unidade: meta.auditor_unidade,
       responsavel_ubs: meta.responsavel_ubs,
-      lote: selected.lote,
-      cultura: selected.cultura,
-      cultivar: selected.cultivar,
-      cat: selected.cat,
-      cat_fisica: v("catfis"),
-      etiqueta_fisica: v("etq"),
-      qtd_sistema: selected.qtd_sistema,
-      qtd_fisica: qtdFis,
-      camara: v("cam"),
-      quadra: v("quad"),
-      fileira: v("fila"),
-      observacao: v("obs"),
-      status: status
+      observacao: a?.observacao || null
     };
+  });
 
-    let { error } = await db.from(TABLE_NAME).upsert(record, { onConflict: 'local,lote,data_verificacao' });
-    if (error) return toast("Erro ao salvar auditoria: " + error.message);
+  if(exportRows.length === 0) return toast("Nenhum lote para exportar.");
 
-    let idx = audits.findIndex(x => x.lote === selected.lote);
-    if (idx >= 0) audits[idx] = record;
-    else audits.push(record);
+  let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status;Auditor PCP;Auditor Unidade;Responsavel UBS;Observacao"];
+  exportRows.forEach(x=>{
+    let obs = String(x.observacao||'').replaceAll('"','""').replaceAll('\n',' ');
+    csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}";"${x.auditor_pcp||''}";"${x.auditor_unidade||''}";"${x.responsavel_ubs||''}";"${obs}"`);
+  });
 
-    toast("Lote conferido com sucesso!");
-    closeConf();
-    render();
+  let blob=new Blob([csv.join("\n")], {type:"text/csv;charset=utf-8;"});
+  let link=document.createElement("a");
+  link.href=URL.createObjectURL(blob);
+  link.setAttribute("download", `auditoria_local_${meta.local}_${meta.data_verificacao}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+async function start(){
+  let local=v("local");
+  if(!local)return toast("Selecione o local.");
+  
+  let btn = $("btnStartAudit");
+  btn.disabled = true;
+  btn.textContent = "Carregando...";
+
+  meta={local,data_verificacao:v("date"),mes:month(),auditor_pcp:v("pcp"),auditor_unidade:v("audun"),responsavel_ubs:v("ubs")};
+  $("lt").textContent=local;
+
+  set("search","");
+  set("lotCultura","");
+  set("lotCultivar","");
+  set("lotStatus","");
+  
+  let {data:b,error}=await db.from("base_dados").select("*").eq("local",local).order("lote");
+  if(error) {
+    btn.disabled = false;
+    btn.textContent = "INICIAR CONFERÊNCIA";
+    return toast(error.message);
+  }
+  base=b||[];
+  
+  let {data:a,error:e}=await db.from(TABLE_NAME)
+    .select("*")
+    .eq("local",meta.local)
+    .eq("data_verificacao",meta.data_verificacao);
+  if(e) {
+    btn.disabled = false;
+    btn.textContent = "INICIAR CONFERÊNCIA";
+    return toast(e.message);
+  }
+  audits=a||[];
+  
+  populateLotFilters();
+  render();
+  go("lots");
+  
+  btn.disabled = false;
+  btn.textContent = "INICIAR CONFERÊNCIA";
+}
+
+function populateLotFilters(){
+  let culturas=[...new Set(base.map(x=>x.cultura).filter(Boolean))].sort();
+  let cultivares=[...new Set(base.map(x=>x.cultivar).filter(Boolean))].sort();
+  
+  $("lotCultura").innerHTML='<option value="">Todas</option>'+culturas.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  $("lotCultivar").innerHTML='<option value="">Todas</option>'+cultivares.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+}
+
+function render(){
+  let q=v("search").toUpperCase();
+  let fCul=v("lotCultura").toUpperCase();
+  let fCv=v("lotCultivar").toUpperCase();
+  let fSt=v("lotStatus").toUpperCase();
+
+  let amap=new Map(audits.map(x=>[x.lote,x]));
+  let tot=base.length, aud=0, val=0;
+
+  let html=base.map(b=>{
+    let a=amap.get(b.lote);
+    let st=a?a.status:"PENDENTE";
+    if(a) aud++;
+    if(st==="VALIDADO") val++;
+
+    if(q && !String(b.lote).toUpperCase().includes(q)) return "";
+    if(fCul && String(b.cultura||"").toUpperCase()!==fCul) return "";
+    if(fCv && String(b.cultivar||"").toUpperCase()!==fCv) return "";
+    if(fSt && st!==fSt) return "";
+
+    let stCl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":"warn";
+    let divClass=st==="DIVERGÊNCIA"?"divergent-border":"";
+
+    return `<div class="lot ${divClass}" onclick="openConf('${esc(b.lote)}')">
+      <div><b>${esc(b.lote)}</b></div>
+      <div>${esc(b.cultivar||'—')} · ${esc(b.cat||'—')} · ${esc(b.pen||'—')}</div>
+      <div><b>${b.qtd_sistema}</b> ${esc(b.um||'')}</div>
+      <div><span class="${stCl}">${st}</span></div>
+    </div>`;
+  }).join("");
+
+  $("list").innerHTML = html || '<div class="muted" style="padding:20px;text-align:center">Nenhum lote encontrado.</div>';
+
+  $("stot").textContent = tot;
+  $("saud").textContent = aud;
+  $("spen").textContent = tot - aud;
+  $("sval").textContent = val;
+  $("sacc").textContent = (aud > 0 ? ((val / aud) * 100).toFixed(1) : "0.0") + "%";
+}
+
+function openConf(loteStr){
+  selected = base.find(x => x.lote === loteStr);
+  if (!selected) return;
+
+  $("clote").textContent = selected.lote;
+  $("sys").innerHTML = `
+    <b>Cultivar:</b> ${esc(selected.cultivar||'—')} | <b>Cat:</b> ${esc(selected.cat||'—')} | <b>Penera:</b> ${esc(selected.pen||'—')}<br>
+    <b>Qtd Sistema:</b> ${selected.qtd_sistema} ${esc(selected.um||'')} | <b>Tratamento:</b> ${esc(selected.Tratamento||'—')}
+  `;
+
+  let a = audits.find(x => x.lote === selected.lote);
+  if (a) {
+    set("catfis", a.cat_fisica);
+    set("etq", a.etiqueta_fisica);
+    set("qtd", a.qtd_fisica);
+    set("cam", a.camara);
+    set("quad", a.quadra);
+    set("fila", a.fileira);
+    set("obs", a.observacao);
+    $("btnDeleteConf").classList.remove("hidden");
+  } else {
+    set("catfis", selected.cat);
+    set("etq", "");
+    set("qtd", "");
+    set("cam", "");
+    set("quad", "");
+    set("fila", "");
+    set("obs", "");
+    $("btnDeleteConf").classList.add("hidden");
   }
 
-  async function deleteCurrentAuditHistory(){
-    if (!selected) return;
-    if (!confirm(`Deseja realmente excluir o histórico de auditoria do lote ${selected.lote}?`)) return;
+  $("conf").classList.remove("hidden");
+}
 
-    let { error } = await db.from(TABLE_NAME)
-      .delete()
-      .eq("local", meta.local)
-      .eq("lote", selected.lote)
-      .eq("data_verificacao", meta.data_verificacao);
+function closeConf(){
+  $("conf").classList.add("hidden");
+  selected = null;
+}
 
-    if (error) return toast("Erro ao excluir histórico: " + error.message);
+async function save(){
+  if (!selected) return;
 
-    audits = audits.filter(x => x.lote !== selected.lote);
-    toast("Histórico excluído com sucesso.");
-    closeConf();
-    render();
-  }
+  let qtdFis = parseFloat(v("qtd"));
+  if (isNaN(qtdFis)) return toast("Informe a quantidade física.");
 
-  async function saveFullSession(){
-    toast("Sessão sincronizada com o banco de dados.");
-  }
+  let status = (qtdFis === Number(selected.qtd_sistema)) ? "VALIDADO" : "DIVERGÊNCIA";
 
-  function openNewLotModal(){
-    set("nl_local", meta.local || "");
-    set("nl_uf", "GO");
-    set("nl_filial", "");
-    set("nl_deposito", "");
-    set("nl_cultura", "");
-    set("nl_lote", "");
-    set("nl_cultivar", "");
-    set("nl_cod_produto", "");
-    set("nl_nome_produto_erp", "");
-    set("nl_cat", "");
-    set("nl_pen", "");
-    set("nl_um", "BAG");
-    set("nl_qtd_sistema", "0");
-    set("nl_peso_etiqueta", "");
-    $("newLotModal").classList.remove("hidden");
-  }
-
-  function closeNewLotModal(){
-    $("newLotModal").classList.add("hidden");
-  }
-
-  async function saveNewLot(){
-    let lote = v("nl_lote").trim();
-    let local = v("nl_local").trim();
-    let qtd = parseFloat(v("nl_qtd_sistema"));
-
-    if (!lote || !local) return toast("Preencha o local e o lote.");
-    if (isNaN(qtd)) qtd = 0;
-
-    let record = {
-      local: local,
-      uf: v("nl_uf"),
-      filial: v("nl_filial"),
-      deposito: v("nl_deposito"),
-      cultura: v("nl_cultura"),
-      lote: lote,
-      cultivar: v("nl_cultivar"),
-      cat: v("nl_cat"),
-      pen: v("nl_pen"),
-      um: v("nl_um"),
-      qtd_sistema: qtd,
-      peso_etiqueta: parseFloat(v("nl_peso_etiqueta")) || null
-    };
-
-    let { error } = await db.from("base_dados").upsert(record);
-    if (error) return toast("Erro ao cadastrar novo lote: " + error.message);
-
-    base.push(record);
-    populateLotFilters();
-    render();
-    closeNewLotModal();
-    toast("Novo lote inserido na base!");
-  }
-
-  window.onload = async () => {
-    await loadLocalsStart();
-    await dashboard();
+  let record = {
+    local: meta.local,
+    data_verificacao: meta.data_verificacao,
+    mes: meta.mes,
+    auditor_pcp: meta.auditor_pcp,
+    auditor_unidade: meta.auditor_unidade,
+    responsavel_ubs: meta.responsavel_ubs,
+    lote: selected.lote,
+    cultura: selected.cultura,
+    cultivar: selected.cultivar,
+    cat: selected.cat,
+    cat_fisica: v("catfis"),
+    etiqueta_fisica: v("etq"),
+    qtd_sistema: selected.qtd_sistema,
+    qtd_fisica: qtdFis,
+    camara: v("cam"),
+    quadra: v("quad"),
+    fileira: v("fila"),
+    observacao: v("obs"),
+    status: status
   };
-  </script>
+
+  let { error } = await db.from(TABLE_NAME).upsert(record, { onConflict: 'local,lote,data_verificacao' });
+  if (error) return toast("Erro ao salvar auditoria: " + error.message);
+
+  let idx = audits.findIndex(x => x.lote === selected.lote);
+  if (idx >= 0) audits[idx] = record;
+  else audits.push(record);
+
+  toast("Lote conferido com sucesso!");
+  closeConf();
+  render();
+}
+
+async function deleteCurrentAuditHistory(){
+  if (!selected) return;
+  if (!confirm(`Deseja realmente excluir o histórico de auditoria do lote ${selected.lote}?`)) return;
+
+  let { error } = await db.from(TABLE_NAME)
+    .delete()
+    .eq("local", meta.local)
+    .eq("lote", selected.lote)
+    .eq("data_verificacao", meta.data_verificacao);
+
+  if (error) return toast("Erro ao excluir histórico: " + error.message);
+
+  audits = audits.filter(x => x.lote !== selected.lote);
+  toast("Histórico excluído com sucesso.");
+  closeConf();
+  render();
+}
+
+async function saveFullSession(){
+  toast("Sessão sincronizada com o banco de dados.");
+}
+
+function openNewLotModal(){
+  set("nl_local", meta.local || "");
+  set("nl_uf", "GO");
+  set("nl_filial", "");
+  set("nl_deposito", "");
+  set("nl_cultura", "");
+  set("nl_lote", "");
+  set("nl_cultivar", "");
+  set("nl_cod_produto", "");
+  set("nl_nome_produto_erp", "");
+  set("nl_cat", "");
+  set("nl_pen", "");
+  set("nl_um", "BAG");
+  set("nl_qtd_sistema", "0");
+  set("nl_peso_etiqueta", "");
+  $("newLotModal").classList.remove("hidden");
+}
+
+function closeNewLotModal(){
+  $("newLotModal").classList.add("hidden");
+}
+
+async function saveNewLot(){
+  let lote = v("nl_lote").trim();
+  let local = v("nl_local").trim();
+  let qtd = parseFloat(v("nl_qtd_sistema"));
+
+  if (!lote || !local) return toast("Preencha o local e o lote.");
+  if (isNaN(qtd)) qtd = 0;
+
+  let record = {
+    local: local,
+    uf: v("nl_uf"),
+    filial: v("nl_filial"),
+    deposito: v("nl_deposito"),
+    cultura: v("nl_cultura"),
+    lote: lote,
+    cultivar: v("nl_cultivar"),
+    cat: v("nl_cat"),
+    pen: v("nl_pen"),
+    um: v("nl_um"),
+    qtd_sistema: qtd,
+    peso_etiqueta: parseFloat(v("nl_peso_etiqueta")) || null
+  };
+
+  let { error } = await db.from("base_dados").upsert(record);
+  if (error) return toast("Erro ao cadastrar novo lote: " + error.message);
+
+  base.push(record);
+  populateLotFilters();
+  render();
+  closeNewLotModal();
+  toast("Novo lote inserido na base!");
+}
+
+window.onload = () => {
+  dashboard();
+};
+</script>
 </body>
 </html>
