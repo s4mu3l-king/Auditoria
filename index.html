@@ -351,24 +351,6 @@ function fecharModalImportacao() {
   $("input-excel").value = "";
 }
 
-// Converte letras de coluna em índice numérico de array 0-based
-function colParaIndice(colStr) {
-  let col = colStr.trim().toUpperCase();
-  let idx = 0;
-  for (let i = 0; i < col.length; i++) {
-    idx = idx * 26 + (col.charCodeAt(i) - 64);
-  }
-  return idx - 1;
-}
-
-// Bloqueio por letras explícitas de colunas (Atualizado incluindo D, F, H, J, M, O)
-const LETRAS_COLUNAS_IGNORADAS = [
-  "A", "D", "F", "H", "J", "M", "O", "P", "Q", "R", "S", "V", "W", "Y", "AD", 
-  "AF", "AG", "AH", "AI", "AJ", "AK", "AL", "AM", "AN", "AO", "AP"
-];
-const INDICES_IGNORADOS = new Set(LETRAS_COLUNAS_IGNORADAS.map(colParaIndice));
-const INDICE_CORTE_FINAL = colParaIndice("AQ"); // Ignora da coluna AQ em diante
-
 async function processarEEnviarPlanilha() {
   const input = $("input-excel");
   const divStatus = $("status-importacao");
@@ -395,13 +377,18 @@ async function processarEEnviarPlanilha() {
         return;
       }
 
+      // Validação puramente baseada no CONTEÚDO da célula (sem bloquear colunas)
       const parseNumStrict = (val) => {
         if (typeof val === "number") return isNaN(val) ? 0 : val;
-        if (!val) return 0;
+        if (val === null || val === undefined) return 0;
+        
         let s = String(val).trim();
-        
+        if (!s) return 0;
+
+        // Se contiver barra (ex: "25/26", "2024/2025" ou "10/05/2026"), letras ou hífens de texto, descarta
         if (s.includes("/") || /[a-zA-Z]/.test(s)) return 0;
-        
+
+        // Limpa caracteres indesejados mantendo números, vírgulas e pontos
         s = s.replace(/[^0-9.,-]/g, "");
         if (!s) return 0;
 
@@ -436,12 +423,8 @@ async function processarEEnviarPlanilha() {
 
         let colAE = 0;
 
-        // Varredura reversa pulando índices bloqueados
+        // Varredura reversa em TODAS as colunas sem bloqueios de letra
         for (let c = row.length - 1; c >= 0; c--) {
-          if (INDICES_IGNORADOS.has(c) || c >= INDICE_CORTE_FINAL) {
-            continue;
-          }
-
           let numCandidate = parseNumStrict(row[c]);
           if (numCandidate > 0) {
             colAE = numCandidate;
