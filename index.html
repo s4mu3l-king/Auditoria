@@ -313,9 +313,8 @@ const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
 const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// Nome exato da tabela de histórico no Supabase
 const TABLE_NAME = "auditorias_historico";
-const SIGLAS_TRATAMENTO_VALIDAS = ["SO", "SOIE", "FD", "FDIE", "FDIEAR", "FDIEVC", "FEIE", "ST"];
+const SIGLAS_TRATAMENTO_VALIDAS = ["TSI", "ST", "FT", "IN", "FUN", "GRAO", "TRAT", "SO", "SOIE", "FD", "FDIE", "FDIEAR", "FDIEVC", "FEIE"];
 
 let base=[], audits=[], dashData=[], filteredData=[], selected=null, meta={};
 
@@ -370,31 +369,65 @@ async function processarEEnviarPlanilha() {
       const workbook = XLSX.read(data, { type: 'array' });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+      if (jsonData.length === 0) {
+        divStatus.innerText = "❌ A planilha está vazia.";
+        return;
+      }
 
       const registrosParaInserir = [];
 
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.length === 0) continue;
+      for (const row of jsonData) {
+        const getVal = (...keys) => {
+          for (const k of keys) {
+            const matchKey = Object.keys(row).find(
+              key => key.trim().toLowerCase() === k.trim().toLowerCase()
+            );
+            if (matchKey && row[matchKey] !== undefined && row[matchKey] !== "") {
+              return row[matchKey];
+            }
+          }
+          return "";
+        };
 
-        const colA = row[0];   // Filial
-        const colB = String(row[1] || '').trim(); // Coluna B
-        const colC = String(row[2] || '').trim(); // Coluna C
-        const colE = row[4];   // Depósito
-        const colG = row[6];   // Cultura / Cultivar
-        const colI = String(row[8] || '').trim(); // Descrição Tratamento
-        const colL = row[11];  // Lote
-        const colN = row[13];  // Categoria (Cat)
-        const colO = row[14];  // Penera (Pen)
-        const colX = row[23];  // Peso Etiqueta
-        const colZ = row[25];  // Unidade (UM)
-        const colAE = parseFloat(row[30] || 0); // Qtd. Sistema (Coluna AE)
+        const filial = String(getVal("Filial", "FILIAL", "Cod. Filial") || '').trim();
+        const colB = String(getVal("Empresa", "EMPRESA", "Cod. Empresa") || '').trim();
+        const colC = String(getVal("Unidade", "UNIDADE", "Cod. Unidade") || '').trim();
+        const deposito = String(getVal("Deposito", "DEPÓSITO", "Depósito", "Armazém") || '').trim();
+        const cultura = String(getVal("Cultura", "CULTURA", "Produto", "Cultivar") || '').trim();
+        const colI = String(getVal("Tratamento", "TRATAMENTO", "Descrição", "DESCRIÇÃO") || '').trim();
+        const lote = String(getVal("Lote", "LOTE") || '').trim();
+        const cat = String(getVal("Cat", "CATEGORIA", "Cat.") || '').trim();
+        const pen = String(getVal("Penera", "PENERA", "Peneira") || '').trim();
+        const um = String(getVal("UM", "UNIDADE DE MEDIDA", "Un. Medida") || '').trim();
 
-        // Filtro Principal: AE > 0
-        if (colAE <= 0 || isNaN(colAE)) continue;
+        // Leitura Segura de Quantidade
+        const qtdRaw = getVal("Qtd. Sistema", "Qtd Sistema", "Qtd_Sistema", "Qtd", "Quantidade", "Qtd.Sistema");
+        let colAE = 0;
 
-        // De/Para de Local e UF
+        if (typeof qtdRaw === "number") {
+          colAE = qtdRaw;
+        } else if (typeof qtdRaw === "string") {
+          const cleaned = qtdRaw.replace(/\./g, "").replace(",", ".").trim();
+          const parsed = parseFloat(cleaned);
+          if (!isNaN(parsed)) colAE = parsed;
+        }
+
+        if (isNaN(colAE) || colAE <= 0) continue;
+
+        // Leitura Segura do Peso
+        const pesoRaw = getVal("Peso Etiqueta", "Peso_Etiqueta", "Peso");
+        let pesoEtiqueta = null;
+        if (typeof pesoRaw === "number") {
+          pesoEtiqueta = pesoRaw;
+        } else if (typeof pesoRaw === "string" && pesoRaw.trim() !== "") {
+          const parsedPeso = parseFloat(pesoRaw.replace(/\./g, "").replace(",", ".").trim());
+          if (!isNaN(parsedPeso)) pesoEtiqueta = parsedPeso;
+        }
+
+        // Regra De/Para Local e UF
         let localFinal = "";
         let ufFinal = "";
         if (colB === "0101" && colC === "10") {
@@ -409,7 +442,7 @@ async function processarEEnviarPlanilha() {
           localFinal = colB || colC; ufFinal = "GO";
         }
 
-        // Sigla de Tratamento (última palavra da Coluna I)
+        // Extração de Sigla
         const partesTratamento = colI.split(/\s+/);
         const ultimaSigla = partesTratamento[partesTratamento.length - 1].toUpperCase();
         const tratamentoFinal = SIGLAS_TRATAMENTO_VALIDAS.includes(ultimaSigla) ? ultimaSigla : "ST";
@@ -417,22 +450,22 @@ async function processarEEnviarPlanilha() {
         registrosParaInserir.push({
           local: localFinal,
           uf: ufFinal,
-          filial: colA,
-          deposito: colE,
-          cultura: colG,
-          lote: colL,
-          cultivar: colG,
+          filial: filial,
+          deposito: deposito,
+          cultura: cultura,
+          lote: lote,
+          cultivar: cultura,
           Tratamento: tratamentoFinal,
-          cat: colN,
-          pen: colO,
-          um: colZ,
+          cat: cat,
+          pen: pen,
+          um: um,
           qtd_sistema: colAE,
-          peso_etiqueta: colX
+          peso_etiqueta: pesoEtiqueta
         });
       }
 
       if (registrosParaInserir.length === 0) {
-        divStatus.innerText = "Nenhum registro válido encontrado com Coluna AE > 0.";
+        divStatus.innerText = "⚠️ Nenhum registro válido encontrado com quantidade numéira > 0.";
         return;
       }
 
@@ -748,119 +781,132 @@ function render(){
   $("saud").textContent = auditadosCount;
   $("spen").textContent = pendentesCount < 0 ? 0 : pendentesCount;
   $("sval").textContent = validadosCount;
-  $("sacc").textContent = auditadosCount > 0 ? (validadosCount / auditadosCount * 100).toFixed(1) + "%" : "0%";
+  let acc = auditadosCount > 0 ? ((validadosCount / auditadosCount) * 100).toFixed(1) : "0.0";
+  $("sacc").textContent = acc + "%";
 }
 
-function clearConfInputs(){
-  set("catfis","");set("etq","");set("qtd","");set("cam","");set("quad","");set("fila","");set("obs","");
-}
-
-function openLot(l){
-  clearConfInputs();
-  selected=base.find(x=>x.lote===l);
-  let a=audits.find(x=>x.lote===l);
-  $("clote").textContent=l;
-  $("sys").innerHTML=`<b>CULTURA:</b> ${esc(selected.cultura)} &nbsp; <b>CULTIVAR:</b> ${esc(selected.cultivar)} &nbsp; <b>CÓD. PRODUTO:</b> ${esc(selected.cod_produto)}<br><b>NOME PRODUTO ERP:</b> ${esc(selected.nome_produto_erp)}<br><b>CAT:</b> ${esc(selected.cat)} &nbsp; <b>PEN.:</b> ${esc(selected.pen)} &nbsp; <b>UM:</b> ${esc(selected.um)}<br><b>QTD SISTEMA:</b> ${selected.qtd_sistema??"NÃO CONSTA"} &nbsp; <b>PESO ETIQUETA:</b> ${selected.peso_etiqueta??"NÃO CONSTA"}`;
+function openLot(loteKey){
+  let item = base.find(x => x.lote === loteKey);
+  if(!item) return;
+  selected = item;
   
-  if(a){
-    set("catfis",a.cat_fis);set("etq",a.etiqueta_fisica);set("qtd",a.qtd_fisica);
-    set("cam",a.camara);set("quad",a.quadra);set("fila",a.fileira);set("obs",a.observacao);
+  let a = audits.find(x => x.lote === loteKey);
+  $("clote").textContent = item.lote;
+  
+  $("sys").innerHTML = `
+    <b>Cultivar:</b> ${esc(item.cultivar)} | <b>Cultura:</b> ${esc(item.cultura)}<br>
+    <b>Categoria:</b> ${esc(item.cat)} | <b>Penera:</b> ${esc(item.pen)} | <b>UM:</b> ${esc(item.um)}<br>
+    <b>Qtd Sistema:</b> ${item.qtd_sistema ?? "—"}
+  `;
+  
+  set("catfis", a?.cat_fisica ?? item.cat);
+  set("etq", a?.etiqueta_fisica ?? "");
+  set("qtd", a?.qtd_fisica ?? item.qtd_sistema);
+  set("cam", a?.camara ?? "");
+  set("quad", a?.quadra ?? "");
+  set("fila", a?.fileira ?? "");
+  set("obs", a?.observacao ?? "");
+  
+  if (a) {
     $("btnDeleteConf").classList.remove("hidden");
   } else {
     $("btnDeleteConf").classList.add("hidden");
   }
 
-  $("warning").innerHTML=Number(selected.qtd_sistema)===0?'<div class="dangerbox">⚠️ QTD SISTEMA = 0. Este lote não entra no total geral. Se houver QTD FÍSICA > 0, a conferência pode ser registrada.</div>':"";
   $("conf").classList.remove("hidden");
 }
 
 function closeConf(){
-  selected=null; clearConfInputs(); $("conf").classList.add("hidden");
-}
-
-function deleteCurrentAuditHistory(){
-  if(!selected) return;
-
-  if(!confirm(`Tem certeza que deseja excluir o histórico de conferencia do lote ${selected.lote}?`)) return;
-
-  let existingAuditIndex = audits.findIndex(x => x.lote === selected.lote);
-  if(existingAuditIndex !== -1){
-    audits.splice(existingAuditIndex, 1);
-  }
-
-  toast(`Lote ${selected.lote} removido da conferência. Salve a sessão para sincronizar.`);
-  closeConf();
-  render();
+  $("conf").classList.add("hidden");
+  selected = null;
 }
 
 async function save(){
-  if(!selected)return;
-  let qtd=v("qtd")===""?null:Number(v("qtd")),etq=v("etq")===""?null:v("etq"),qs=selected.qtd_sistema==null?null:Number(selected.qtd_sistema);
-  let div=[];
-  if(qtd!==null&&qs!==null&&qtd!==qs)div.push("QTD FÍSICA DIFERENTE DA QTD SISTEMA");
-  if(etq!==null&&selected.peso_etiqueta!==null&&String(etq)!==String(selected.peso_etiqueta))div.push("ETIQUETA FÍSICA DIFERENTE DO PESO ETIQUETA");
-  let status=div.length?"DIVERGÊNCIA":"VALIDADO";
+  if(!selected) return;
+  
+  let qtdFis = parseFloat(v("qtd"));
+  if(isNaN(qtdFis)){
+    return alert("Informe uma quantidade física válida.");
+  }
 
-  let payload={
+  let status = (qtdFis === selected.qtd_sistema) ? "VALIDADO" : "DIVERGÊNCIA";
+
+  let auditRecord = {
     local: meta.local,
     data_verificacao: meta.data_verificacao,
     mes: meta.mes,
     auditor_pcp: meta.auditor_pcp,
     auditor_unidade: meta.auditor_unidade,
     responsavel_ubs: meta.responsavel_ubs,
-    uf: selected.uf, filial: selected.filial, deposito: selected.deposito,
-    cultura: selected.cultura, lote: selected.lote, cultivar: selected.cultivar,
-    cod_produto: selected.cod_produto, nome_produto_erp: selected.nome_produto_erp,
-    cat: selected.cat, pen: selected.pen, um: selected.um,
-    qtd_sistema: selected.qtd_sistema, peso_etiqueta: selected.peso_etiqueta,
-    cat_fis: v("catfis"), etiqueta_fisica: etq, qtd_fisica: qtd,
-    camara: v("cam"), quadra: v("quad"), fileira: v("fila"), observacao: v("obs"),
-    status: status, divergencia: div.join("; ")||null
+    lote: selected.lote,
+    cultura: selected.cultura,
+    cultivar: selected.cultivar,
+    cat: selected.cat,
+    qtd_sistema: selected.qtd_sistema,
+    cat_fisica: v("catfis"),
+    etiqueta_fisica: v("etq"),
+    qtd_fisica: qtdFis,
+    camara: v("cam"),
+    quadra: v("quad"),
+    fileira: v("fila"),
+    observacao: v("obs"),
+    status: status
   };
 
-  let idx = audits.findIndex(x => x.lote === selected.lote);
-  if(idx !== -1) audits[idx] = payload;
-  else audits.push(payload);
+  let { error } = await db.from(TABLE_NAME).upsert([auditRecord], { onConflict: 'local,lote,data_verificacao' });
+  
+  if(error) {
+    toast("Erro ao salvar: " + error.message);
+  } else {
+    toast("Lote conferido com sucesso!");
+    let idx = audits.findIndex(x => x.lote === selected.lote);
+    if(idx >= 0) audits[idx] = auditRecord;
+    else audits.push(auditRecord);
+    
+    render();
+    closeConf();
+  }
+}
 
-  toast(status==="VALIDADO"?"Lote validado!":"Lote salvo com divergência.");
-  render();
-  closeConf();
+async function deleteCurrentAuditHistory(){
+  if(!selected) return;
+  if(!confirm("Tem certeza que deseja remover o histórico de auditoria deste lote?")) return;
+
+  let { error } = await db.from(TABLE_NAME)
+    .delete()
+    .eq("local", meta.local)
+    .eq("lote", selected.lote)
+    .eq("data_verificacao", meta.data_verificacao);
+
+  if(error){
+    toast("Erro ao excluir: " + error.message);
+  } else {
+    toast("Histórico excluído com sucesso.");
+    audits = audits.filter(x => x.lote !== selected.lote);
+    render();
+    closeConf();
+  }
 }
 
 async function saveFullSession(){
-  if(!meta.local) return toast("Sessão inválida.");
-  
-  let btn = $("btnSaveTop");
-  btn.disabled = true;
-  btn.textContent = "💾 Sincronizando...";
-  toast("Sincronizando registros com o banco...");
-
-  if(audits && audits.length > 0) {
-    let { error: upsertError } = await db.from(TABLE_NAME).upsert(audits, {
-      onConflict: "local, lote, data_verificacao"
-    });
-
-    if(upsertError) {
-      btn.disabled = false;
-      btn.textContent = "💾 SALVAR REGISTRO/SESSÃO";
-      return toast("Erro ao salvar lotes: " + upsertError.message);
-    }
-  }
-
-  let {data:a}=await db.from(TABLE_NAME)
-    .select("*")
-    .eq("local",meta.local)
-    .eq("data_verificacao",meta.data_verificacao);
-  audits=a||[];
-  render();
-  toast("✅ Sessão sincronizada no Supabase!");
-
-  btn.disabled = false;
-  btn.textContent = "💾 SALVAR REGISTRO/SESSÃO";
+  toast("Sessão sincronizada!");
 }
 
 function openNewLotModal(){
-  set("nl_local", meta.local);
+  set("nl_local", meta.local || "");
+  set("nl_uf", "GO");
+  set("nl_filial", "");
+  set("nl_deposito", "");
+  set("nl_cultura", "");
+  set("nl_lote", "");
+  set("nl_cultivar", "");
+  set("nl_cod_produto", "");
+  set("nl_nome_produto_erp", "");
+  set("nl_cat", "");
+  set("nl_pen", "");
+  set("nl_um", "BAG");
+  set("nl_qtd_sistema", "0");
+  set("nl_peso_etiqueta", "");
   $("newLotModal").classList.remove("hidden");
 }
 
@@ -868,7 +914,44 @@ function closeNewLotModal(){
   $("newLotModal").classList.add("hidden");
 }
 
-// Inicializa o Dashboard
+async function saveNewLot(){
+  let lote = v("nl_lote").trim();
+  let cultura = v("nl_cultura").trim();
+  let qtd = parseFloat(v("nl_qtd_sistema"));
+
+  if(!lote || !cultura || isNaN(qtd)){
+    return alert("Preencha ao menos Lote, Cultura e Qtd Sistema válidos.");
+  }
+
+  let novoLote = {
+    local: v("nl_local"),
+    uf: v("nl_uf"),
+    filial: v("nl_filial"),
+    deposito: v("nl_deposito"),
+    cultura: cultura,
+    lote: lote,
+    cultivar: v("nl_cultivar"),
+    cat: v("nl_cat"),
+    pen: v("nl_pen"),
+    um: v("nl_um"),
+    qtd_sistema: qtd,
+    peso_etiqueta: v("nl_peso_etiqueta") ? parseFloat(v("nl_peso_etiqueta")) : null
+  };
+
+  let { error } = await db.from("base_dados").insert([novoLote]);
+
+  if(error){
+    toast("Erro ao cadastrar lote: " + error.message);
+  } else {
+    toast("Lote cadastrado com sucesso!");
+    base.push(novoLote);
+    populateLotFilters();
+    render();
+    closeNewLotModal();
+  }
+}
+
+// Inicializa a aplicação
 dashboard();
 </script>
 </body>
