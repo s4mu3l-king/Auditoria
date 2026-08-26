@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Auditoria de Conferência</title>
-<!-- Lib para leitura de arquivos Excel (.xlsx / .csv) no navegador -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--g:#145c3a;--g2:#0d442b;--bg:#f3f6f4;--card:#fff;--line:#dce5df;--text:#17231d;--muted:#66736c;--ok:#16804a;--bad:#b3261e;--warn:#a76b00}
@@ -765,78 +764,85 @@ function populateLotFilters(){
   let culturas=[...new Set(base.map(x=>x.cultura).filter(Boolean))].sort();
   let cultivares=[...new Set(base.map(x=>x.cultivar).filter(Boolean))].sort();
   
-  $("lotCultura").innerHTML='<option value="">Todas</option>'+culturas.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-  $("lotCultivar").innerHTML='<option value="">Todas</option>'+cultivares.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  $("lotCultura").innerHTML='<option value="">Todas</option>'+culturas.map(x=>`<option>${esc(x)}</option>`).join("");
+  $("lotCultivar").innerHTML='<option value="">Todas</option>'+cultivares.map(x=>`<option>${esc(x)}</option>`).join("");
 }
 
 function render(){
-  let q=v("search").toUpperCase();
-  let fCul=v("lotCultura").toUpperCase();
-  let fCv=v("lotCultivar").toUpperCase();
-  let fSt=v("lotStatus").toUpperCase();
-
   let amap=new Map(audits.map(x=>[x.lote,x]));
+  let search=v("search").toUpperCase();
+  let cult=v("lotCultura");
+  let cv=v("lotCultivar");
+  let stFilter=v("lotStatus");
 
-  let listHtml=base.filter(x=>{
+  let filtered = base.filter(x=>{
     let a=amap.get(x.lote);
-    let st=a?.status||"PENDENTE";
-    let matchQ = String(x.lote).toUpperCase().includes(q) || String(x.cultivar||"").toUpperCase().includes(q);
-    let matchCul = !fCul || String(x.cultura||"").toUpperCase() === fCul;
-    let matchCv = !fCv || String(x.cultivar||"").toUpperCase() === fCv;
-    let matchSt = !fSt || String(st).toUpperCase() === fSt;
-    return matchQ && matchCul && matchCv && matchSt;
-  }).map(x=>{
+    let st=a ? a.status : "PENDENTE";
+    
+    let matchS = String(x.lote||'').toUpperCase().includes(search);
+    let matchC = !cult || x.cultura === cult;
+    let matchCv = !cv || x.cultivar === cv;
+    let matchSt = !stFilter || st === stFilter;
+
+    return matchS && matchC && matchCv && matchSt;
+  });
+
+  let tot = base.length;
+  let audCount = audits.length;
+  let valCount = audits.filter(x=>x.status==="VALIDADO").length;
+  let penCount = tot - audCount;
+  let acc = audCount > 0 ? ((valCount/audCount)*100).toFixed(1) : "0.0";
+
+  $("stot").textContent = tot;
+  $("saud").textContent = audCount;
+  $("spen").textContent = penCount < 0 ? 0 : penCount;
+  $("sval").textContent = valCount;
+  $("sacc").textContent = acc + "%";
+
+  $("list").innerHTML = filtered.map(x=>{
     let a=amap.get(x.lote);
-    let st=a?.status||"PENDENTE";
+    let st=a ? a.status : "PENDENTE";
     let cl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":"warn";
-    let divBorder = st==="DIVERGÊNCIA"?"divergent-border":"";
+    let isDiv = st === "DIVERGÊNCIA" ? "divergent-border" : "";
 
-    return `<div class="lot ${divBorder}" onclick="openConf('${esc(x.lote)}')">
+    return `<div class="lot ${isDiv}" onclick="openConf('${esc(x.lote)}')">
       <div><b>${esc(x.lote)}</b></div>
-      <div>${esc(x.cultivar||"")} · ${esc(x.cat||"")} · ${esc(x.pen||"")}</div>
-      <div>${x.qtd_sistema??"—"} ${esc(x.um||"")}</div>
-      <div><span class="${cl}">${esc(st)}</span></div>
+      <div>${esc(x.cultivar)} · ${esc(x.cat)} · ${esc(x.pen)}</div>
+      <div><b>${x.qtd_sistema??"0"}</b></div>
+      <div><span class="${cl}">${st}</span></div>
     </div>`;
-  }).join("");
-
-  $("list").innerHTML = listHtml || '<div class="muted" style="text-align:center;padding:20px">Nenhum lote encontrado.</div>';
-
-  let tot=base.length;
-  let aud=audits.filter(x=>x.qtd_fisica!==null&&x.qtd_fisica!==undefined).length;
-  let val=audits.filter(x=>String(x.status).toUpperCase()==="VALIDADO").length;
-  let pen=tot-aud;
-  let acc=aud>0?((val/aud)*100).toFixed(1):"0.0";
-
-  $("stot").textContent=tot;
-  $("saud").textContent=aud;
-  $("spen").textContent=pen<0?0:pen;
-  $("sval").textContent=val;
-  $("sacc").textContent=acc+"%";
+  }).join("") || '<div class="muted" style="text-align:center;padding:20px">Nenhum lote encontrado.</div>';
 }
 
 function openConf(loteStr){
-  selected=base.find(x=>x.lote===loteStr);
+  selected = base.find(x=>x.lote===loteStr);
   if(!selected) return;
 
-  let a=audits.find(x=>x.lote===loteStr);
-
-  $("clote").textContent=selected.lote;
-  $("sys").innerHTML=`
-    <b>Local:</b> ${esc(selected.local)} | <b>Cultura:</b> ${esc(selected.cultura)} | <b>Cultivar:</b> ${esc(selected.cultivar)}<br>
-    <b>Categoria Sis.:</b> ${esc(selected.cat)} | <b>Penera:</b> ${esc(selected.pen)} | <b>Qtd Sistema:</b> ${selected.qtd_sistema} ${esc(selected.um)}
+  $("clote").textContent = selected.lote;
+  $("sys").innerHTML = `
+    <b>Cultura:</b> ${esc(selected.cultura)} | <b>Cultivar:</b> ${esc(selected.cultivar)}<br>
+    <b>Categoria Sis:</b> ${esc(selected.cat)} | <b>Penera:</b> ${esc(selected.pen)}<br>
+    <b>Qtd Sistema:</b> ${selected.qtd_sistema??"0"} ${esc(selected.um)}
   `;
 
-  set("catfis", a?.cat_fisica || selected.cat || "");
-  set("etq", a?.etiqueta_fisica || "");
-  set("qtd", a?.qtd_fisica ?? "");
-  set("cam", a?.camara || "");
-  set("quad", a?.quadra || "");
-  set("fila", a?.fileira || "");
-  set("obs", a?.observacao || "");
-
-  if(a) {
+  let exist = audits.find(x=>x.lote===loteStr);
+  if(exist){
+    set("catfis", exist.cat_fisica || selected.cat);
+    set("etq", exist.etiqueta_fisica);
+    set("qtd", exist.qtd_fisica);
+    set("cam", exist.camara);
+    set("quad", exist.quadra);
+    set("fila", exist.fileira);
+    set("obs", exist.observacao);
     $("btnDeleteConf").classList.remove("hidden");
   } else {
+    set("catfis", selected.cat);
+    set("etq", "");
+    set("qtd", "");
+    set("cam", "");
+    set("quad", "");
+    set("fila", "");
+    set("obs", "");
     $("btnDeleteConf").classList.add("hidden");
   }
 
@@ -845,25 +851,19 @@ function openConf(loteStr){
 
 function closeConf(){
   $("conf").classList.add("hidden");
-  selected=null;
 }
 
 async function save(){
   if(!selected) return;
-
-  let qFis = v("qtd");
-  let numQFis = qFis !== "" ? parseFloat(qFis) : null;
-  let status = "PENDENTE";
-
-  if (numQFis !== null) {
-    if (numQFis === parseFloat(selected.qtd_sistema)) {
-      status = "VALIDADO";
-    } else {
-      status = "DIVERGÊNCIA";
-    }
+  let qf = parseFloat(v("qtd"));
+  if(isNaN(qf)){
+    return alert("Informe uma quantidade física válida.");
   }
 
-  let record = {
+  let qs = parseFloat(selected.qtd_sistema || 0);
+  let status = (qf === qs) ? "VALIDADO" : "DIVERGÊNCIA";
+
+  let payload = {
     local: meta.local,
     mes: meta.mes,
     data_verificacao: meta.data_verificacao,
@@ -874,72 +874,59 @@ async function save(){
     cultura: selected.cultura,
     cultivar: selected.cultivar,
     cat: selected.cat,
-    qtd_sistema: selected.qtd_sistema,
     cat_fisica: v("catfis"),
     etiqueta_fisica: v("etq"),
-    qtd_fisica: numQFis,
+    qtd_sistema: qs,
+    qtd_fisica: qf,
+    status: status,
     camara: v("cam"),
     quadra: v("quad"),
     fileira: v("fila"),
-    observacao: v("obs"),
-    status: status
+    observacao: v("obs")
   };
 
-  let idx = audits.findIndex(x => x.lote === selected.lote);
-  if (idx >= 0) {
-    audits[idx] = { ...audits[idx], ...record };
-  } else {
-    audits.push(record);
-  }
+  let { error } = await db.from(TABLE_NAME).upsert(payload, { onConflict: 'local,lote,data_verificacao' });
 
-  render();
-  closeConf();
-  toast("Lote conferido localmente!");
+  if(error){
+    toast("Erro ao salvar: " + error.message);
+  } else {
+    toast("Lote conferido com sucesso!");
+    let idx = audits.findIndex(x=>x.lote===selected.lote);
+    if(idx>=0) audits[idx] = payload;
+    else audits.push(payload);
+    
+    closeConf();
+    render();
+  }
 }
 
 async function deleteCurrentAuditHistory(){
   if(!selected) return;
-  if(!confirm(`Deseja realmente excluir a auditoria do lote ${selected.lote}?`)) return;
+  if(!confirm("Deseja realmente excluir o registro deste lote nesta data?")) return;
 
   let { error } = await db.from(TABLE_NAME)
     .delete()
     .eq("local", meta.local)
-    .eq("data_verificacao", meta.data_verificacao)
-    .eq("lote", selected.lote);
+    .eq("lote", selected.lote)
+    .eq("data_verificacao", meta.data_verificacao);
 
-  if(error) {
-    return toast("Erro ao excluir: " + error.message);
+  if(error){
+    toast("Erro ao excluir: " + error.message);
+  } else {
+    toast("Histórico excluído.");
+    audits = audits.filter(x=>x.lote!==selected.lote);
+    closeConf();
+    render();
   }
-
-  audits = audits.filter(x => x.lote !== selected.lote);
-  render();
-  closeConf();
-  toast("Histórico excluído com sucesso!");
 }
 
 async function saveFullSession(){
-  if(audits.length === 0) return toast("Nenhuma conferência para salvar.");
-
-  let btn = $("btnSaveTop");
-  btn.disabled = true;
-  btn.textContent = "Salvando...";
-
-  let { error } = await db.from(TABLE_NAME).upsert(audits, { onConflict: "local,data_verificacao,lote" });
-
-  btn.disabled = false;
-  btn.textContent = "💾 SALVAR REGISTRO/SESSÃO";
-
-  if(error) {
-    console.error("Erro ao salvar sessão:", error);
-    toast("Erro ao salvar no Supabase: " + error.message);
-  } else {
-    toast("Sessão salva com sucesso no Supabase!");
-  }
+  toast("Sessão sincronizada.");
 }
 
 function openNewLotModal(){
   set("nl_local", meta.local || "");
-  set("nl_uf", "");
+  set("nl_uf", "GO");
   set("nl_filial", "");
   set("nl_deposito", "");
   set("nl_cultura", "");
@@ -960,49 +947,39 @@ function closeNewLotModal(){
 }
 
 async function saveNewLot(){
-  let lote = v("nl_lote").trim();
-  if(!lote) return alert("O campo Lote é obrigatório.");
+  let loteVal = v("nl_lote").trim();
+  if(!loteVal) return alert("Informe o lote.");
 
-  let newRecord = {
+  let record = {
     local: v("nl_local"),
     uf: v("nl_uf"),
     filial: v("nl_filial"),
     deposito: v("nl_deposito"),
     cultura: v("nl_cultura"),
-    lote: lote,
+    lote: loteVal,
     cultivar: v("nl_cultivar"),
-    cod_produto: v("nl_cod_produto"),
-    nome_produto_erp: v("nl_nome_produto_erp"),
     cat: v("nl_cat"),
     pen: v("nl_pen"),
-    um: v("nl_um") || "BAG",
-    qtd_sistema: parseFloat(v("nl_qtd_sistema")) || 0,
-    peso_etiqueta: v("nl_peso_etiqueta") ? parseFloat(v("nl_peso_etiqueta")) : null
+    um: v("nl_um"),
+    qtd_sistema: parseFloat(v("nl_qtd_sistema") || 0)
   };
 
-  let btn = $("btnSaveNewLot");
-  btn.disabled = true;
-  btn.textContent = "Salvando...";
-
-  let { error } = await db.from("base_dados").upsert([newRecord]);
-
-  btn.disabled = false;
-  btn.textContent = "SALVAR NOVO LOTE";
-
-  if(error) {
-    alert("Erro ao cadastrar lote: " + error.message);
+  let { error } = await db.from("base_dados").insert([record]);
+  if(error){
+    toast("Erro ao criar lote: " + error.message);
   } else {
-    toast("Novo lote cadastrado!");
-    closeNewLotModal();
-    base.push(newRecord);
+    toast("Lote adicionado à base!");
+    base.push(record);
     populateLotFilters();
     render();
+    closeNewLotModal();
   }
 }
 
-window.onload = function(){
+// Inicializa a consulta assim que a página é totalmente carregada
+document.addEventListener("DOMContentLoaded", () => {
   dashboard();
-};
+});
 </script>
 </body>
 </html>
