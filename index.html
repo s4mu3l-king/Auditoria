@@ -77,7 +77,7 @@ table.data-table tr:hover{background:#f0f5f2}
 <section id="home">
 <div class="top">
   <button class="btn-import" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
-  <button class="btn-import" onclick="iniciarNovaAuditoria()">NOVA AUDITORIA</button>
+  <button class="btn-import" onclick="go('start')">NOVA AUDITORIA</button>
 </div>
 
 <div class="filter-box">
@@ -152,7 +152,7 @@ table.data-table tr:hover{background:#f0f5f2}
     <h3>Iniciando Sessão de Auditoria</h3>
     <div class="grid">
       <label>LOCAL<select id="local"><option value="">Selecione o local...</option></select></label>
-      <label>DATA VERIFICAÇÃO<input id="date" type="date" onchange="atualizarMesPorData()"></label>
+      <label>DATA VERIFICAÇÃO<input id="date" type="date"></label>
       <label>MÊS<input id="month" disabled placeholder="Preenchido automaticamente"></label>
       <label>AUDITOR PCP<input id="pcp" placeholder="Nome do auditor"></label>
       <label>AUDITOR UNIDADE<input id="audun" placeholder="Nome do auditor"></label>
@@ -178,7 +178,16 @@ let dashData=[], filteredData=[], rawAllAudits=[];
 
 const $=id=>document.getElementById(id), v=id=>$(id).value;
 function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
-function go(id){["home","start"].forEach(x=>$(x).classList.toggle("hidden",x!==id));if(id==="home")dashboard();}
+
+function go(id){
+  ["home","start"].forEach(x=>$(x).classList.toggle("hidden",x!==id));
+  if(id==="home") {
+    dashboard();
+  } else if(id==="start") {
+    prepararTelaNovaAuditoria();
+  }
+}
+
 function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
 
 function normalizarTexto(valor){
@@ -309,8 +318,12 @@ function atualizarMesPorData(){
   }
 }
 
-function iniciarNovaAuditoria(){
-  // Popula o combo de locais com todos os locais registrados no banco
+async function prepararTelaNovaAuditoria(){
+  if(rawAllAudits.length === 0){
+    rawAllAudits = await fetchAllRows(TABLE_NAME);
+  }
+
+  // Preenche opções do Select de Locais
   const localsMap = new Set();
   rawAllAudits.forEach(x => { if(x.local) localsMap.add(x.local); });
   const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
@@ -318,12 +331,12 @@ function iniciarNovaAuditoria(){
   $("local").innerHTML = '<option value="">Selecione o local...</option>' +
     sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
 
-  // Preenche a data de hoje por padrão
-  const hoj = new Date().toISOString().slice(0,10);
-  $("date").value = hoj;
+  // Define data atual se estiver vazio e atualiza o mês
+  if(!$("date").value){
+    const hoj = new Date().toISOString().slice(0,10);
+    $("date").value = hoj;
+  }
   atualizarMesPorData();
-
-  go("start");
 }
 
 async function dashboard(){
@@ -412,6 +425,10 @@ function exportToCSV(){
 }
 
 window.onload = function(){
+  // Registra eventos de escuta dinâmica para o campo de data
+  $("date").addEventListener("input", atualizarMesPorData);
+  $("date").addEventListener("change", atualizarMesPorData);
+  
   dashboard();
 };
 </script>
