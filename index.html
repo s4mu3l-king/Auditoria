@@ -19,10 +19,8 @@ header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-con
 label{font-size:12px;font-weight:bold;color:#59655f;display:block;margin-bottom:6px}
 input,select,textarea{width:100%;padding:12px;border:1px solid #cbd6cf;border-radius:8px;font-size:15px;background:#fff;transition:border-color 0.2s}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
-textarea{min-height:80px}
 button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer;transition:background 0.2s, opacity 0.2s}
 button:hover{opacity:0.9}
-button:disabled{opacity:0.6;cursor:not-allowed}
 .sec{background:#e8eeea;color:var(--g2)}
 .btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
 .btn-import{background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:170px;height:44px;border:0}
@@ -46,8 +44,6 @@ table.data-table td{padding:9px 12px;border-bottom:1px solid var(--line);white-s
 table.data-table tr:hover{background:#f0f5f2}
 .filter-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8faf9;padding:14px;border-radius:10px;border:1px solid var(--line)}
 .table-header-tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px}
-.modal-backdrop{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999}
-.modal-box{background:#fff;border-radius:12px;padding:22px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 5px 25px rgba(0,0,0,0.2)}
 
 @media(max-width:800px){
   .grid,.kpis{grid-template-columns:1fr 1fr}
@@ -81,12 +77,12 @@ table.data-table tr:hover{background:#f0f5f2}
 <section id="home">
 <div class="top">
   <button class="btn-import" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
-  <button class="btn-import" onclick="go('start')">NOVA AUDITORIA</button>
+  <button class="btn-import" onclick="iniciarNovaAuditoria()">NOVA AUDITORIA</button>
 </div>
 
 <div class="filter-box">
   <label>FILTRAR POR MÊS DA AUDITORIA
-    <select id="dashMonth" onchange="dashboard()">
+    <select id="dashMonth" onchange="onMonthChange()">
       <option value="">Todos os Meses</option>
     </select>
   </label>
@@ -155,31 +151,19 @@ table.data-table tr:hover{background:#f0f5f2}
   <div class="card">
     <h3>Iniciando Sessão de Auditoria</h3>
     <div class="grid">
-      <label>LOCAL<select id="local"></select></label>
-      <label>DATA VERIFICAÇÃO<input id="date" type="date"></label>
-      <label>MÊS<input id="month" disabled></label>
+      <label>LOCAL<select id="local"><option value="">Selecione o local...</option></select></label>
+      <label>DATA VERIFICAÇÃO<input id="date" type="date" onchange="atualizarMesPorData()"></label>
+      <label>MÊS<input id="month" disabled placeholder="Preenchido automaticamente"></label>
       <label>AUDITOR PCP<input id="pcp" placeholder="Nome do auditor"></label>
       <label>AUDITOR UNIDADE<input id="audun" placeholder="Nome do auditor"></label>
       <label>RESPONSÁVEL UBS<input id="ubs" placeholder="Nome do responsável"></label>
     </div>
     <div class="actions">
-      <button id="btnStartAudit">INICIAR CONFERÊNCIA</button>
+      <button id="btnStartAudit" onclick="toast('Conferência Iniciada!')">INICIAR CONFERÊNCIA</button>
       <button class="sec" onclick="go('home')">CANCELAR</button>
     </div>
   </div>
 </section>
-
-<div id="modal-importacao" class="modal-backdrop hidden">
-  <div class="modal-box">
-    <h3>📥 Importar Planilha de Dados</h3>
-    <label style="margin-top:12px">SELECIONE A PLANILHA (.XLSX / .CSV)</label>
-    <input type="file" id="input-excel" accept=".xlsx, .xls, .csv" style="margin-top:6px" />
-    <div id="status-importacao" style="margin-top:15px; font-weight:bold; color:var(--g)"></div>
-    <div class="actions" style="margin-top:20px; justify-content:flex-end">
-      <button onclick="fecharModalImportacao()" class="sec">Fechar</button>
-    </div>
-  </div>
-</div>
 
 </div>
 
@@ -206,13 +190,13 @@ function normalizarTexto(valor){
 }
 
 function normalizarMesFiltro(valor){
-  const semAcento = normalizarTexto(valor);
-  if(!semAcento) return "";
+  if(!valor) return "";
+  let txt = String(valor).trim().toUpperCase();
 
   const mapa = {
     "1":"JAN","01":"JAN","JAN":"JAN","JANEIRO":"JAN",
     "2":"FEV","02":"FEV","FEV":"FEV","FEVEREIRO":"FEV",
-    "3":"MAR","03":"MAR","MAR":"MAR","MARCO":"MAR",
+    "3":"MAR","03":"MAR","MAR":"MAR","MARCO":"MAR","MARÇO":"MAR",
     "4":"ABR","04":"ABR","ABR":"ABR","ABRIL":"ABR",
     "5":"MAI","05":"MAI","MAI":"MAI","MAIO":"MAI",
     "6":"JUN","06":"JUN","JUN":"JUN","JUNHO":"JUN",
@@ -224,14 +208,29 @@ function normalizarMesFiltro(valor){
     "12":"DEZ","DEZ":"DEZ","DEZEMBRO":"DEZ"
   };
 
-  return mapa[semAcento] || semAcento;
+  for(let key in mapa){
+    if(txt.includes(key)) return mapa[key];
+  }
+  return txt;
+}
+
+function extrairCampos(item){
+  return {
+    mes: normalizarMesFiltro(item.mes || item.mes_auditoria || item.mes_conferencia || ""),
+    lote: item.lote || item.numero_lote || "—",
+    local: String(item.local || item.unidade || item.local_unidade || "").trim(),
+    cultura: String(item.cultura || item.especie || "").trim(),
+    cultivar: item.cultivar || item.variedade || "—",
+    cat: item.cat || item.categoria || "—",
+    qtd_sistema: item.qtd_sistema ?? item.quantidade_sistema ?? null,
+    qtd_fisica: item.qtd_fisica ?? item.quantidade_fisica ?? null,
+    status: String(item.status || "PENDENTE").trim()
+  };
 }
 
 async function fetchAllRows(tableName){
   let allData = [];
-  let page = 0;
-  let pageSize = 1000;
-  let hasMore = true;
+  let page = 0, pageSize = 1000, hasMore = true;
 
   while(hasMore){
     const { data, error } = await db
@@ -242,7 +241,7 @@ async function fetchAllRows(tableName){
     if(error) throw error;
 
     if(data && data.length > 0){
-      allData = allData.concat(data);
+      allData = allData.concat(data.map(extrairCampos));
       if(data.length < pageSize) hasMore = false;
       else page++;
     } else {
@@ -252,32 +251,34 @@ async function fetchAllRows(tableName){
   return allData;
 }
 
-async function loadHistoryFilters(){
+function carregarOpcoesMeses(){
   const monthMap = new Set();
-  const localsMap = new Set();
-  const culturasMap = new Set();
-
-  rawAllAudits.forEach(x => {
-    const m = normalizarMesFiltro(x.mes);
-    const l = String(x.local ?? "").trim();
-    const c = String(x.cultura ?? "").trim();
-
-    if(m) monthMap.add(m);
-    if(l) localsMap.add(l);
-    if(c) culturasMap.add(c);
-  });
+  rawAllAudits.forEach(x => { if(x.mes) monthMap.add(x.mes); });
 
   const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
   const sortedMonths = [...monthMap].sort((a,b) => (ordemMes[a] || 99) - (ordemMes[b] || 99));
-  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
-  const sortedCulturas = [...culturasMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
-
-  const curMonth = v("dashMonth");
-  const curLocal = v("dashLocal");
-  const curCultura = v("dashCultura");
 
   $("dashMonth").innerHTML = '<option value="">Todos os Meses</option>' +
     sortedMonths.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join("");
+}
+
+function carregarFiltrosCascata(){
+  let selMonth = normalizarMesFiltro(v("dashMonth"));
+  let baseParaFiltros = rawAllAudits.filter(x => !selMonth || x.mes === selMonth);
+
+  const localsMap = new Set();
+  const culturasMap = new Set();
+
+  baseParaFiltros.forEach(x => {
+    if(x.local) localsMap.add(x.local);
+    if(x.cultura) culturasMap.add(x.cultura);
+  });
+
+  const curLocal = v("dashLocal");
+  const curCultura = v("dashCultura");
+
+  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  const sortedCulturas = [...culturasMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
 
   $("dashLocal").innerHTML = '<option value="">Todos os Locais</option>' +
     sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
@@ -285,16 +286,52 @@ async function loadHistoryFilters(){
   $("dashCultura").innerHTML = '<option value="">Todas as Culturas</option>' +
     sortedCulturas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
 
-  if(curMonth) $("dashMonth").value = curMonth;
-  if(curLocal) $("dashLocal").value = curLocal;
-  if(curCultura) $("dashCultura").value = curCultura;
+  if(localsMap.has(curLocal)) $("dashLocal").value = curLocal;
+  if(culturasMap.has(curCultura)) $("dashCultura").value = curCultura;
+}
+
+function onMonthChange(){
+  carregarFiltrosCascata();
+  dashboard();
+}
+
+function atualizarMesPorData(){
+  const dataVal = $("date").value;
+  if(!dataVal){
+    $("month").value = "";
+    return;
+  }
+  const partes = dataVal.split("-");
+  if(partes.length === 3){
+    const mesNum = parseInt(partes[1], 10);
+    const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+    $("month").value = meses[mesNum - 1] || "";
+  }
+}
+
+function iniciarNovaAuditoria(){
+  // Popula o combo de locais com todos os locais registrados no banco
+  const localsMap = new Set();
+  rawAllAudits.forEach(x => { if(x.local) localsMap.add(x.local); });
+  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  
+  $("local").innerHTML = '<option value="">Selecione o local...</option>' +
+    sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+  // Preenche a data de hoje por padrão
+  const hoj = new Date().toISOString().slice(0,10);
+  $("date").value = hoj;
+  atualizarMesPorData();
+
+  go("start");
 }
 
 async function dashboard(){
   try {
     if(rawAllAudits.length === 0){
       rawAllAudits = await fetchAllRows(TABLE_NAME);
-      await loadHistoryFilters();
+      carregarOpcoesMeses();
+      carregarFiltrosCascata();
     }
 
     let selMonth = normalizarMesFiltro(v("dashMonth"));
@@ -302,7 +339,7 @@ async function dashboard(){
     let selCultura = normalizarTexto(v("dashCultura"));
 
     dashData = rawAllAudits.filter(x => {
-      const mesItem = normalizarMesFiltro(x.mes);
+      const mesItem = x.mes;
       const localItem = normalizarTexto(x.local);
       const culturaItem = normalizarTexto(x.cultura);
 
@@ -363,23 +400,15 @@ function renderDashTable(){
 
 function exportToCSV(){
   if(!filteredData || filteredData.length===0) return toast("Nenhum dado para exportar.");
-  let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
+  let csv=["\uFEFFMes Auditoria;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
   filteredData.forEach(x => {
-    csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
+    csv.push(`"${x.mes}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
   });
   let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
   let link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = `Auditoria_${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
-}
-
-function abrirModalImportacao(){
-  $("modal-importacao").classList.remove("hidden");
-}
-
-function fecharModalImportacao(){
-  $("modal-importacao").classList.add("hidden");
 }
 
 window.onload = function(){
