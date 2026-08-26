@@ -1,40 +1,13 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Auditoria de Conferência</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--g:#145c3a;--g2:#0d442b;--bg:#f3f6f4;--card:#fff;--line:#dce5df;--text:#17231d;--muted:#66736c;--ok:#16804a;--bad:#b3261e;--warn:#a76b00}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
-header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
-.wrap{max-width:1250px;margin:auto;padding:22px 16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 15px #0000000a}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}
-.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
-.kpi b{display:block;font-size:26px;margin-top:4px}
-label{font-size:12px;font-weight:bold;color:#59655f;display:block;margin-bottom:6px}
-input,select,textarea{width:100%;padding:12px;border:1px solid #cbd6cf;border-radius:8px;font-size:15px;background:#fff;transition:border-color 0.2s}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
-button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer;transition:background 0.2s, opacity 0.2s}
-button:hover{opacity:0.9}
-.sec{background:#e8eeea;color:var(--g2)}
-.btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
-.btn-import{background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:170px;height:44px;border:0}
-.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
-.muted{color:var(--muted)}
-.hidden{display:none !important}
-.top{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-bottom:16px}
-.ok{color:var(--ok);font-weight:bold}
-.bad{color:var(--bad);font-weight:bold}
-.warn{color:var(--warn);font-weight:bold}
-.toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}.wrap{max-width:1250px;margin:auto;padding:22px 16px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 15px #0000000a}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}.kpi b{display:block;font-size:26px;margin-top:4px}label{font-size:12px;font-weight:bold;color:#59655f;display:block;margin-bottom:10px}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd6cf;border-radius:8px;font-size:15px;background:#fff}textarea{min-height:80px}button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer}.sec{background:#e8eeea;color:var(--g2)}.btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}.btn-save-top{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 16px;border:1px solid #2ecc71}.btn-newlot{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}.btn-danger{background:var(--bad);color:#fff}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.muted{color:var(--muted)}.hidden{display:none !important}.top{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-bottom:16px}.lot{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:9px;margin:7px 0;background:#fff;align-items:center;cursor:pointer}.lot:hover{border-color:var(--g)}.ok{color:var(--ok);font-weight:bold}.bad{color:var(--bad);font-weight:bold}.warn{color:var(--warn);font-weight:bold}.toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:100}.system{line-height:1.8;background:#f7f9f8;padding:12px;border-radius:8px}.dangerbox{background:#fff4f3;border:1px solid #f0c9c5;padding:12px;border-radius:8px;margin:12px 0}
 .brand-container{display:flex;align-items:center;gap:14px}
-.logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
-.logo-img{height:46px;width:auto;object-fit:contain}
+.logo-box{background:#fff;padding:4px 10px;border-radius:6px;display:flex;align-items:center;justify-content:center;height:42px}
+.logo-img{height:34px;width:auto;object-fit:contain}
 .progress-bg{width:100%;background:#e2e9e4;height:24px;border-radius:12px;overflow:hidden;margin-top:10px;position:relative}
 .progress-fill{height:100%;background:linear-gradient(90deg, #16804a, #2ecc71);width:0%;transition:width 0.5s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#fff;font-size:12px;font-weight:bold}
 .table-container{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:8px}
@@ -44,45 +17,33 @@ table.data-table td{padding:9px 12px;border-bottom:1px solid var(--line);white-s
 table.data-table tr:hover{background:#f0f5f2}
 .filter-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8faf9;padding:14px;border-radius:10px;border:1px solid var(--line)}
 .table-header-tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.lot-header{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:10px 12px;background:var(--g);color:#fff;font-weight:bold;font-size:13px;border-radius:8px;margin-bottom:8px}
+.modal-backdrop{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal-box{background:#fff;border-radius:12px;padding:22px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 5px 25px rgba(0,0,0,0.2)}
 
-@media(max-width:800px){
-  .grid,.kpis{grid-template-columns:1fr 1fr}
-  .top{display:block}
-  .filter-box{grid-template-columns:1fr}
-  .table-header-tools{flex-direction:column;align-items:stretch}
-  input,select,button{min-height:44px}
-}
-@media(max-width:520px){
-  .grid,.kpis{grid-template-columns:1fr}
-  header{padding:10px 15px}
-  .logo-box{height:44px;padding:4px 10px}
-  .logo-img{height:34px}
-}
-</style>
-</head>
-<body>
+@media(max-width:800px){.grid,.kpis{grid-template-columns:1fr 1fr}.lot,.lot-header{grid-template-columns:1fr}.top{display:block}.filter-box{grid-template-columns:1fr}.table-header-tools{flex-direction:column;align-items:stretch}}
+@media(max-width:520px){.grid,.kpis{grid-template-columns:1fr}header{padding:10px 15px}.logo-box{height:34px;padding:3px 6px}.logo-img{height:26px}}
+</style></head><body>
 <header>
   <div class="brand-container">
     <div class="logo-box">
-      <img src="https://github.com/s4mu3l-king/Auditoria/blob/main/logo.png%20-%20Copia.png?raw=true" alt="Logo Cereal Ouro" class="logo-img">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABkBAMAAABfG9c9AAAAMFBMVEUAAAD00xL/1B/42CPxzh/22Rz/1iH52B/y0RLyzh7x0RH00BLxzx721xr11hnxzh6e5yqWAAAACXBIWXMAAAsTAAALEwEAmpwYAAADwElEQVR42u3bPWhTURgA4C+5iIObiDjp4OBy33sXp4M4C4I46eLg4CBO/m5SByfXInSw2E1chE4OOnRxdBEUnAInpx6K0A4uToI4K/4O3pvXNO9L8iRpm/cch9zc993mSc69OcnL31RUVFRUVFRUVFRUVFSo/59A653245G62+t1+oP+f3Y163fG3Z1GvTs/0X7e/S2oX2nvj5m7v33e21332822xN2Nnv70o98a1/5caz9+G/f6y+6S3a54d+/rS9/Xnn0ed4/mB7IedXf356xX3eXj5pS3X0f32p+5b6v5rK7X3xvd9m8Esh539a2v0U/3YvN627Xf1mCme31yXm+2X402f0p8m5fX/Q1s9f3+lE/33r72+vA57/a139qftDq36k64P1j1vjZ/sX6mP+mP++sIuxf6v4K3f3N60p91P/3m6/iS51U93Z31L32bvx3cvaE3d/3P4Xm0/lD/12/f2u47d84u32o/3Brt3L6P2x7m31D6yH6dIe033G2/kC33+6A9mAnj5j1M+RtzvvdE+3/2gqD150/q66R69dO4edw4a/1s9/e1X9+93d1mO/O7S/o3n9u/S1i/m72/4uL97P3h+fEitj+x9O/qS19Sj/c/jB2/7E573N3j4m+4324f/X4XveUe9/72e6I3/O3t5e2n8+2x8U38m3v9T39q3R4mXz9rfz5+/TbeH4ytm/G8193fS3/8x4t3/73x5eX7d0O9v5M43P94X//sfn3e40mvu3k277P3d1p8ff6818/39f0H9+/122eX/b8XfE/C/Zl94v0/S7Xw+/X1083v+7XfG+c+4n3f1z/7zV26+/aJ31v4+r73O/9S8X1yvX1A/XnvT94/y1f855d0X/e/2a8xLvh3k2o//eE9/bN43o3fS3mflPdr23v8O833pve768sT/4p3b/3a1m93e17/1Gf33vA8m3d2evx++862v5G55O3v3b14/8L+2T+z/3s8/7t539m7LfnC0j/5iP9E1f1j7mEaX/91X/X28oO/fS5f++f9+aP7O1m/9i/u/9p9m4n++v0/5/3Pvx//i/p/f38A5Lq4l30eY34AAAAASUVORK5CYII=" class="logo-img" alt="Logo Cereal Ouro">
     </div>
     <div><b>♟ AUDITORIA</b> <small>Conferência de Estoque</small></div>
   </div>
   <button class="sec" onclick="go('home')">Dashboard</button>
 </header>
 
-<div class="wrap">
-<div id="toast" class="toast hidden"></div>
+<div class="wrap"><div id="toast" class="toast hidden"></div>
 
 <section id="home">
 <div class="top">
-  <button class="btn-import" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
-  <button class="btn-import" onclick="iniciarNovaAuditoria()">NOVA AUDITORIA</button>
+  <button onclick="go('start')">NOVA AUDITORIA</button>
 </div>
 
 <div class="filter-box">
   <label>FILTRAR POR MÊS DA AUDITORIA
-    <select id="dashMonth" onchange="onMonthChange()">
+    <select id="dashMonth" onchange="dashboard()">
       <option value="">Todos os Meses</option>
     </select>
   </label>
@@ -98,18 +59,12 @@ table.data-table tr:hover{background:#f0f5f2}
   </label>
 </div>
 
-<div class="kpis">
-  <div class="kpi">Lotes<b id="tot">0</b></div>
-  <div class="kpi">Auditados<b id="aud">0</b></div>
-  <div class="kpi">Pendentes<b id="pen">0</b></div>
-  <div class="kpi">Validados<b id="val">0</b></div>
-  <div class="kpi">Acuracidade<b id="acc">0.0%</b></div>
-</div>
+<div class="kpis"><div class="kpi">Lotes<b id="tot">0</b></div><div class="kpi">Auditados<b id="aud">0</b></div><div class="kpi">Pendentes<b id="pen">0</b></div><div class="kpi">Validados<b id="val">0</b></div><div class="kpi">Acuracidade<b id="acc">0%</b></div></div>
 
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <b>Nível de Acuracidade Apurada</b>
-    <span id="accBarTxt" style="font-weight:bold;color:var(--g)">0.0%</span>
+    <span id="accBarTxt" style="font-weight:bold;color:var(--g)">0%</span>
   </div>
   <div class="progress-bg">
     <div id="accBar" class="progress-fill"></div>
@@ -147,23 +102,121 @@ table.data-table tr:hover{background:#f0f5f2}
 </div>
 </section>
 
-<section id="start" class="hidden">
-  <div class="card">
-    <h3>Iniciando Sessão de Auditoria</h3>
-    <div class="grid">
-      <label>LOCAL<select id="local"><option value="">Selecione o local...</option></select></label>
-      <label>DATA VERIFICAÇÃO<input id="date" type="date"></label>
-      <label>MÊS<input id="month" disabled placeholder="Preenchido automaticamente"></label>
-      <label>AUDITOR PCP<input id="pcp" placeholder="Nome do auditor"></label>
-      <label>AUDITOR UNIDADE<input id="audun" placeholder="Nome do auditor"></label>
-      <label>RESPONSÁVEL UBS<input id="ubs" placeholder="Nome do responsável"></label>
+<section id="start" class="hidden"><div class="card">2. Iniciar auditoria<div class="grid">
+<label>LOCAL<select id="local"></select></label>
+<label>DATA VERIFICAÇÃO<input id="date" type="date"></label>
+<label>MÊS<input id="month" disabled></label>
+<label>AUDITOR PCP<input id="pcp"></label>
+<label>AUDITOR UNIDADE<input id="audun"></label>
+<label>RESPONSÁVEL UBS<input id="ubs"></label>
+</div><div class="actions"><button onclick="start()">INICIAR</button><button class="sec" onclick="go('home')">CANCELAR</button></div></div></section>
+
+<section id="lots" class="hidden">
+  <div class="top" style="justify-content:space-between">
+    <div>
+      <h2 style="margin:0">Lotes — <span id="lt"></span></h2>
     </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn-save-top" onclick="saveFullSession()">💾 SINCRONIZAR HISTÓRICO</button>
+      <button class="btn-newlot" onclick="openNewLotModal()">➕ NOVO LOTE</button>
+      <button class="btn-export" onclick="exportLocalAuditsCSV()">📥 EXPORTAR AUDITORIA LOCAL</button>
+      <button class="sec" onclick="go('home')">VOLTAR</button>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi">Total<b id="stot">0</b></div>
+    <div class="kpi">Auditados<b id="saud">0</b></div>
+    <div class="kpi">Pendentes<b id="spen">0</b></div>
+    <div class="kpi">Validados<b id="sval">0</b></div>
+    <div class="kpi">Acuracidade<b id="sacc">0%</b></div>
+  </div>
+
+  <div class="card">
+    <div class="filter-box" style="grid-template-columns: 1.5fr 1fr 1fr 1fr; margin-bottom: 12px; padding: 10px;">
+      <div>
+        <label style="margin-bottom:4px">PESQUISAR LOTE</label>
+        <input id="search" placeholder="🔎 Digite o lote..." oninput="render()" style="padding:8px 10px; font-size:13px">
+      </div>
+      <div>
+        <label style="margin-bottom:4px">CULTURA</label>
+        <select id="lotCultura" onchange="render()" style="padding:8px 10px; font-size:13px">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div>
+        <label style="margin-bottom:4px">CULTIVAR</label>
+        <select id="lotCultivar" onchange="render()" style="padding:8px 10px; font-size:13px">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div>
+        <label style="margin-bottom:4px">STATUS</label>
+        <select id="lotStatus" onchange="render()" style="padding:8px 10px; font-size:13px">
+          <option value="">Todos</option>
+          <option value="PENDENTE">PENDENTE</option>
+          <option value="VALIDADO">VALIDADO</option>
+          <option value="DIVERGÊNCIA">DIVERGÊNCIA</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="lot-header">
+      <div>LOTE</div>
+      <div>CULTIVAR · CAT · PENERA</div>
+      <div>QTD SISTEMA</div>
+      <div>STATUS</div>
+    </div>
+
+    <div id="list"></div>
+  </div>
+
+  <div id="conf" class="card hidden">
+    <h2>Lote <span id="clote"></span></h2>
+    <div id="sys" class="system"></div>
+    <div class="grid" style="margin-top:14px">
+      <label>CAT. FÍS.<input id="catfis"></label>
+      <label>ETIQUETA FÍSICA<input id="etq"></label>
+      <label>QTD FÍSICA<input id="qtd" type="number" step="any"></label>
+      <label>CÂMARA<input id="cam"></label>
+      <label>QUADRA<input id="quad"></label>
+      <label>FILEIRA<input id="fila"></label>
+    </div>
+    <label>OBSERVAÇÃO<textarea id="obs"></textarea></label>
+    <div id="warning"></div>
     <div class="actions">
-      <button id="btnStartAudit" onclick="toast('Conferência Iniciada!')">INICIAR CONFERÊNCIA</button>
-      <button class="sec" onclick="go('home')">CANCELAR</button>
+      <button onclick="save()" style="background:#145c3a; padding:12px 24px; font-size:15px">💾 CONFIRMAR LOTE</button>
+      <button id="btnDeleteConf" class="btn-danger hidden" onclick="deleteCurrentAudit()">🗑️ EXCLUIR AUDITORIA ATIVA</button>
+      <button class="sec" onclick="closeConf()">FECHAR</button>
     </div>
   </div>
 </section>
+
+<div id="newLotModal" class="modal-backdrop hidden">
+  <div class="modal-box">
+    <h3>➕ Cadastrar Novo Lote na Base</h3>
+    <div class="grid">
+      <label>LOCAL<input id="nl_local" readonly></label>
+      <label>UF<input id="nl_uf" placeholder="Ex: GO"></label>
+      <label>FILIAL<input id="nl_filial" placeholder="Ex: 01"></label>
+      <label>DEPÓSITO<input id="nl_deposito" placeholder="Ex: DEP1"></label>
+      <label>CULTURA<input id="nl_cultura" placeholder="Ex: SOJA"></label>
+      <label>LOTE<input id="nl_lote" placeholder="Ex: 11743P1417"></label>
+      <label>CULTIVAR<input id="nl_cultivar" placeholder="Ex: 22213I2X"></label>
+      <label>CÓD. PRODUTO<input id="nl_cod_produto"></label>
+      <label>NOME PRODUTO ERP<input id="nl_nome_produto_erp"></label>
+      <label>CAT<input id="nl_cat" placeholder="Ex: C2"></label>
+      <label>PENERA (PEN)<input id="nl_pen" placeholder="Ex: P1"></label>
+      <label>UNIDADE (UM)<input id="nl_um" value="BAG"></label>
+      <label>QTD SISTEMA<input id="nl_qtd_sistema" type="number" step="any" value="0"></label>
+      <label>PESO ETIQUETA<input id="nl_peso_etiqueta" type="number" step="any"></label>
+    </div>
+    <div class="actions" style="margin-top:16px;justify-content:flex-end">
+      <button onclick="saveNewLot()">SALVAR NOVO LOTE</button>
+      <button class="sec" onclick="closeNewLotModal()">CANCELAR</button>
+    </div>
+  </div>
+</div>
 
 </div>
 
@@ -173,242 +226,266 @@ const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
 const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const TABLE_NAME = "auditorias_historico";
-let dashData=[], filteredData=[], rawAllAudits=[];
+const TABLE_BASE="base_dados";
+const TABLE_ACTIVE="auditorias";
+const TABLE_HISTORY="auditorias_historico";
 
-const $=id=>document.getElementById(id), v=id=>$(id).value;
-function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
+let base=[];
+let audits=[];
+let dashData=[];
+let filteredData=[];
+let selected=null;
+let meta={};
 
+const MONTH_MAP={"01":"JAN","02":"FEV","03":"MAR","04":"ABR","05":"MAI","06":"JUN","07":"JUL","08":"AGO","09":"SET","10":"OUT","11":"NOV","12":"DEZ"};
+const ALL_MONTHS=["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+const $=id=>document.getElementById(id);
+const v=id=>$(id)?.value ?? "";
+const set=(id,x)=>{if($(id))$(id).value=x??""};
+
+function toast(t){
+  $("toast").textContent=t;
+  $("toast").classList.remove("hidden");
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer=setTimeout(()=>$("toast").classList.add("hidden"),4000);
+}
 function go(id){
-  ["home","start"].forEach(x=>$(x).classList.toggle("hidden",x!==id));
+  ["home","start","lots"].forEach(x=>$(x)?.classList.toggle("hidden",x!==id));
   if(id==="home") dashboard();
+  if(id==="start") loadLocalsStart();
+}
+function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+function monthFromDate(date){const p=String(date||"").split("-");return p.length===3?(MONTH_MAP[p[1]]||""):""}
+function month(){return monthFromDate(v("date"))}
+function numOrNull(x){if(x===null||x===undefined||String(x).trim()==="")return null;const n=Number(x);return Number.isFinite(n)?n:null}
+function normalizeStatus(x){return String(x||"").trim().toUpperCase()}
+
+$("date").value=new Date().toISOString().slice(0,10);
+$("month").value=month();
+$("date").onchange=()=>set("month",month());
+
+async function loadLocalsStart(){
+  const {data,error}=await db.from(TABLE_BASE).select("local").order("local");
+  if(error)return toast("Erro ao carregar locais: "+error.message);
+  const a=[...new Set((data||[]).map(x=>x.local).filter(Boolean))];
+  $("local").innerHTML='<option value="">Selecione...</option>'+a.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
 }
 
-function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
-
-function normalizarTexto(valor){
-  return String(valor ?? "")
-    .trim()
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function normalizarMesFiltro(valor){
-  if(!valor) return "";
-  let txt = String(valor).trim().toUpperCase();
-
-  const mapa = {
-    "1":"JAN","01":"JAN","JAN":"JAN","JANEIRO":"JAN",
-    "2":"FEV","02":"FEV","FEV":"FEV","FEVEREIRO":"FEV",
-    "3":"MAR","03":"MAR","MAR":"MAR","MARCO":"MAR","MARÇO":"MAR",
-    "4":"ABR","04":"ABR","ABR":"ABR","ABRIL":"ABR",
-    "5":"MAI","05":"MAI","MAI":"MAI","MAIO":"MAI",
-    "6":"JUN","06":"JUN","JUN":"JUN","JUNHO":"JUN",
-    "7":"JUL","07":"JUL","JUL":"JUL","JULHO":"JUL",
-    "8":"AGO","08":"AGO","AGO":"AGO","AGOSTO":"AGO",
-    "9":"SET","09":"SET","SET":"SET","SETEMBRO":"SET",
-    "10":"OUT","OUT":"OUT","OUTUBRO":"OUT",
-    "11":"NOV","NOV":"NOV","NOVEMBRO":"NOV",
-    "12":"DEZ","DEZ":"DEZ","DEZEMBRO":"DEZ"
-  };
-
-  for(let key in mapa){
-    if(txt.includes(key)) return mapa[key];
+async function fetchAllHistory(){
+  const all=[];let from=0;const pageSize=1000;
+  while(true){
+    const {data,error}=await db.from(TABLE_HISTORY).select("*").order("registrado_em",{ascending:true}).range(from,from+pageSize-1);
+    if(error)throw new Error(error.message);
+    if(!data?.length)break;
+    all.push(...data);
+    if(data.length<pageSize)break;
+    from+=pageSize;
   }
-  return txt;
+  return all;
 }
 
-function extrairCampos(item){
-  return {
-    mes: normalizarMesFiltro(item.mes || item.mes_auditoria || item.mes_conferencia || ""),
-    lote: item.lote || item.numero_lote || "—",
-    local: String(item.local || item.unidade || item.local_unidade || "").trim(),
-    cultura: String(item.cultura || item.especie || "").trim(),
-    cultivar: item.cultivar || item.variedade || "—",
-    cat: item.cat || item.categoria || "—",
-    qtd_sistema: item.qtd_sistema ?? item.quantidade_sistema ?? null,
-    qtd_fisica: item.qtd_fisica ?? item.quantidade_fisica ?? null,
-    status: String(item.status || "PENDENTE").trim()
-  };
-}
-
-async function fetchAllRows(tableName){
-  let allData = [];
-  let page = 0, pageSize = 1000, hasMore = true;
-
-  while(hasMore){
-    const { data, error } = await db
-      .from(tableName)
-      .select("*")
-      .range(page * pageSize, (page + 1) * pageSize - 1);
-
-    if(error) throw error;
-
-    if(data && data.length > 0){
-      allData = allData.concat(data.map(extrairCampos));
-      if(data.length < pageSize) hasMore = false;
-      else page++;
-    } else {
-      hasMore = false;
-    }
+// O histórico é append-only. Para os indicadores, usamos somente a última ocorrência
+// de cada lote dentro de uma mesma auditoria (local + data + lote), sem apagar registros antigos.
+function latestHistoryRows(rows){
+  const map=new Map();
+  for(const row of rows){
+    const key=[row.local||"",row.data_verificacao||"",row.lote||""].join("|");
+    const old=map.get(key);
+    const tNew=new Date(row.registrado_em||row.updated_at||row.created_at||0).getTime();
+    const tOld=old?new Date(old.registrado_em||old.updated_at||old.created_at||0).getTime():-1;
+    if(!old||tNew>=tOld)map.set(key,row);
   }
-  return allData;
+  return [...map.values()];
 }
 
-function carregarOpcoesMeses(){
-  const monthMap = new Set();
-  rawAllAudits.forEach(x => { if(x.mes) monthMap.add(x.mes); });
-
-  const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
-  const sortedMonths = [...monthMap].sort((a,b) => (ordemMes[a] || 99) - (ordemMes[b] || 99));
-
-  $("dashMonth").innerHTML = '<option value="">Todos os Meses</option>' +
-    sortedMonths.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join("");
-}
-
-function carregarFiltrosCascata(){
-  let selMonth = normalizarMesFiltro(v("dashMonth"));
-  let baseParaFiltros = rawAllAudits.filter(x => !selMonth || x.mes === selMonth);
-
-  const localsMap = new Set();
-  const culturasMap = new Set();
-
-  baseParaFiltros.forEach(x => {
-    if(x.local) localsMap.add(x.local);
-    if(x.cultura) culturasMap.add(x.cultura);
-  });
-
-  const curLocal = v("dashLocal");
-  const curCultura = v("dashCultura");
-
-  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
-  const sortedCulturas = [...culturasMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
-
-  $("dashLocal").innerHTML = '<option value="">Todos os Locais</option>' +
-    sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-
-  $("dashCultura").innerHTML = '<option value="">Todas as Culturas</option>' +
-    sortedCulturas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-
-  if(localsMap.has(curLocal)) $("dashLocal").value = curLocal;
-  if(culturasMap.has(curCultura)) $("dashCultura").value = curCultura;
-}
-
-function onMonthChange(){
-  carregarFiltrosCascata();
-  dashboard();
-}
-
-async function iniciarNovaAuditoria(){
-  if(rawAllAudits.length === 0){
-    rawAllAudits = await fetchAllRows(TABLE_NAME);
-  }
-
-  const localsMap = new Set();
-  rawAllAudits.forEach(x => { if(x.local) localsMap.add(x.local); });
-
-  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
-
-  $("local").innerHTML = '<option value="">Selecione o local...</option>' +
-    sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-
-  const hoj = new Date().toISOString().slice(0,10);
-  $("date").value = hoj;
-
-  const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-  const mesAtualNum = new Date().getMonth();
-  $("month").value = meses[mesAtualNum];
-
-  go('start');
+async function loadHistoryFilters(allData){
+  const rows=latestHistoryRows(allData);
+  const recordedMonths=new Set(rows.map(x=>String(x.mes||"").toUpperCase()).filter(Boolean));
+  const sortedMonths=ALL_MONTHS.filter(m=>recordedMonths.has(m));
+  const locals=[...new Set(rows.map(x=>x.local).filter(Boolean))].sort();
+  const culturas=[...new Set(rows.map(x=>x.cultura).filter(Boolean))].sort();
+  const curMonth=v("dashMonth"),curLocal=v("dashLocal"),curCultura=v("dashCultura");
+  $("dashMonth").innerHTML='<option value="">Todos os Meses</option>'+sortedMonths.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  $("dashLocal").innerHTML='<option value="">Todos os Locais</option>'+locals.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  $("dashCultura").innerHTML='<option value="">Todas as Culturas</option>'+culturas.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  $("dashMonth").value=curMonth;$("dashLocal").value=curLocal;$("dashCultura").value=curCultura;
 }
 
 async function dashboard(){
-  try {
-    if(rawAllAudits.length === 0){
-      rawAllAudits = await fetchAllRows(TABLE_NAME);
-      carregarOpcoesMeses();
-      carregarFiltrosCascata();
-    }
-
-    let selMonth = normalizarMesFiltro(v("dashMonth"));
-    let selLocal = normalizarTexto(v("dashLocal"));
-    let selCultura = normalizarTexto(v("dashCultura"));
-
-    dashData = rawAllAudits.filter(x => {
-      const mesItem = x.mes;
-      const localItem = normalizarTexto(x.local);
-      const culturaItem = normalizarTexto(x.cultura);
-
-      if(selMonth && mesItem !== selMonth) return false;
-      if(selLocal && localItem !== selLocal) return false;
-      if(selCultura && culturaItem !== selCultura) return false;
-
-      return true;
-    });
-
-    let totLotes = dashData.length;
-    let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
-    let validados = dashData.filter(x => normalizarTexto(x.status) === "VALIDADO").length;
-    let pendentes = dashData.filter(x => normalizarTexto(x.status) === "PENDENTE" || !x.status).length;
-    let accVal = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) : "0.0";
-
-    $("tot").textContent = totLotes;
-    $("aud").textContent = auditados;
-    $("pen").textContent = pendentes;
-    $("val").textContent = validados;
-    $("acc").textContent = accVal + "%";
-    $("accBarTxt").textContent = accVal + "%";
-    $("accBar").style.width = accVal + "%";
-
-    renderDashTable();
-  } catch(error) {
-    console.error("ERRO DADOS:", error);
-    toast("Erro ao carregar auditorias.");
+  let raw=[];
+  try{raw=await fetchAllHistory()}catch(e){
+    $("dashTableBody").innerHTML='<tr><td colspan="9" class="bad" style="text-align:center">Histórico indisponível.</td></tr>';
+    return toast("Histórico indisponível: "+e.message);
   }
+  await loadHistoryFilters(raw);
+  const rows=latestHistoryRows(raw);
+  const sm=v("dashMonth").toUpperCase().trim(),sl=v("dashLocal").toUpperCase().trim(),sc=v("dashCultura").toUpperCase().trim();
+  dashData=rows.filter(x=>(!sm||String(x.mes||"").toUpperCase()===sm)&&(!sl||String(x.local||"").toUpperCase()===sl)&&(!sc||String(x.cultura||"").toUpperCase()===sc));
+  const auditados=dashData.filter(x=>numOrNull(x.qtd_fisica)!==null&&numOrNull(x.qtd_fisica)>0).length;
+  const validados=dashData.filter(x=>normalizeStatus(x.status)==="VALIDADO").length;
+  const pendentes=dashData.filter(x=>normalizeStatus(x.status)==="PENDENTE").length;
+  const acc=auditados?validados/auditados*100:0;
+  $("tot").textContent=dashData.length;
+  $("aud").textContent=auditados;
+  $("pen").textContent=pendentes;
+  $("val").textContent=validados;
+  $("acc").textContent=acc.toFixed(1)+"%";
+  $("accBarTxt").textContent=acc.toFixed(1)+"%";
+  $("accBar").style.width=Math.min(100,Math.max(0,acc))+"%";
+  renderDashTable();
 }
 
 function renderDashTable(){
-  let q = normalizarTexto(v("dashSearch"));
-  filteredData = dashData.filter(x =>
-    normalizarTexto(x.lote).includes(q) || 
-    normalizarTexto(x.cultivar).includes(q) || 
-    normalizarTexto(x.local).includes(q) ||
-    normalizarTexto(x.cultura).includes(q) ||
-    normalizarTexto(x.mes).includes(q)
-  );
-
-  $("dashTableBody").innerHTML = filteredData.map(x => {
-    let st = normalizarTexto(x.status);
-    let cl = st === "VALIDADO" ? "ok" : (st.includes("DIVERG") ? "bad" : "warn");
-    return `<tr>
-      <td><b>${esc(x.mes)}</b></td>
-      <td><b>${esc(x.lote)}</b></td>
-      <td>${esc(x.local)}</td>
-      <td>${esc(x.cultura)}</td>
-      <td>${esc(x.cultivar)}</td>
-      <td>${esc(x.cat)}</td>
-      <td>${x.qtd_sistema ?? "—"}</td>
-      <td>${x.qtd_fisica ?? "—"}</td>
-      <td><span class="${cl}">${esc(x.status)}</span></td>
-    </tr>`;
-  }).join("") || '<tr><td colspan="9" class="muted" style="text-align:center">Nenhuma auditoria encontrada.</td></tr>';
+  const q=v("dashSearch").toUpperCase().trim();
+  filteredData=dashData.filter(x=>[x.lote,x.cultivar,x.local,x.cultura,x.mes,x.status].some(y=>String(y||"").toUpperCase().includes(q)));
+  $("dashTableBody").innerHTML=filteredData.map(x=>{
+    const st=normalizeStatus(x.status),cl=st==="VALIDADO"?"ok":st.includes("DIVERG")?"bad":st.includes("VERIFICAR")?"warn":"muted";
+    return `<tr><td><b>${esc(x.mes)}</b></td><td><b>${esc(x.lote)}</b></td><td>${esc(x.local)}</td><td>${esc(x.cultura)}</td><td>${esc(x.cultivar)}</td><td>${esc(x.cat)}</td><td>${x.qtd_sistema??"—"}</td><td>${x.qtd_fisica??"—"}</td><td><span class="${cl}">${esc(x.status)}</span></td></tr>`;
+  }).join("")||'<tr><td colspan="9" class="muted" style="text-align:center">Nenhuma auditoria encontrada.</td></tr>';
 }
 
+function csvEscape(x){return '"'+String(x??"").replaceAll('"','""')+'"'}
+function downloadCSV(rows,name){
+  const csv="\uFEFF"+rows.map(r=>r.map(csvEscape).join(";")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),link=document.createElement("a");
+  link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
+}
 function exportToCSV(){
-  if(!filteredData || filteredData.length===0) return toast("Nenhum dado para exportar.");
-  let csv=["\uFEFFMes Auditoria;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
-  filteredData.forEach(x => {
-    csv.push(`"${x.mes}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
-  });
-  let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
-  let link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `Auditoria_${new Date().toISOString().slice(0,10)}.csv`;
-  link.click();
+  if(!filteredData.length)return toast("Nenhum dado para exportar.");
+  downloadCSV([
+    ["Mês Auditoria","Lote","Local","Cultura","Cultivar","Categoria","Qtd Sistema","Qtd Física","Status"],
+    ...filteredData.map(x=>[x.mes,x.lote,x.local,x.cultura,x.cultivar,x.cat,x.qtd_sistema,x.qtd_fisica,x.status])
+  ],`historico_auditorias_${new Date().toISOString().slice(0,10)}.csv`);
+}
+function exportLocalAuditsCSV(){
+  if(!base.length)return toast("Nenhum lote para exportar.");
+  const amap=new Map(audits.map(x=>[x.lote,x]));
+  downloadCSV([
+    ["Mês Auditoria","Lote","Local","Cultura","Cultivar","Categoria","Qtd Sistema","Qtd Física","Status"],
+    ...base.map(x=>{const a=amap.get(x.lote);return[meta.mes,x.lote,meta.local,x.cultura,x.cultivar,x.cat,x.qtd_sistema,a?.qtd_fisica??"",a?.status||"PENDENTE"]})
+  ],`auditoria_${meta.local}_${meta.data_verificacao}.csv`);
 }
 
-window.onload = dashboard;
-</script>
-</body>
-</html>
+async function start(){
+  const local=v("local");if(!local)return toast("Selecione o local.");
+  meta={local,data_verificacao:v("date"),mes:month(),auditor_pcp:v("pcp").trim(),auditor_unidade:v("audun").trim(),responsavel_ubs:v("ubs").trim()};
+  $("lt").textContent=local;
+  let r=await db.from(TABLE_BASE).select("*").eq("local",local).order("lote");
+  if(r.error)return toast("Erro ao carregar base: "+r.error.message);
+  base=r.data||[];
+  r=await db.from(TABLE_ACTIVE).select("*").eq("local",local).eq("data_verificacao",meta.data_verificacao);
+  if(r.error)return toast("Erro ao carregar auditorias ativas: "+r.error.message);
+  audits=r.data||[];
+  populateLotFilters();render();go("lots");
+}
+
+function populateLotFilters(){
+  const culturas=[...new Set(base.map(x=>x.cultura).filter(Boolean))].sort();
+  const cultivares=[...new Set(base.map(x=>x.cultivar).filter(Boolean))].sort();
+  $("lotCultura").innerHTML='<option value="">Todas</option>'+culturas.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  $("lotCultivar").innerHTML='<option value="">Todas</option>'+cultivares.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+}
+
+function render(){
+  const q=v("search").toUpperCase().trim(),selC=v("lotCultura").toUpperCase(),selV=v("lotCultivar").toUpperCase(),selS=v("lotStatus").toUpperCase();
+  const amap=new Map(audits.map(x=>[x.lote,x]));
+  const rows=base.filter(x=>{const a=amap.get(x.lote),st=normalizeStatus(a?.status||"PENDENTE");return String(x.lote).toUpperCase().includes(q)&&(!selC||String(x.cultura||"").toUpperCase()===selC)&&(!selV||String(x.cultivar||"").toUpperCase()===selV)&&(!selS||st===selS)});
+  $("list").innerHTML=rows.map(x=>{const a=amap.get(x.lote),st=normalizeStatus(a?.status||"PENDENTE"),cl=st==="VALIDADO"?"ok":st.includes("DIVERG")?"bad":st.includes("VERIFICAR")?"warn":"warn";return `<div class="lot" onclick="openLot(${JSON.stringify(String(x.lote))})"><div><b>${esc(x.lote)}</b></div><div><span>${esc(x.cultivar)} · ${esc(x.cat)} · ${esc(x.pen)}</span></div><div><span>Qtd: ${x.qtd_sistema??"—"}</span></div><div><span class="${cl}">${esc(st)}</span></div></div>`}).join("")||"<p class='muted' style='text-align:center;padding:20px'>Nenhum lote encontrado.</p>";
+  const auditados=audits.filter(x=>numOrNull(x.qtd_fisica)!==null&&numOrNull(x.qtd_fisica)>0).length;
+  const validados=audits.filter(x=>normalizeStatus(x.status)==="VALIDADO").length;
+  const pendentes=base.filter(x=>!amap.has(x.lote)).length;
+  $("stot").textContent=base.length;$("saud").textContent=auditados;$("spen").textContent=pendentes;$("sval").textContent=validados;$("sacc").textContent=auditados?(validados/auditados*100).toFixed(1)+"%":"0%";
+}
+
+function clearConfInputs(){["catfis","etq","qtd","cam","quad","fila","obs"].forEach(id=>set(id,""))}
+function openLot(l){
+  clearConfInputs();selected=base.find(x=>String(x.lote)===String(l));if(!selected)return;
+  const a=audits.find(x=>String(x.lote)===String(l));
+  $("clote").textContent=l;
+  $("sys").innerHTML=`<b>LOCAL:</b> ${esc(selected.local)} &nbsp; <b>CULTURA:</b> ${esc(selected.cultura)} &nbsp; <b>CULTIVAR:</b> ${esc(selected.cultivar)}<br><b>CÓD. PRODUTO:</b> ${esc(selected.cod_produto)}<br><b>NOME PRODUTO ERP:</b> ${esc(selected.nome_produto_erp)}<br><b>CAT:</b> ${esc(selected.cat)} &nbsp; <b>PEN.:</b> ${esc(selected.pen)} &nbsp; <b>UM:</b> ${esc(selected.um)}<br><b>QTD SISTEMA:</b> ${selected.qtd_sistema??"NÃO CONSTA"} &nbsp; <b>PESO ETIQUETA:</b> ${selected.peso_etiqueta??"NÃO CONSTA"}`;
+  if(a){set("catfis",a.cat_fis);set("etq",a.etiqueta_fisica);set("qtd",a.qtd_fisica);set("cam",a.camara);set("quad",a.quadra);set("fila",a.fileira);set("obs",a.observacao);$("btnDeleteConf").classList.remove("hidden")}else{$("btnDeleteConf").classList.add("hidden")}
+  $("warning").innerHTML=numOrNull(selected.qtd_sistema)===0?'<div class="dangerbox">⚠️ QTD SISTEMA = 0. Este lote não entra no total de pendentes. Se houver QTD FÍSICA > 0, a conferência pode ser registrada.</div>':"";
+  $("conf").classList.remove("hidden");window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
+}
+function closeConf(){selected=null;clearConfInputs();$("conf").classList.add("hidden")}
+
+async function deleteCurrentAudit(){
+  if(!selected)return;
+  const a=audits.find(x=>String(x.lote)===String(selected.lote));if(!a)return toast("Este lote ainda não possui auditoria ativa.");
+  if(!confirm("Excluir somente a auditoria ativa deste lote? O histórico permanente NÃO será apagado."))return;
+  const {error}=await db.from(TABLE_ACTIVE).delete().eq("id",a.id);
+  if(error)return toast("Erro ao excluir: "+error.message);
+  audits=audits.filter(x=>x.id!==a.id);toast("Auditoria ativa excluída. O histórico permanece salvo.");closeConf();render();
+}
+
+function buildPayload(){
+  const qtd=numOrNull(v("qtd")),etq=numOrNull(v("etq")),qs=numOrNull(selected.qtd_sistema),pe=numOrNull(selected.peso_etiqueta);
+  if(qtd===null||qtd<=0)return {error:"QTD FÍSICA deve ser maior que 0 para realizar a auditoria."};
+  const div=[];
+  if(qs===null)div.push("VERIFICAR QUANTIDADE SISTÊMICA NÃO CONSTA");
+  else if(qtd!==qs)div.push("QTD FÍSICA DIFERENTE DA QTD SISTEMA");
+  if(etq!==null&&pe!==null&&etq!==pe)div.push("ETIQUETA FÍSICA DIFERENTE DO PESO ETIQUETA");
+  const status=qs===null?"VERIFICAR QUANTIDADE SISTÊMICA NÃO CONSTA":div.length?"DIVERGÊNCIA":"VALIDADO";
+  return {payload:{local:meta.local,data_verificacao:meta.data_verificacao,mes:meta.mes,auditor_pcp:meta.auditor_pcp,auditor_unidade:meta.auditor_unidade,responsavel_ubs:meta.responsavel_ubs,uf:selected.uf,filial:selected.filial,deposito:selected.deposito,cultura:selected.cultura,lote:selected.lote,cultivar:selected.cultivar,cod_produto:selected.cod_produto,nome_produto_erp:selected.nome_produto_erp,cat:selected.cat,pen:selected.pen,um:selected.um,qtd_sistema:qs,peso_etiqueta:pe,cat_fis:v("catfis").trim(),etiqueta_fisica:etq,qtd_fisica:qtd,camara:v("cam").trim(),quadra:v("quad").trim(),fileira:v("fila").trim(),observacao:v("obs").trim(),status,divergencia:div.join("; ")||null}};
+}
+
+async function writeHistory(activeRow){
+  // Histórico é permanente: cada confirmação cria um snapshot novo.
+  const hist={
+    historico_id:crypto.randomUUID(),
+    auditoria_id:activeRow.id,
+    local:activeRow.local,data_verificacao:activeRow.data_verificacao,mes:activeRow.mes,
+    auditor_pcp:activeRow.auditor_pcp,auditor_unidade:activeRow.auditor_unidade,responsavel_ubs:activeRow.responsavel_ubs,
+    uf:activeRow.uf,filial:activeRow.filial,deposito:activeRow.deposito,cultura:activeRow.cultura,lote:activeRow.lote,cultivar:activeRow.cultivar,
+    cod_produto:activeRow.cod_produto,nome_produto_erp:activeRow.nome_produto_erp,cat:activeRow.cat,pen:activeRow.pen,um:activeRow.um,
+    qtd_sistema:activeRow.qtd_sistema,peso_etiqueta:activeRow.peso_etiqueta,cat_fis:activeRow.cat_fis,etiqueta_fisica:activeRow.etiqueta_fisica,
+    qtd_fisica:activeRow.qtd_fisica,camara:activeRow.camara,quadra:activeRow.quadra,fileira:activeRow.fileira,observacao:activeRow.observacao,
+    status:activeRow.status,divergencia:activeRow.divergencia,registrado_em:new Date().toISOString()
+  };
+  const {error}=await db.from(TABLE_HISTORY).insert(hist);
+  if(error)throw new Error(error.message);
+}
+
+async function save(){
+  if(!selected)return;
+  const built=buildPayload();if(built.error)return toast(built.error);
+  try{
+    const {data:up,error}=await db.from(TABLE_ACTIVE).upsert(built.payload,{onConflict:"local,data_verificacao,lote"}).select().single();
+    if(error)throw new Error(error.message);
+    try{await writeHistory(up)}catch(histError){
+      // Não esconde o problema: a auditoria ativa foi salva, mas o usuário sabe que o histórico falhou.
+      return toast("⚠️ Auditoria salva, MAS o histórico não foi gravado: "+histError.message);
+    }
+    const idx=audits.findIndex(x=>String(x.lote)===String(selected.lote));if(idx>=0)audits[idx]=up;else audits.push(up);
+    toast(normalizeStatus(up.status)==="VALIDADO"?"✅ Lote validado e histórico gravado.":"⚠️ Lote gravado e histórico atualizado.");render();closeConf();
+  }catch(e){toast("Erro ao salvar: "+e.message)}
+}
+
+async function saveFullSession(){
+  if(!audits.length)return toast("Nenhuma auditoria ativa para sincronizar.");
+  let ok=0;
+  for(const a of audits){try{await writeHistory(a);ok++}catch(e){return toast(`Sincronização interrompida em ${ok} lote(s): ${e.message}`)}}
+  toast(`✅ ${ok} auditoria(s) sincronizada(s) no histórico.`);
+}
+
+function openNewLotModal(){
+  set("nl_local",meta.local||"");["nl_uf","nl_filial","nl_deposito","nl_cultura","nl_lote","nl_cultivar","nl_cod_produto","nl_nome_produto_erp","nl_cat","nl_pen","nl_peso_etiqueta"].forEach(id=>set(id,""));set("nl_um","BAG");set("nl_qtd_sistema","0");$("newLotModal").classList.remove("hidden");
+}
+function closeNewLotModal(){$("newLotModal").classList.add("hidden")}
+async function saveNewLot(){
+  const lote=v("nl_lote").trim();if(!lote)return toast("Informe o código do lote.");
+  const payload={local:meta.local,uf:v("nl_uf").trim(),filial:v("nl_filial").trim(),deposito:v("nl_deposito").trim(),cultura:v("nl_cultura").trim(),lote,cultivar:v("nl_cultivar").trim(),cod_produto:v("nl_cod_produto").trim(),nome_produto_erp:v("nl_nome_produto_erp").trim(),cat:v("nl_cat").trim(),pen:v("nl_pen").trim(),um:v("nl_um").trim(),qtd_sistema:numOrNull(v("nl_qtd_sistema"))??0,peso_etiqueta:numOrNull(v("nl_peso_etiqueta"))};
+  const {error}=await db.from(TABLE_BASE).insert(payload);if(error)return toast("Erro ao cadastrar lote: "+error.message);
+  toast(`Lote ${lote} cadastrado com sucesso!`);closeNewLotModal();const r=await db.from(TABLE_BASE).select("*").eq("local",meta.local).order("lote");if(r.error)return toast(r.error.message);base=r.data||[];populateLotFilters();render();
+}
+
+// Verificação inicial da conexão e da tabela de histórico.
+async function boot(){
+  try{
+    const {error}=await db.from(TABLE_HISTORY).select("historico_id",{count:"exact",head:true});
+    if(error)toast("⚠️ Banco conectado, mas a tabela auditorias_historico precisa ser criada/renomeada: "+error.message);
+  }catch(e){toast("Erro de conexão com o Supabase: "+e.message)}
+  dashboard();
+}
+boot();
+</script></body></html>
