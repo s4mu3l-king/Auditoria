@@ -26,22 +26,14 @@ button:disabled{opacity:0.6;cursor:not-allowed}
 .sec{background:#e8eeea;color:var(--g2)}
 .btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
 .btn-import{background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:170px;height:44px;border:0}
-.btn-save-top{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 16px;border:1px solid #2ecc71}
-.btn-newlot{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
-.btn-danger{background:var(--bad);color:#fff}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .muted{color:var(--muted)}
 .hidden{display:none !important}
 .top{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-bottom:16px}
-.lot{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:9px;margin:7px 0;background:#fff;align-items:center;cursor:pointer;transition:border-color 0.2s}
-.lot:hover{border-color:var(--g)}
-.lot.divergent-border{border-left:5px solid var(--bad)}
 .ok{color:var(--ok);font-weight:bold}
 .bad{color:var(--bad);font-weight:bold}
 .warn{color:var(--warn);font-weight:bold}
 .toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
-.system{line-height:1.8;background:#f7f9f8;padding:12px;border-radius:8px}
-.dangerbox{background:#fff4f3;border:1px solid #f0c9c5;padding:12px;border-radius:8px;margin:12px 0}
 .brand-container{display:flex;align-items:center;gap:14px}
 .logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
 .logo-img{height:46px;width:auto;object-fit:contain}
@@ -54,13 +46,11 @@ table.data-table td{padding:9px 12px;border-bottom:1px solid var(--line);white-s
 table.data-table tr:hover{background:#f0f5f2}
 .filter-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8faf9;padding:14px;border-radius:10px;border:1px solid var(--line)}
 .table-header-tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px}
-.lot-header{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:10px 12px;background:var(--g);color:#fff;font-weight:bold;font-size:13px;border-radius:8px;margin-bottom:8px}
 .modal-backdrop{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999}
 .modal-box{background:#fff;border-radius:12px;padding:22px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 5px 25px rgba(0,0,0,0.2)}
 
 @media(max-width:800px){
   .grid,.kpis{grid-template-columns:1fr 1fr}
-  .lot,.lot-header{grid-template-columns:1fr}
   .top{display:block}
   .filter-box{grid-template-columns:1fr}
   .table-header-tools{flex-direction:column;align-items:stretch}
@@ -117,13 +107,13 @@ table.data-table tr:hover{background:#f0f5f2}
   <div class="kpi">Auditados<b id="aud">0</b></div>
   <div class="kpi">Pendentes<b id="pen">0</b></div>
   <div class="kpi">Validados<b id="val">0</b></div>
-  <div class="kpi">Acuracidade<b id="acc">0%</b></div>
+  <div class="kpi">Acuracidade<b id="acc">0.0%</b></div>
 </div>
 
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <b>Nível de Acuracidade Apurada</b>
-    <span id="accBarTxt" style="font-weight:bold;color:var(--g)">0%</span>
+    <span id="accBarTxt" style="font-weight:bold;color:var(--g)">0.0%</span>
   </div>
   <div class="progress-bg">
     <div id="accBar" class="progress-fill"></div>
@@ -161,7 +151,6 @@ table.data-table tr:hover{background:#f0f5f2}
 </div>
 </section>
 
-<!-- Outras seções permanecem mantidas -->
 <section id="start" class="hidden">
   <div class="card">
     <h3>Iniciando Sessão de Auditoria</h3>
@@ -174,7 +163,7 @@ table.data-table tr:hover{background:#f0f5f2}
       <label>RESPONSÁVEL UBS<input id="ubs" placeholder="Nome do responsável"></label>
     </div>
     <div class="actions">
-      <button id="btnStartAudit" onclick="start()">INICIAR CONFERÊNCIA</button>
+      <button id="btnStartAudit">INICIAR CONFERÊNCIA</button>
       <button class="sec" onclick="go('home')">CANCELAR</button>
     </div>
   </div>
@@ -187,8 +176,7 @@ table.data-table tr:hover{background:#f0f5f2}
     <input type="file" id="input-excel" accept=".xlsx, .xls, .csv" style="margin-top:6px" />
     <div id="status-importacao" style="margin-top:15px; font-weight:bold; color:var(--g)"></div>
     <div class="actions" style="margin-top:20px; justify-content:flex-end">
-      <button onclick="processarEEnviarPlanilha()" style="background:var(--g)">Processar e Salvar</button>
-      <button onclick="fecharModalImportacao()" class="sec">Cancelar</button>
+      <button onclick="fecharModalImportacao()" class="sec">Fechar</button>
     </div>
   </div>
 </div>
@@ -236,11 +224,9 @@ function normalizarMesFiltro(valor){
     "12":"DEZ","DEZ":"DEZ","DEZEMBRO":"DEZ"
   };
 
-  if(mapa[semAcento]) return mapa[semAcento];
-  return semAcento;
+  return mapa[semAcento] || semAcento;
 }
 
-// Busca Paginada sem limitação do Supabase
 async function fetchAllRows(tableName){
   let allData = [];
   let page = 0;
@@ -327,7 +313,6 @@ async function dashboard(){
       return true;
     });
 
-    // Atualização Fiel dos Cards (KPIs)
     let totLotes = dashData.length;
     let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
     let validados = dashData.filter(x => normalizarTexto(x.status) === "VALIDADO").length;
@@ -387,6 +372,14 @@ function exportToCSV(){
   link.href = URL.createObjectURL(blob);
   link.download = `Auditoria_${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
+}
+
+function abrirModalImportacao(){
+  $("modal-importacao").classList.remove("hidden");
+}
+
+function fecharModalImportacao(){
+  $("modal-importacao").classList.add("hidden");
 }
 
 window.onload = function(){
