@@ -370,77 +370,54 @@ async function processarEEnviarPlanilha() {
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
       
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
-      if (jsonData.length === 0) {
-        divStatus.innerText = "❌ A planilha está vazia.";
+      if (rows.length < 2) {
+        divStatus.innerText = "❌ A planilha precisa ter ao menos cabeçalho e linhas de dados.";
         return;
       }
 
       const registrosParaInserir = [];
 
-      for (const row of jsonData) {
-        const getVal = (...keys) => {
-          for (const k of keys) {
-            const targetKey = k.trim().toLowerCase();
-            const matchKey = Object.keys(row).find(key => {
-              const cleanKey = key.trim().toLowerCase();
-              return cleanKey === targetKey || cleanKey.includes(targetKey);
-            });
-            if (matchKey && row[matchKey] !== undefined && row[matchKey] !== "") {
-              return row[matchKey];
-            }
-          }
-          return "";
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+
+        const getColVal = (idx) => row[idx] !== undefined ? String(row[idx]).trim() : "";
+
+        const filial = getColVal(0);
+        const colB = getColVal(1);
+        const colC = getColVal(2);
+        const deposito = getColVal(3);
+        const cultura = getColVal(4) || getColVal(5);
+        const colI = getColVal(8);
+        const lote = getColVal(9) || getColVal(8) || getColVal(7);
+        const cat = getColVal(10);
+        const pen = getColVal(11);
+        const um = getColVal(12) || "BAG";
+
+        const parseNum = (val) => {
+          if (typeof val === "number") return val;
+          if (!val) return 0;
+          let s = String(val).trim().replace(/[^0-9.,-]/g, "");
+          if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+          const n = parseFloat(s);
+          return isNaN(n) ? 0 : n;
         };
 
-        const filial = String(getVal("Filial", "Cod. Filial") || '').trim();
-        const colB = String(getVal("Empresa", "Cod. Empresa") || '').trim();
-        const colC = String(getVal("Unidade", "Cod. Unidade") || '').trim();
-        const deposito = String(getVal("Deposito", "Armazém") || '').trim();
-        const cultura = String(getVal("Cultura", "Produto", "Cultivar") || '').trim();
-        const colI = String(getVal("Tratamento", "Descrição") || '').trim();
-        const lote = String(getVal("Lote") || '').trim();
-        const cat = String(getVal("Cat", "Categoria") || '').trim();
-        const pen = String(getVal("Penera", "Peneira") || '').trim();
-        const um = String(getVal("UM", "Unidade") || '').trim();
+        let colAE = parseNum(row[30]);
 
-        // 1. Leitura de Saldo
-        let qtdRaw = getVal("Saldo", "Qtd. Sistema", "Qtd Sistema", "Qtd", "Quantidade");
-        
-        // 2. Fallback por Posição: 31ª Coluna (Índice 30 -> Coluna AE)
-        if (qtdRaw === "") {
-          const keys = Object.keys(row);
-          if (keys.length >= 31) {
-            qtdRaw = row[keys[30]];
+        if (colAE <= 0) {
+          for (let c = row.length - 1; c >= 0; c--) {
+            let numCandidate = parseNum(row[c]);
+            if (numCandidate > 0) {
+              colAE = numCandidate;
+              break;
+            }
           }
         }
 
-        let colAE = 0;
-        if (typeof qtdRaw === "number") {
-          colAE = qtdRaw;
-        } else if (typeof qtdRaw === "string" && qtdRaw.trim() !== "") {
-          let valLimpo = qtdRaw.trim().replace(/\s+/g, "");
-          if (valLimpo.includes(",")) {
-            valLimpo = valLimpo.replace(/\./g, "").replace(",", ".");
-          }
-          const parsed = parseFloat(valLimpo);
-          if (!isNaN(parsed)) colAE = parsed;
-        }
-
-        if (isNaN(colAE) || colAE <= 0) continue;
-
-        // Leitura do Peso Etiqueta
-        const pesoRaw = getVal("Peso Etiqueta", "Peso");
-        let pesoEtiqueta = null;
-        if (typeof pesoRaw === "number") {
-          pesoEtiqueta = pesoRaw;
-        } else if (typeof pesoRaw === "string" && pesoRaw.trim() !== "") {
-          let pesoLimpo = pesoRaw.trim();
-          if (pesoLimpo.includes(",")) pesoLimpo = pesoLimpo.replace(/\./g, "").replace(",", ".");
-          const parsedPeso = parseFloat(pesoLimpo);
-          if (!isNaN(parsedPeso)) pesoEtiqueta = parsedPeso;
-        }
+        if (!lote || colAE <= 0) continue;
 
         let localFinal = "";
         let ufFinal = "";
@@ -453,7 +430,7 @@ async function processarEEnviarPlanilha() {
         } else if (colB.includes("AGROSEMEAR") || colC.includes("AGROSEMEAR")) {
           localFinal = "AGROSEMEAR"; ufFinal = "MT";
         } else {
-          localFinal = colB || colC; ufFinal = "GO";
+          localFinal = colB || colC || "GERAL"; ufFinal = "GO";
         }
 
         const partesTratamento = colI.split(/\s+/);
@@ -473,7 +450,7 @@ async function processarEEnviarPlanilha() {
           pen: pen,
           um: um,
           qtd_sistema: colAE,
-          peso_etiqueta: pesoEtiqueta
+          peso_etiqueta: null
         });
       }
 
@@ -752,86 +729,79 @@ function populateLotFilters(){
 
 function render(){
   let q=v("search").toUpperCase();
-  let selCultura=v("lotCultura").toUpperCase();
-  let selCultivar=v("lotCultivar").toUpperCase();
-  let selStatus=v("lotStatus").toUpperCase();
-  
-  let validBase = base.filter(x => Number(x.qtd_sistema) > 0);
+  let fCul=v("lotCultura").toUpperCase();
+  let fCv=v("lotCultivar").toUpperCase();
+  let fSt=v("lotStatus").toUpperCase();
+
   let amap=new Map(audits.map(x=>[x.lote,x]));
+  let tot=base.length, aud=0, val=0;
 
-  let tot = validBase.length;
-  let audCount = 0;
-  let valCount = 0;
+  let html=base.map(b=>{
+    let a=amap.get(b.lote);
+    let st=a?a.status:"PENDENTE";
+    if(a) aud++;
+    if(st==="VALIDADO") val++;
 
-  validBase.forEach(b => {
-    let a = amap.get(b.lote);
-    if(a && a.qtd_fisica !== null && a.qtd_fisica !== undefined) audCount++;
-    if(a && a.status === "VALIDADO") valCount++;
-  });
+    if(q && !String(b.lote).toUpperCase().includes(q)) return "";
+    if(fCul && String(b.cultura||"").toUpperCase()!==fCul) return "";
+    if(fCv && String(b.cultivar||"").toUpperCase()!==fCv) return "";
+    if(fSt && st!==fSt) return "";
 
-  let penCount = tot - audCount;
-  let accVal = audCount > 0 ? ((valCount / audCount) * 100).toFixed(1) : "0.0";
+    let stCl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":"warn";
+    let divClass=st==="DIVERGÊNCIA"?"divergent-border":"";
+
+    return `<div class="lot ${divClass}" onclick="openConf('${esc(b.lote)}')">
+      <div><b>${esc(b.lote)}</b></div>
+      <div>${esc(b.cultivar||'—')} · ${esc(b.cat||'—')} · ${esc(b.pen||'—')}</div>
+      <div><b>${b.qtd_sistema}</b> ${esc(b.um||'')}</div>
+      <div><span class="${stCl}">${st}</span></div>
+    </div>`;
+  }).join("");
+
+  $("list").innerHTML=html||'<div class="muted" style="padding:15px;text-align:center">Nenhum lote encontrado.</div>';
+
+  let pen = tot - aud;
+  let acc = aud > 0 ? ((val / aud) * 100).toFixed(1) : "0.0";
 
   $("stot").textContent = tot;
-  $("saud").textContent = audCount;
-  $("spen").textContent = penCount < 0 ? 0 : penCount;
-  $("sval").textContent = valCount;
-  $("sacc").textContent = accVal + "%";
-
-  let filtered = validBase.filter(x => {
-    let a = amap.get(x.lote);
-    let st = a?.status || "PENDENTE";
-
-    let mSearch = !q || String(x.lote).toUpperCase().includes(q) || String(x.cultivar||"").toUpperCase().includes(q);
-    let mCul = !selCultura || String(x.cultura||"").toUpperCase() === selCultura;
-    let mCultiv = !selCultivar || String(x.cultivar||"").toUpperCase() === selCultivar;
-    let mStat = !selStatus || st.toUpperCase() === selStatus;
-
-    return mSearch && mCul && mCultiv && mStat;
-  });
-
-  $("list").innerHTML = filtered.map(x => {
-    let a = amap.get(x.lote);
-    let st = a?.status || "PENDENTE";
-    let divBorder = st === "DIVERGÊNCIA" ? "divergent-border" : "";
-    let cl = st === "VALIDADO" ? "ok" : st === "DIVERGÊNCIA" ? "bad" : "warn";
-
-    return `<div class="lot ${divBorder}" onclick="openConf('${esc(x.lote)}')">
-      <div><b>${esc(x.lote)}</b></div>
-      <div>${esc(x.cultivar)} · ${esc(x.cat)} · ${esc(x.pen)}</div>
-      <div><b>${x.qtd_sistema}</b></div>
-      <div><span class="${cl}">${st}</span></div>
-    </div>`;
-  }).join("") || '<div class="muted" style="text-align:center;padding:20px">Nenhum lote encontrado.</div>';
+  $("saud").textContent = aud;
+  $("spen").textContent = pen < 0 ? 0 : pen;
+  $("sval").textContent = val;
+  $("sacc").textContent = acc + "%";
 }
 
 function openConf(loteStr){
-  selected = base.find(x => String(x.lote) === String(loteStr));
-  if(!selected) return toast("Lote não encontrado.");
-
-  let a = audits.find(x => String(x.lote) === String(loteStr));
+  selected = base.find(x => x.lote === loteStr);
+  if(!selected) return;
 
   $("clote").textContent = selected.lote;
   $("sys").innerHTML = `
-    <b>Cultura:</b> ${esc(selected.cultura)} | <b>Cultivar:</b> ${esc(selected.cultivar)} | <b>Categoria:</b> ${esc(selected.cat)}<br>
-    <b>Qtd Sistema:</b> ${selected.qtd_sistema} | <b>Peneira:</b> ${esc(selected.pen)} | <b>UM:</b> ${esc(selected.um)}
+    <b>Cultura:</b> ${esc(selected.cultura)} | <b>Cultivar:</b> ${esc(selected.cultivar)}<br>
+    <b>Categoria:</b> ${esc(selected.cat)} | <b>Peneira:</b> ${esc(selected.pen)} | <b>Tratamento:</b> ${esc(selected.Tratamento||'—')}<br>
+    <b>Qtd. Sistema:</b> ${selected.qtd_sistema} ${esc(selected.um)}
   `;
 
-  set("catfis", a?.categoria_fisica || selected.cat);
-  set("etq", a?.etiqueta_fisica || "");
-  set("qtd", a?.qtd_fisica ?? selected.qtd_sistema);
-  set("cam", a?.camara || "");
-  set("quad", a?.quadra || "");
-  set("fila", a?.fileira || "");
-  set("obs", a?.observacao || "");
-
-  if(a && a.id) {
+  let a = audits.find(x => x.lote === loteStr);
+  if(a){
+    set("catfis", a.cat_fisica);
+    set("etq", a.etiqueta_fisica);
+    set("qtd", a.qtd_fisica);
+    set("cam", a.camara);
+    set("quad", a.quadra);
+    set("fila", a.fileira);
+    set("obs", a.observacao);
     $("btnDeleteConf").classList.remove("hidden");
   } else {
+    set("catfis", selected.cat);
+    set("etq", "");
+    set("qtd", "");
+    set("cam", "");
+    set("quad", "");
+    set("fila", "");
+    set("obs", "");
     $("btnDeleteConf").classList.add("hidden");
   }
 
-  $("warning").innerHTML = "";
   $("conf").classList.remove("hidden");
 }
 
@@ -842,110 +812,90 @@ function closeConf(){
 
 async function save(){
   if(!selected) return;
+  let qFis = parseFloat(v("qtd"));
 
-  let qtdFis = parseFloat(v("qtd"));
-  if(isNaN(qtdFis)) return toast("Digite uma quantidade física válida.");
+  if(isNaN(qFis)){
+    return toast("Informe uma quantidade física válida.");
+  }
 
-  let status = (qtdFis === Number(selected.qtd_sistema)) ? "VALIDADO" : "DIVERGÊNCIA";
+  let st = qFis === selected.qtd_sistema ? "VALIDADO" : "DIVERGÊNCIA";
 
   let record = {
     local: meta.local,
-    data_verificacao: meta.data_verificacao,
     mes: meta.mes,
+    data_verificacao: meta.data_verificacao,
+    auditor_pcp: meta.auditor_pcp,
+    auditor_unidade: meta.auditor_unidade,
+    responsavel_ubs: meta.responsavel_ubs,
     lote: selected.lote,
     cultura: selected.cultura,
     cultivar: selected.cultivar,
     cat: selected.cat,
     qtd_sistema: selected.qtd_sistema,
-    qtd_fisica: qtdFis,
-    status: status,
-    categoria_fisica: v("catfis"),
+    qtd_fisica: qFis,
+    cat_fisica: v("catfis"),
     etiqueta_fisica: v("etq"),
     camara: v("cam"),
     quadra: v("quad"),
     fileira: v("fila"),
     observacao: v("obs"),
-    auditor_pcp: meta.auditor_pcp,
-    auditor_unidade: meta.auditor_unidade,
-    responsavel_ubs: meta.responsavel_ubs
+    status: st
   };
 
-  let idx = audits.findIndex(x => String(x.lote) === String(selected.lote));
-  if(idx >= 0) {
-    audits[idx] = { ...audits[idx], ...record };
-  } else {
-    audits.push(record);
-  }
+  let { error } = await db.from(TABLE_NAME).upsert(record, { onConflict: 'local,lote,mes,data_verificacao' });
 
-  render();
-  closeConf();
-  toast("Lote conferido temporariamente. Clique em 'SALVAR REGISTRO/SESSÃO' para persistir.");
+  if(error){
+    toast("Erro ao salvar: " + error.message);
+  } else {
+    toast("Lote conferido com sucesso!");
+    let idx = audits.findIndex(x => x.lote === selected.lote);
+    if(idx >= 0) audits[idx] = record;
+    else audits.push(record);
+
+    closeConf();
+    render();
+  }
 }
 
 async function deleteCurrentAuditHistory(){
   if(!selected) return;
-  if(!confirm(`Deseja realmente excluir a auditoria salva para o lote ${selected.lote}?`)) return;
+  if(!confirm(`Deseja realmente remover o histórico do lote ${selected.lote}?`)) return;
 
   let { error } = await db.from(TABLE_NAME)
     .delete()
     .eq("local", meta.local)
-    .eq("data_verificacao", meta.data_verificacao)
-    .eq("lote", selected.lote);
+    .eq("lote", selected.lote)
+    .eq("data_verificacao", meta.data_verificacao);
 
-  if(error) return toast("Erro ao excluir: " + error.message);
-
-  audits = audits.filter(x => String(x.lote) !== String(selected.lote));
-  render();
-  closeConf();
-  toast("Histórico excluído com sucesso.");
+  if(error){
+    toast("Erro ao excluir: " + error.message);
+  } else {
+    toast("Histórico removido.");
+    audits = audits.filter(x => x.lote !== selected.lote);
+    closeConf();
+    render();
+  }
 }
 
 async function saveFullSession(){
-  if(audits.length === 0) return toast("Nenhuma conferência realizada para salvar.");
-
-  let btn = $("btnSaveTop");
-  btn.disabled = true;
-  btn.textContent = "Salvando...";
-
-  let payload = audits.map(a => {
-    let obj = {
-      local: meta.local,
-      data_verificacao: meta.data_verificacao,
-      mes: meta.mes,
-      lote: a.lote,
-      cultura: a.cultura,
-      cultivar: a.cultivar,
-      cat: a.cat,
-      qtd_sistema: a.qtd_sistema,
-      qtd_fisica: a.qtd_fisica,
-      status: a.status,
-      categoria_fisica: a.categoria_fisica,
-      etiqueta_fisica: a.etiqueta_fisica,
-      camara: a.camara,
-      quadra: a.quadra,
-      fileira: a.fileira,
-      observacao: a.observacao,
-      auditor_pcp: meta.auditor_pcp,
-      auditor_unidade: meta.auditor_unidade,
-      responsavel_ubs: meta.responsavel_ubs
-    };
-    if (a.id) obj.id = a.id;
-    return obj;
-  });
-
-  let { error } = await db.from(TABLE_NAME).upsert(payload, { onConflict: 'local,data_verificacao,lote' });
-
-  btn.disabled = false;
-  btn.textContent = "💾 SALVAR REGISTRO/SESSÃO";
-
-  if(error) return toast("Erro ao salvar sessão: " + error.message);
-
-  toast("Sessão salva com sucesso no banco de dados!");
+  toast("Sessão sincronizada com o banco de dados.");
 }
 
-/* NOVO LOTE */
 function openNewLotModal(){
   set("nl_local", meta.local || "");
+  set("nl_uf", "GO");
+  set("nl_filial", "");
+  set("nl_deposito", "");
+  set("nl_cultura", "");
+  set("nl_lote", "");
+  set("nl_cultivar", "");
+  set("nl_cod_produto", "");
+  set("nl_nome_produto_erp", "");
+  set("nl_cat", "");
+  set("nl_pen", "");
+  set("nl_um", "BAG");
+  set("nl_qtd_sistema", "0");
+  set("nl_peso_etiqueta", "");
   $("newLotModal").classList.remove("hidden");
 }
 
@@ -955,7 +905,11 @@ function closeNewLotModal(){
 
 async function saveNewLot(){
   let lote = v("nl_lote").trim();
-  if(!lote) return toast("Digite o número do lote.");
+  let qtd = parseFloat(v("nl_qtd_sistema"));
+
+  if(!lote){
+    return toast("Informe o número do lote.");
+  }
 
   let record = {
     local: v("nl_local"),
@@ -965,26 +919,27 @@ async function saveNewLot(){
     cultura: v("nl_cultura"),
     lote: lote,
     cultivar: v("nl_cultivar"),
-    cod_produto: v("nl_cod_produto"),
-    nome_produto_erp: v("nl_nome_produto_erp"),
     cat: v("nl_cat"),
     pen: v("nl_pen"),
     um: v("nl_um"),
-    qtd_sistema: parseFloat(v("nl_qtd_sistema")) || 0,
+    qtd_sistema: isNaN(qtd) ? 0 : qtd,
     peso_etiqueta: parseFloat(v("nl_peso_etiqueta")) || null
   };
 
-  let { error } = await db.from("base_dados").upsert([record]);
-  if(error) return toast("Erro ao cadastrar lote: " + error.message);
+  let { error } = await db.from("base_dados").upsert(record);
 
-  base.push(record);
-  populateLotFilters();
-  render();
-  closeNewLotModal();
-  toast("Novo lote cadastrado com sucesso!");
+  if(error){
+    toast("Erro ao salvar novo lote: " + error.message);
+  } else {
+    toast("Novo lote cadastrado!");
+    base.push(record);
+    closeNewLotModal();
+    populateLotFilters();
+    render();
+  }
 }
 
-// Inicializa a tela principal
+// Inicialização
 dashboard();
 </script>
 </body>
