@@ -382,9 +382,11 @@ async function processarEEnviarPlanilha() {
       for (const row of jsonData) {
         const getVal = (...keys) => {
           for (const k of keys) {
-            const matchKey = Object.keys(row).find(
-              key => key.trim().toLowerCase() === k.trim().toLowerCase()
-            );
+            const targetKey = k.trim().toLowerCase();
+            const matchKey = Object.keys(row).find(key => {
+              const cleanKey = key.trim().toLowerCase();
+              return cleanKey === targetKey || cleanKey.includes(targetKey);
+            });
             if (matchKey && row[matchKey] !== undefined && row[matchKey] !== "") {
               return row[matchKey];
             }
@@ -392,42 +394,54 @@ async function processarEEnviarPlanilha() {
           return "";
         };
 
-        const filial = String(getVal("Filial", "FILIAL", "Cod. Filial") || '').trim();
-        const colB = String(getVal("Empresa", "EMPRESA", "Cod. Empresa") || '').trim();
-        const colC = String(getVal("Unidade", "UNIDADE", "Cod. Unidade") || '').trim();
-        const deposito = String(getVal("Deposito", "DEPÓSITO", "Depósito", "Armazém") || '').trim();
-        const cultura = String(getVal("Cultura", "CULTURA", "Produto", "Cultivar") || '').trim();
-        const colI = String(getVal("Tratamento", "TRATAMENTO", "Descrição", "DESCRIÇÃO") || '').trim();
-        const lote = String(getVal("Lote", "LOTE") || '').trim();
-        const cat = String(getVal("Cat", "CATEGORIA", "Cat.") || '').trim();
-        const pen = String(getVal("Penera", "PENERA", "Peneira") || '').trim();
-        const um = String(getVal("UM", "UNIDADE DE MEDIDA", "Un. Medida") || '').trim();
+        const filial = String(getVal("Filial", "Cod. Filial") || '').trim();
+        const colB = String(getVal("Empresa", "Cod. Empresa") || '').trim();
+        const colC = String(getVal("Unidade", "Cod. Unidade") || '').trim();
+        const deposito = String(getVal("Deposito", "Armazém") || '').trim();
+        const cultura = String(getVal("Cultura", "Produto", "Cultivar") || '').trim();
+        const colI = String(getVal("Tratamento", "Descrição") || '').trim();
+        const lote = String(getVal("Lote") || '').trim();
+        const cat = String(getVal("Cat", "Categoria") || '').trim();
+        const pen = String(getVal("Penera", "Peneira") || '').trim();
+        const um = String(getVal("UM", "Unidade") || '').trim();
 
-        // Leitura Segura de Quantidade
-        const qtdRaw = getVal("Qtd. Sistema", "Qtd Sistema", "Qtd_Sistema", "Qtd", "Quantidade", "Qtd.Sistema");
+        // 1. Leitura de Saldo
+        let qtdRaw = getVal("Saldo", "Qtd. Sistema", "Qtd Sistema", "Qtd", "Quantidade");
+        
+        // 2. Fallback por Posição: 31ª Coluna (Índice 30 -> Coluna AE)
+        if (qtdRaw === "") {
+          const keys = Object.keys(row);
+          if (keys.length >= 31) {
+            qtdRaw = row[keys[30]];
+          }
+        }
+
         let colAE = 0;
-
         if (typeof qtdRaw === "number") {
           colAE = qtdRaw;
-        } else if (typeof qtdRaw === "string") {
-          const cleaned = qtdRaw.replace(/\./g, "").replace(",", ".").trim();
-          const parsed = parseFloat(cleaned);
+        } else if (typeof qtdRaw === "string" && qtdRaw.trim() !== "") {
+          let valLimpo = qtdRaw.trim().replace(/\s+/g, "");
+          if (valLimpo.includes(",")) {
+            valLimpo = valLimpo.replace(/\./g, "").replace(",", ".");
+          }
+          const parsed = parseFloat(valLimpo);
           if (!isNaN(parsed)) colAE = parsed;
         }
 
         if (isNaN(colAE) || colAE <= 0) continue;
 
-        // Leitura Segura do Peso
-        const pesoRaw = getVal("Peso Etiqueta", "Peso_Etiqueta", "Peso");
+        // Leitura do Peso Etiqueta
+        const pesoRaw = getVal("Peso Etiqueta", "Peso");
         let pesoEtiqueta = null;
         if (typeof pesoRaw === "number") {
           pesoEtiqueta = pesoRaw;
         } else if (typeof pesoRaw === "string" && pesoRaw.trim() !== "") {
-          const parsedPeso = parseFloat(pesoRaw.replace(/\./g, "").replace(",", ".").trim());
+          let pesoLimpo = pesoRaw.trim();
+          if (pesoLimpo.includes(",")) pesoLimpo = pesoLimpo.replace(/\./g, "").replace(",", ".");
+          const parsedPeso = parseFloat(pesoLimpo);
           if (!isNaN(parsedPeso)) pesoEtiqueta = parsedPeso;
         }
 
-        // Regra De/Para Local e UF
         let localFinal = "";
         let ufFinal = "";
         if (colB === "0101" && colC === "10") {
@@ -442,7 +456,6 @@ async function processarEEnviarPlanilha() {
           localFinal = colB || colC; ufFinal = "GO";
         }
 
-        // Extração de Sigla
         const partesTratamento = colI.split(/\s+/);
         const ultimaSigla = partesTratamento[partesTratamento.length - 1].toUpperCase();
         const tratamentoFinal = SIGLAS_TRATAMENTO_VALIDAS.includes(ultimaSigla) ? ultimaSigla : "ST";
@@ -465,7 +478,7 @@ async function processarEEnviarPlanilha() {
       }
 
       if (registrosParaInserir.length === 0) {
-        divStatus.innerText = "⚠️ Nenhum registro válido encontrado com quantidade numéira > 0.";
+        divStatus.innerText = "⚠️ Nenhum registro válido encontrado com quantidade numérica > 0.";
         return;
       }
 
@@ -746,73 +759,79 @@ function render(){
   let validBase = base.filter(x => Number(x.qtd_sistema) > 0);
   let amap=new Map(audits.map(x=>[x.lote,x]));
 
-  let rows = validBase.filter(x => {
-    let a=amap.get(x.lote);
-    let st=a?.status||"PENDENTE";
+  let tot = validBase.length;
+  let audCount = 0;
+  let valCount = 0;
 
-    let matchQ = String(x.lote).toUpperCase().includes(q);
-    let matchCult = !selCultura || String(x.cultura||"").toUpperCase() === selCultura;
-    let matchVar = !selCultivar || String(x.cultivar||"").toUpperCase() === selCultivar;
-    let matchSt = !selStatus || st === selStatus;
-
-    return matchQ && matchCult && matchVar && matchSt;
+  validBase.forEach(b => {
+    let a = amap.get(b.lote);
+    if(a && a.qtd_fisica !== null && a.qtd_fisica !== undefined) audCount++;
+    if(a && a.status === "VALIDADO") valCount++;
   });
 
-  $("list").innerHTML=rows.map(x=>{
-    let a=amap.get(x.lote),st=a?.status||"PENDENTE",cl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":"warn";
-    let divClass = st === "DIVERGÊNCIA" ? "lot divergent-border" : "lot";
-    return `<div class="${divClass}" onclick="openLot('${esc(x.lote)}')">
+  let penCount = tot - audCount;
+  let accVal = audCount > 0 ? ((valCount / audCount) * 100).toFixed(1) : "0.0";
+
+  $("stot").textContent = tot;
+  $("saud").textContent = audCount;
+  $("spen").textContent = penCount < 0 ? 0 : penCount;
+  $("sval").textContent = valCount;
+  $("sacc").textContent = accVal + "%";
+
+  let filtered = validBase.filter(x => {
+    let a = amap.get(x.lote);
+    let st = a?.status || "PENDENTE";
+
+    let mSearch = !q || String(x.lote).toUpperCase().includes(q) || String(x.cultivar||"").toUpperCase().includes(q);
+    let mCul = !selCultura || String(x.cultura||"").toUpperCase() === selCultura;
+    let mCultiv = !selCultivar || String(x.cultivar||"").toUpperCase() === selCultivar;
+    let mStat = !selStatus || st.toUpperCase() === selStatus;
+
+    return mSearch && mCul && mCultiv && mStat;
+  });
+
+  $("list").innerHTML = filtered.map(x => {
+    let a = amap.get(x.lote);
+    let st = a?.status || "PENDENTE";
+    let divBorder = st === "DIVERGÊNCIA" ? "divergent-border" : "";
+    let cl = st === "VALIDADO" ? "ok" : st === "DIVERGÊNCIA" ? "bad" : "warn";
+
+    return `<div class="lot ${divBorder}" onclick="openConf('${esc(x.lote)}')">
       <div><b>${esc(x.lote)}</b></div>
-      <div><span>${esc(x.cultivar)} · ${esc(x.cat)} · ${esc(x.pen)}</span></div>
-      <div><span>Qtd: ${x.qtd_sistema??"—"}</span></div>
+      <div>${esc(x.cultivar)} · ${esc(x.cat)} · ${esc(x.pen)}</div>
+      <div><b>${x.qtd_sistema}</b></div>
       <div><span class="${cl}">${st}</span></div>
-    </div>`
-  }).join("")||"<p class='muted' style='text-align:center;padding:20px'>Nenhum lote encontrado.</p>";
-
-  let totalBase = validBase.length;
-  let validLoteKeys = new Set(validBase.map(x => x.lote));
-
-  let auditadosValid = audits.filter(x => validLoteKeys.has(x.lote) && x.qtd_fisica !== null && x.qtd_fisica !== undefined);
-  let auditadosCount = auditadosValid.length;
-  let validadosCount = auditadosValid.filter(x => x.status === "VALIDADO").length;
-  let pendentesCount = totalBase - auditadosCount;
-
-  $("stot").textContent = totalBase;
-  $("saud").textContent = auditadosCount;
-  $("spen").textContent = pendentesCount < 0 ? 0 : pendentesCount;
-  $("sval").textContent = validadosCount;
-  let acc = auditadosCount > 0 ? ((validadosCount / auditadosCount) * 100).toFixed(1) : "0.0";
-  $("sacc").textContent = acc + "%";
+    </div>`;
+  }).join("") || '<div class="muted" style="text-align:center;padding:20px">Nenhum lote encontrado.</div>';
 }
 
-function openLot(loteKey){
-  let item = base.find(x => x.lote === loteKey);
-  if(!item) return;
-  selected = item;
-  
-  let a = audits.find(x => x.lote === loteKey);
-  $("clote").textContent = item.lote;
-  
+function openConf(loteStr){
+  selected = base.find(x => String(x.lote) === String(loteStr));
+  if(!selected) return toast("Lote não encontrado.");
+
+  let a = audits.find(x => String(x.lote) === String(loteStr));
+
+  $("clote").textContent = selected.lote;
   $("sys").innerHTML = `
-    <b>Cultivar:</b> ${esc(item.cultivar)} | <b>Cultura:</b> ${esc(item.cultura)}<br>
-    <b>Categoria:</b> ${esc(item.cat)} | <b>Penera:</b> ${esc(item.pen)} | <b>UM:</b> ${esc(item.um)}<br>
-    <b>Qtd Sistema:</b> ${item.qtd_sistema ?? "—"}
+    <b>Cultura:</b> ${esc(selected.cultura)} | <b>Cultivar:</b> ${esc(selected.cultivar)} | <b>Categoria:</b> ${esc(selected.cat)}<br>
+    <b>Qtd Sistema:</b> ${selected.qtd_sistema} | <b>Peneira:</b> ${esc(selected.pen)} | <b>UM:</b> ${esc(selected.um)}
   `;
-  
-  set("catfis", a?.cat_fisica ?? item.cat);
-  set("etq", a?.etiqueta_fisica ?? "");
-  set("qtd", a?.qtd_fisica ?? item.qtd_sistema);
-  set("cam", a?.camara ?? "");
-  set("quad", a?.quadra ?? "");
-  set("fila", a?.fileira ?? "");
-  set("obs", a?.observacao ?? "");
-  
-  if (a) {
+
+  set("catfis", a?.categoria_fisica || selected.cat);
+  set("etq", a?.etiqueta_fisica || "");
+  set("qtd", a?.qtd_fisica ?? selected.qtd_sistema);
+  set("cam", a?.camara || "");
+  set("quad", a?.quadra || "");
+  set("fila", a?.fileira || "");
+  set("obs", a?.observacao || "");
+
+  if(a && a.id) {
     $("btnDeleteConf").classList.remove("hidden");
   } else {
     $("btnDeleteConf").classList.add("hidden");
   }
 
+  $("warning").innerHTML = "";
   $("conf").classList.remove("hidden");
 }
 
@@ -823,90 +842,110 @@ function closeConf(){
 
 async function save(){
   if(!selected) return;
-  
+
   let qtdFis = parseFloat(v("qtd"));
-  if(isNaN(qtdFis)){
-    return alert("Informe uma quantidade física válida.");
-  }
+  if(isNaN(qtdFis)) return toast("Digite uma quantidade física válida.");
 
-  let status = (qtdFis === selected.qtd_sistema) ? "VALIDADO" : "DIVERGÊNCIA";
+  let status = (qtdFis === Number(selected.qtd_sistema)) ? "VALIDADO" : "DIVERGÊNCIA";
 
-  let auditRecord = {
+  let record = {
     local: meta.local,
     data_verificacao: meta.data_verificacao,
     mes: meta.mes,
-    auditor_pcp: meta.auditor_pcp,
-    auditor_unidade: meta.auditor_unidade,
-    responsavel_ubs: meta.responsavel_ubs,
     lote: selected.lote,
     cultura: selected.cultura,
     cultivar: selected.cultivar,
     cat: selected.cat,
     qtd_sistema: selected.qtd_sistema,
-    cat_fisica: v("catfis"),
-    etiqueta_fisica: v("etq"),
     qtd_fisica: qtdFis,
+    status: status,
+    categoria_fisica: v("catfis"),
+    etiqueta_fisica: v("etq"),
     camara: v("cam"),
     quadra: v("quad"),
     fileira: v("fila"),
     observacao: v("obs"),
-    status: status
+    auditor_pcp: meta.auditor_pcp,
+    auditor_unidade: meta.auditor_unidade,
+    responsavel_ubs: meta.responsavel_ubs
   };
 
-  let { error } = await db.from(TABLE_NAME).upsert([auditRecord], { onConflict: 'local,lote,data_verificacao' });
-  
-  if(error) {
-    toast("Erro ao salvar: " + error.message);
+  let idx = audits.findIndex(x => String(x.lote) === String(selected.lote));
+  if(idx >= 0) {
+    audits[idx] = { ...audits[idx], ...record };
   } else {
-    toast("Lote conferido com sucesso!");
-    let idx = audits.findIndex(x => x.lote === selected.lote);
-    if(idx >= 0) audits[idx] = auditRecord;
-    else audits.push(auditRecord);
-    
-    render();
-    closeConf();
+    audits.push(record);
   }
+
+  render();
+  closeConf();
+  toast("Lote conferido temporariamente. Clique em 'SALVAR REGISTRO/SESSÃO' para persistir.");
 }
 
 async function deleteCurrentAuditHistory(){
   if(!selected) return;
-  if(!confirm("Tem certeza que deseja remover o histórico de auditoria deste lote?")) return;
+  if(!confirm(`Deseja realmente excluir a auditoria salva para o lote ${selected.lote}?`)) return;
 
   let { error } = await db.from(TABLE_NAME)
     .delete()
     .eq("local", meta.local)
-    .eq("lote", selected.lote)
-    .eq("data_verificacao", meta.data_verificacao);
+    .eq("data_verificacao", meta.data_verificacao)
+    .eq("lote", selected.lote);
 
-  if(error){
-    toast("Erro ao excluir: " + error.message);
-  } else {
-    toast("Histórico excluído com sucesso.");
-    audits = audits.filter(x => x.lote !== selected.lote);
-    render();
-    closeConf();
-  }
+  if(error) return toast("Erro ao excluir: " + error.message);
+
+  audits = audits.filter(x => String(x.lote) !== String(selected.lote));
+  render();
+  closeConf();
+  toast("Histórico excluído com sucesso.");
 }
 
 async function saveFullSession(){
-  toast("Sessão sincronizada!");
+  if(audits.length === 0) return toast("Nenhuma conferência realizada para salvar.");
+
+  let btn = $("btnSaveTop");
+  btn.disabled = true;
+  btn.textContent = "Salvando...";
+
+  let payload = audits.map(a => {
+    let obj = {
+      local: meta.local,
+      data_verificacao: meta.data_verificacao,
+      mes: meta.mes,
+      lote: a.lote,
+      cultura: a.cultura,
+      cultivar: a.cultivar,
+      cat: a.cat,
+      qtd_sistema: a.qtd_sistema,
+      qtd_fisica: a.qtd_fisica,
+      status: a.status,
+      categoria_fisica: a.categoria_fisica,
+      etiqueta_fisica: a.etiqueta_fisica,
+      camara: a.camara,
+      quadra: a.quadra,
+      fileira: a.fileira,
+      observacao: a.observacao,
+      auditor_pcp: meta.auditor_pcp,
+      auditor_unidade: meta.auditor_unidade,
+      responsavel_ubs: meta.responsavel_ubs
+    };
+    if (a.id) obj.id = a.id;
+    return obj;
+  });
+
+  let { error } = await db.from(TABLE_NAME).upsert(payload, { onConflict: 'local,data_verificacao,lote' });
+
+  btn.disabled = false;
+  btn.textContent = "💾 SALVAR REGISTRO/SESSÃO";
+
+  if(error) return toast("Erro ao salvar sessão: " + error.message);
+
+  toast("Sessão salva com sucesso no banco de dados!");
 }
 
+/* NOVO LOTE */
 function openNewLotModal(){
   set("nl_local", meta.local || "");
-  set("nl_uf", "GO");
-  set("nl_filial", "");
-  set("nl_deposito", "");
-  set("nl_cultura", "");
-  set("nl_lote", "");
-  set("nl_cultivar", "");
-  set("nl_cod_produto", "");
-  set("nl_nome_produto_erp", "");
-  set("nl_cat", "");
-  set("nl_pen", "");
-  set("nl_um", "BAG");
-  set("nl_qtd_sistema", "0");
-  set("nl_peso_etiqueta", "");
   $("newLotModal").classList.remove("hidden");
 }
 
@@ -916,42 +955,36 @@ function closeNewLotModal(){
 
 async function saveNewLot(){
   let lote = v("nl_lote").trim();
-  let cultura = v("nl_cultura").trim();
-  let qtd = parseFloat(v("nl_qtd_sistema"));
+  if(!lote) return toast("Digite o número do lote.");
 
-  if(!lote || !cultura || isNaN(qtd)){
-    return alert("Preencha ao menos Lote, Cultura e Qtd Sistema válidos.");
-  }
-
-  let novoLote = {
+  let record = {
     local: v("nl_local"),
     uf: v("nl_uf"),
     filial: v("nl_filial"),
     deposito: v("nl_deposito"),
-    cultura: cultura,
+    cultura: v("nl_cultura"),
     lote: lote,
     cultivar: v("nl_cultivar"),
+    cod_produto: v("nl_cod_produto"),
+    nome_produto_erp: v("nl_nome_produto_erp"),
     cat: v("nl_cat"),
     pen: v("nl_pen"),
     um: v("nl_um"),
-    qtd_sistema: qtd,
-    peso_etiqueta: v("nl_peso_etiqueta") ? parseFloat(v("nl_peso_etiqueta")) : null
+    qtd_sistema: parseFloat(v("nl_qtd_sistema")) || 0,
+    peso_etiqueta: parseFloat(v("nl_peso_etiqueta")) || null
   };
 
-  let { error } = await db.from("base_dados").insert([novoLote]);
+  let { error } = await db.from("base_dados").upsert([record]);
+  if(error) return toast("Erro ao cadastrar lote: " + error.message);
 
-  if(error){
-    toast("Erro ao cadastrar lote: " + error.message);
-  } else {
-    toast("Lote cadastrado com sucesso!");
-    base.push(novoLote);
-    populateLotFilters();
-    render();
-    closeNewLotModal();
-  }
+  base.push(record);
+  populateLotFilters();
+  render();
+  closeNewLotModal();
+  toast("Novo lote cadastrado com sucesso!");
 }
 
-// Inicializa a aplicação
+// Inicializa a tela principal
 dashboard();
 </script>
 </body>
