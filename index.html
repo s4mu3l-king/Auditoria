@@ -11,9 +11,9 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
 
-header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-space:space-between;align-items:center;position:sticky;top:0;z-index:5}
+header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
 .brand-container{display:flex;align-items:center;gap:14px}
-.header-actions{display:flex;align-items:center;gap:10px}
+.header-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
 .logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
 .logo-img{height:46px;width:auto;object-fit:contain}
 
@@ -931,17 +931,17 @@ async function finalizarAuditoriaSessao(){
 
   toast("Enviando auditorias para o banco de dados...");
 
-  // Remove a chave id nula antes de enviar para evitar erro de schema cache
+  // Remove o 'id' dos itens para garantir inserção correta sem conflito de chaves
   const payload = activeAuditLotes.map(item => {
     const dataObj = { ...item };
-    if (!dataObj.id) delete dataObj.id;
+    delete dataObj.id; 
     return dataObj;
   });
 
   try {
     const { data, error } = await db
       .from(TABLE_NAME)
-      .upsert(payload, { onConflict: 'lote' });
+      .insert(payload);
 
     if(error){
       console.error("Erro na gravação final:", error);
