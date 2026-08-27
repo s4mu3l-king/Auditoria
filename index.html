@@ -6,7 +6,6 @@
 <title>Auditoria de Conferência</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Library Chart.js para o Gráfico de Barras -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -41,8 +40,6 @@ button:hover{opacity:0.9}
 .btn-import{background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:170px;height:44px;border:0}
 .btn-add{background:var(--g);color:#fff}
 .btn-finish{background:var(--g);color:#fff;font-size:15px;padding:14px 22px}
-.btn-clear{background:var(--warn);color:#fff;padding:6px 10px;font-size:11px;border-radius:6px;border:none}
-.btn-clear:hover{background:#8c5900}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .muted{color:var(--muted)}
 .hidden{display:none !important}
@@ -51,7 +48,6 @@ button:hover{opacity:0.9}
 
 .ok{color:var(--ok);font-weight:bold}
 .bad{color:var(--bad);font-weight:bold}
-.warn{color:var(--warn);font-weight:bold}
 .toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
 
 .progress-bg{width:100%;background:#e2e9e4;height:24px;border-radius:12px;overflow:hidden;margin-top:10px;position:relative}
@@ -59,7 +55,6 @@ button:hover{opacity:0.9}
 .table-container{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:8px}
 table.data-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
 table.data-table th{background:var(--g);color:#fff;padding:10px 12px;white-space:nowrap}
-table.data-table th input{margin-top:4px;padding:4px 6px;font-size:11px;border-radius:4px;border:1px solid #fff;color:#000;background:#fff}
 table.data-table td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
 table.data-table tr:hover{background:#f0f5f2}
 .filter-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8faf9;padding:14px;border-radius:10px;border:1px solid var(--line)}
@@ -172,7 +167,7 @@ table.data-table tr:hover{background:#f0f5f2}
 </div>
 
 <div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;" class="table-header-tools">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <b>Visão Geral dos Lotes e Auditorias</b>
     <div style="display:flex;gap:10px;align-items:center;">
       <input id="dashSearch" placeholder="🔎 Filtrar tabela..." oninput="renderDashTable()" style="width:200px">
@@ -753,7 +748,6 @@ async function prepararTelaNovaAuditoria(){
   atualizarMesPorData();
 }
 
-/* BUSCA DA TABELA base_dados */
 async function executarInicioAuditoria(){
   const localSel = v("local");
   const mesSel = v("month");
@@ -970,12 +964,17 @@ function renderSessionTable(){
   }).join("");
 }
 
+/* EXPORTAÇÃO ATUALIZADA COM OS NOVOS CAMPOS DO RESUMO */
 function exportarPlanilhaSessao(){
   if(activeAuditLotes.length === 0) return toast("Nenhum lote na sessão!");
 
   const local = v("lblLocal");
   const data = v("lblData");
   const mes = v("lblMes");
+  const pcp = v("pcp") || "—";
+  const audun = v("audun") || "—";
+  const ubs = v("ubs") || "—";
+
   const totalLotes = activeAuditLotes.length;
   const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null).length;
   const validados = activeAuditLotes.filter(x => x.status === "VALIDADO").length;
@@ -985,11 +984,14 @@ function exportarPlanilhaSessao(){
     ["--- RESUMO DA AUDITORIA ---", ""],
     ["Local", local],
     ["Data", data],
-    ["Mes", mes],
+    ["Mês", mes],
     ["Total de Lotes", totalLotes],
     ["Auditados", auditados],
     ["Validados", validados],
     ["Acuracidade Apurada", acuracidade],
+    ["Auditor PCP", pcp],
+    ["Auditor Unidade", audun],
+    ["Responsável UBS", ubs],
     [],
     ["--- DETALHAMENTO DOS LOTES ---", ""]
   ];
@@ -1014,7 +1016,7 @@ function exportarPlanilhaSessao(){
     "Observacao": x.observacao
   }));
 
-  XLSX.utils.sheet_add_json(worksheet, lotesExport, { origin: "A11", skipHeader: false });
+  XLSX.utils.sheet_add_json(worksheet, lotesExport, { origin: "A14", skipHeader: false });
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Auditoria");
