@@ -34,7 +34,7 @@ button:hover{opacity:0.9}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .muted{color:var(--muted)}
 .hidden{display:none !important}
-.top{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-bottom:16px}
+.top{display:flex;justify-flex-end;gap:12px;align-items:center;margin-bottom:16px}
 .ok{color:var(--ok);font-weight:bold}
 .bad{color:var(--bad);font-weight:bold}
 .warn{color:var(--warn);font-weight:bold}
@@ -355,27 +355,28 @@ function normalizarMesFiltro(valor){
   };
 
   for(let key in mapa){
-    if(txt.includes(key)) return mapa[key];
+    if(txt === key || txt.includes(key)) return mapa[key];
   }
   return txt;
 }
 
+/* MAPEAMENTO FLEXÍVEL DE COLUNAS */
 function extrairCampos(item){
   return {
-    id: item.id || null,
+    id: item.id || item.historico_id || item.auditoria_id || null,
     mes: normalizarMesFiltro(item.mes || item.mes_auditoria || item.mes_conferencia || ""),
-    lote: item.lote || item.numero_lote || "—",
-    local: String(item.local || item.unidade || item.local_unidade || "").trim(),
+    lote: item.lote || item.numero_lote || item.cod_lote || "—",
+    local: String(item.local || item.unidade || item.local_unidade || item.localidade || "").trim(),
     uf: item.uf || "",
     filial: item.filial || "",
     cultura: String(item.cultura || item.especie || "").trim(),
     cultivar: item.cultivar || item.variedade || "—",
     cat: item.cat || item.categoria || "—",
     peneira: item.peneira || item.pen || "—",
-    um: item.um || "",
+    um: item.um || item.unidade_medida || "",
     tratamento: item.tratamento || "—",
-    qtd_sistema: item.qtd_sistema ?? item.quantidade_sistema ?? null,
-    qtd_fisica: item.qtd_fisica ?? item.quantidade_fisica ?? null,
+    qtd_sistema: item.qtd_sistema ?? item.quantidade_sistema ?? item.saldo_sistema ?? item.saldo ?? null,
+    qtd_fisica: item.qtd_fisica ?? item.quantidade_fisica ?? item.saldo_fisico ?? null,
     peso_etiqueta: item.peso_etiqueta || item.etiqueta_sistema || "",
     cat_fisica: item.cat_fisica || "",
     etiqueta_fisica: item.etiqueta_fisica || "",
@@ -397,7 +398,11 @@ async function fetchAllRows(tableName){
       .select("*")
       .range(page * pageSize, (page + 1) * pageSize - 1);
 
-    if(error) throw error;
+    if(error){
+      console.error("Erro Supabase:", error);
+      toast("Erro de conexão com o Supabase. Verifique o console.");
+      throw error;
+    }
 
     if(data && data.length > 0){
       allData = allData.concat(data.map(extrairCampos));
@@ -500,23 +505,22 @@ function executarInicioAuditoria(){
   $("lblMes").textContent = mesSel;
 
   const localNorm = normalizarTexto(localSel);
-  const mesNorm = normalizarMesFiltro(mesSel);
 
-  // FILTRO AJUSTADO: Se o local for compatível, traz os dados (desconsiderando falhas no mês ou saldo zerado)
+  // FILTRO OTIMIZADO: Busca ampla pelo nome do local
   activeAuditLotes = rawAllAudits.filter(x => {
     const locItem = normalizarTexto(x.local);
-    const mesItem = normalizarMesFiltro(x.mes);
-    
-    const localMatch = locItem === localNorm || locItem.includes(localNorm) || localNorm.includes(locItem);
-    const mesMatch = !mesNorm || !mesItem || mesItem === mesNorm;
-    
-    return localMatch && mesMatch;
+    return locItem === localNorm || locItem.includes(localNorm) || localNorm.includes(locItem);
   });
 
   atualizarPainelOperacional();
   renderSessionTable();
   go("audit-session");
-  toast(`Sessão iniciada com ${activeAuditLotes.length} lotes localizados!`);
+  
+  if(activeAuditLotes.length === 0){
+    toast("Atenção: nenhum lote encontrado para o local selecionado.");
+  } else {
+    toast(`Sessão iniciada com ${activeAuditLotes.length} lotes localizados!`);
+  }
 }
 
 /* ========================================================
@@ -529,8 +533,7 @@ function atualizarPainelOperacional(){
   const restantes = totalLotes - auditados;
 
   const faltantes = activeAuditLotes.filter(x => {
-    const naoAuditado = x.qtd_fisica === null || x.qtd_fisica === undefined || String(x.qtd_fisica).trim() === "";
-    return naoAuditado;
+    return x.qtd_fisica === null || x.qtd_fisica === undefined || String(x.qtd_fisica).trim() === "";
   }).length;
 
   $("opTot").textContent = totalLotes;
