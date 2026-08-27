@@ -74,7 +74,6 @@ table.data-table tr:hover{background:#f0f5f2}
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:100}
 .modal-content{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto}
 
-/* Layout Dashboard com Gráficos */
 .dash-analytics-grid{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:16px}
 .chart-container{position:relative;height:320px;width:100%}
 
@@ -149,9 +148,7 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
 </div>
 
-<!-- NOVA SEÇÃO: Análise Visual (Tabela Dinâmica + Gráfico de Barras) -->
 <div class="dash-analytics-grid">
-  <!-- Tabela Pivotada por Mês e Unidade -->
   <div class="card" style="margin-bottom:0;">
     <b>Resumo por Mês e Unidade</b>
     <div class="table-container" style="max-height:320px;overflow-y:auto;">
@@ -166,7 +163,6 @@ table.data-table tr:hover{background:#f0f5f2}
     </div>
   </div>
 
-  <!-- Gráfico de Barras Em Pé -->
   <div class="card" style="margin-bottom:0;">
     <b>Desempenho de Acuracidade e Lotes por Mês</b>
     <div class="chart-container">
@@ -371,7 +367,11 @@ const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
 const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
+// Tabela BASE (Saldo Atual para conferência)
+const BASE_TABLE_NAME = "base_dados";
+// Tabela HISTÓRICO (Onde SALVA as auditorias concluídas)
 const TABLE_NAME = "auditorias_historico";
+
 let dashData=[], filteredData=[], rawAllAudits=[], activeAuditLotes=[];
 let selectedLoteIndex = -1;
 let barChartInstance = null;
@@ -500,7 +500,6 @@ async function dashboard(){
   const selLocal = v("dashLocal");
   const selCultura = v("dashCultura");
 
-  // Filtra ignorando registros onde qtd_sistema é 0, nula ou menor/igual a zero
   filteredData = rawAllAudits.filter(x => {
     const qtdSys = Number(x.qtd_sistema) || 0;
     if(qtdSys <= 0) return false;
@@ -559,7 +558,6 @@ function renderDashTable(){
   `).join("");
 }
 
-/* Lógica da Tabela Pivotada e do Gráfico de Barras Em Pé */
 function renderPivotAndChart(){
   const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
   
@@ -574,7 +572,6 @@ function renderPivotAndChart(){
   const meses = [...mesesSet].sort((a,b) => (ordemMes[a] || 99) - (ordemMes[b] || 99));
   const locais = [...locaisSet].sort((a,b) => a.localeCompare(b, 'pt-BR'));
 
-  // Estruturar dados por Mês x Local
   const matrix = {};
   meses.forEach(m => {
     matrix[m] = {};
@@ -592,7 +589,6 @@ function renderPivotAndChart(){
     }
   });
 
-  // 1. Construir a Tabela Pivotada
   let thHTML = `<tr><th>MÊS</th>`;
   locais.forEach(l => {
     thHTML += `<th style="text-align:center;" colspan="2">${esc(l)}</th>`;
@@ -621,7 +617,6 @@ function renderPivotAndChart(){
     tbodyHTML += `</tr>`;
   });
 
-  // Linha Total Geral
   tbodyHTML += `<tr style="background:#e8eeea;font-weight:bold;"><td>Total Geral</td>`;
   locais.forEach(l => {
     const totL = totalGeralLocais[l].tot;
@@ -633,7 +628,6 @@ function renderPivotAndChart(){
 
   $("pivotTableBody").innerHTML = tbodyHTML || '<tr><td colspan="10" class="muted" style="text-align:center">Sem dados.</td></tr>';
 
-  // 2. Renderizar o Gráfico de Barras Verticais (Chart.js)
   const ctx = $("barChartCanvas").getContext("2d");
   if(barChartInstance) {
     barChartInstance.destroy();
@@ -678,13 +672,8 @@ function renderPivotAndChart(){
         }
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: '#e2e9e4' }
-        },
-        x: {
-          grid: { display: false }
-        }
+        y: { beginAtZero: true, grid: { color: '#e2e9e4' } },
+        x: { grid: { display: false } }
       }
     }
   });
@@ -757,16 +746,19 @@ function atualizarMesPorData(){
 }
 
 async function prepararTelaNovaAuditoria(){
-  if(rawAllAudits.length === 0){
-    rawAllAudits = await fetchAllRows(TABLE_NAME);
+  try {
+    const { data: baseLotes, error } = await db.from(BASE_TABLE_NAME).select("local");
+    if(error) throw error;
+    
+    const localsMap = new Set();
+    (baseLotes || []).forEach(x => { if(x.local) localsMap.add(String(x.local).trim()); });
+    const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+    
+    $("local").innerHTML = '<option value="">Selecione o local...</option>' +
+      sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  } catch(e) {
+    console.error("Erro ao carregar locais da base_dados:", e);
   }
-
-  const localsMap = new Set();
-  rawAllAudits.forEach(x => { if(x.local) localsMap.add(x.local); });
-  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
-  
-  $("local").innerHTML = '<option value="">Selecione o local...</option>' +
-    sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
 
   if(!$("date").value){
     const hoj = new Date().toISOString().slice(0,10);
@@ -775,7 +767,8 @@ async function prepararTelaNovaAuditoria(){
   atualizarMesPorData();
 }
 
-function executarInicioAuditoria(){
+/* BUSCA DA TABELA base_dados */
+async function executarInicioAuditoria(){
   const localSel = v("local");
   const mesSel = v("month");
 
@@ -787,47 +780,59 @@ function executarInicioAuditoria(){
   $("lblData").textContent = v("date");
   $("lblMes").textContent = mesSel;
 
-  const localTarget = normalizarTexto(localSel);
+  toast("Buscando lotes na tabela base_dados...");
 
-  const lotesDoLocal = rawAllAudits.filter(x => {
-    if(!x.local) return false;
-    
-    const qtdSys = Number(x.qtd_sistema) || 0;
-    if(qtdSys <= 0) return false;
+  try {
+    const { data: baseLotes, error } = await db
+      .from(BASE_TABLE_NAME)
+      .select("*")
+      .eq("local", localSel);
 
-    const locBanco = normalizarTexto(x.local);
-    return locBanco === localTarget || locBanco.includes(localTarget) || localTarget.includes(locBanco);
-  });
-
-  const mapaLotesUnicos = new Map();
-  lotesDoLocal.forEach(item => {
-    const chaveLote = String(item.lote).trim().toUpperCase();
-    if (!mapaLotesUnicos.has(chaveLote)) {
-      mapaLotesUnicos.set(chaveLote, item);
+    if(error){
+      console.error("Erro Supabase (base_dados):", error);
+      toast("Erro ao consultar a tabela base_dados.");
+      return;
     }
-  });
 
-  activeAuditLotes = Array.from(mapaLotesUnicos.values()).map(item => ({
-    ...item,
-    id: null,
-    qtd_fisica: null,
-    cat_fis: "",
-    etiqueta_fisica: "",
-    camara: "",
-    quadra: "",
-    fileira: "",
-    observacao: "",
-    status: "PENDENTE"
-  }));
+    const lotesDoLocal = (baseLotes || [])
+      .map(extrairCampos)
+      .filter(x => (Number(x.qtd_sistema) || 0) > 0);
 
-  atualizarPainelOperacional();
-  renderSessionTable();
-  go("audit-session");
-  
-  if(activeAuditLotes.length === 0){
-    toast("Atenção: nenhum lote com Qtd. Sistema > 0 foi encontrado para este local.");
-  } else {
-    toast(`Nova sessão iniciada com ${activeAuditLotes.length} lotes pendentes!`);
+    const mapaLotesUnicos = new Map();
+    lotesDoLocal.forEach(item => {
+      const chaveLote = String(item.lote).trim().toUpperCase();
+      if (!mapaLotesUnicos.has(chaveLote)) {
+        mapaLotesUnicos.set(chaveLote, item);
+      }
+    });
+
+    activeAuditLotes = Array.from(mapaLotesUnicos.values()).map(item => ({
+      ...item,
+      id: null,        // Id nulo para forçar o .insert() no histórico
+      mes: mesSel,     // Atribui o MÊS da auditoria atual selecionada
+      qtd_fisica: null,
+      cat_fis: "",
+      etiqueta_fisica: "",
+      camara: "",
+      quadra: "",
+      fileira: "",
+      observacao: "",
+      status: "PENDENTE"
+    }));
+
+    atualizarPainelOperacional();
+    renderSessionTable();
+    go("audit-session");
+
+    if(activeAuditLotes.length === 0){
+      toast("Atenção: nenhum lote com Qtd. Sistema > 0 foi encontrado em base_dados.");
+    } else {
+      toast(`${activeAuditLotes.length} lotes carregados da base_dados!`);
+    }
+
+  } catch(err) {
+    console.error("Falha geral:", err);
+    toast("Ocorreu uma falha ao conectar com o Supabase.");
   }
 }
 
@@ -1027,8 +1032,6 @@ function salvarNovoLoteManual(){
   };
 
   activeAuditLotes.push(novoLoteObj);
-  rawAllAudits.push(novoLoteObj);
-
   fecharModalAdicionarLote();
   atualizarPainelOperacional();
   renderSessionTable();
@@ -1118,6 +1121,7 @@ function preparaçaoNovoRegistro(origem) {
   return clone;
 }
 
+/* GRAVAÇÃO NA TABELA auditorias_historico */
 async function finalizarAuditoriaSessao(){
   if(activeAuditLotes.length === 0) return toast("Não há dados para finalizar!");
 
@@ -1143,7 +1147,7 @@ async function finalizarAuditoriaSessao(){
       return;
     }
 
-    alert("Auditoria finalizada e anexada no final do histórico com sucesso!");
+    alert("Auditoria finalizada e gravada com sucesso em auditorias_historico!");
     rawAllAudits = [];
     go("home");
   } catch(err) {
