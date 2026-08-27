@@ -524,7 +524,6 @@ function atualizarPainelOperacional(){
   const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
   const restantes = totalLotes - auditados;
 
-  // REGRA IMPORTANTE: QTD SISTEMA = 0 deve ser desconsiderado do cálculo de pendentes
   const faltantes = activeAuditLotes.filter(x => {
     const qtdSys = Number(x.qtd_sistema ?? 0);
     const naoAuditado = x.qtd_fisica === null || x.qtd_fisica === undefined || String(x.qtd_fisica).trim() === "";
@@ -537,7 +536,6 @@ function atualizarPainelOperacional(){
   $("opFaltantes").textContent = faltantes;
 }
 
-// BUSCA E AUTOCOMPLETAR (SEÇÃO 5)
 function onSearchLoteInput(){
   const query = v("searchLoteInput").trim().toLowerCase();
   const box = $("suggestionsBox");
@@ -587,7 +585,6 @@ function selecionarLoteSugestao(index){
   $("suggestionsBox").classList.add("hidden");
 }
 
-// BOTÃO SALVAR LOTE NA TELA OPERACIONAL (SEÇÃO 7, 8, 9, 10, 12)
 function salvarConferenciaLote(){
   if(selectedLoteIndex === -1){
     return toast("Pesquise e selecione um lote válido antes de salvar!");
@@ -610,7 +607,6 @@ function salvarConferenciaLote(){
   item.fileira = fileira;
   item.observacao = obs;
 
-  // AVALIAÇÃO DE STATUS E DIVERGÊNCIAS
   let divergencias = [];
   const qtdSysExistente = item.qtd_sistema !== null && item.qtd_sistema !== undefined && String(item.qtd_sistema).trim() !== "";
 
@@ -618,12 +614,10 @@ function salvarConferenciaLote(){
     if (!qtdSysExistente) {
       item.status = "VERIFICAR QUANTIDADE SISTÊMICA NÃO CONSTA";
     } else {
-      // Regra 1: Comparar QTD FÍSICA x QTD SISTEMA
       if (Number(item.qtd_fisica) !== Number(item.qtd_sistema)) {
         divergencias.push("QTD FÍSICA DIFERENTE DA QTD SISTEMA");
       }
       
-      // Regra 9: Comparar ETIQUETA FÍSICA x PESO ETIQUETA
       if (etqFis && item.peso_etiqueta && etqFis !== String(item.peso_etiqueta).trim()) {
         divergencias.push("ETIQUETA FÍSICA DIFERENTE DO PESO ETIQUETA");
       }
@@ -638,7 +632,6 @@ function salvarConferenciaLote(){
     item.status = "PENDENTE";
   }
 
-  // Atualizar contadores e renderizar tabela
   atualizarPainelOperacional();
   renderSessionTable();
   limparCamposConferencia();
@@ -661,11 +654,11 @@ function limparCamposConferencia(){
   $("inputObs").value = "";
 }
 
-// ADICIONAR NOVO LOTE MANUALMENTE (SEÇÃO 13)
 function abrirModalAdicionarLote(){
   $("addLocal").value = v("lblLocal") !== "—" ? v("lblLocal") : "";
   $("modalAddLote").classList.remove("hidden");
 }
+
 function fecharModalAdicionarLote(){
   $("modalAddLote").classList.add("hidden");
 }
@@ -702,7 +695,6 @@ function salvarNovoLoteManual(){
   atualizarPainelOperacional();
   renderSessionTable();
 
-  // Seleciona automaticamente o novo lote para conferência
   selecionarLoteSugestao(activeAuditLotes.length - 1);
   toast("Novo lote adicionado com sucesso!");
 }
@@ -713,7 +705,7 @@ function renderSessionTable(){
     return;
   }
 
-  $("sessionTableBody").innerHTML = activeAuditLotes.map((x, i) => {
+  $("sessionTableBody").innerHTML = activeAuditLotes.map((x) => {
     let st = normalizarTexto(x.status);
     let cl = st === "VALIDADO" ? "ok" : (st.includes("DIVERG") ? "bad" : "warn");
     const locFis = [x.camara ? `Câm: ${x.camara}` : "", x.quadra ? `Qd: ${x.quadra}` : "", x.fileira ? `Fil: ${x.fileira}` : ""].filter(Boolean).join(" / ") || "—";
@@ -733,7 +725,6 @@ function renderSessionTable(){
   }).join("");
 }
 
-// FINALIZAR AUDITORIA E EXPORTAR EXCEL (SEÇÃO 14)
 function finalizarAuditoriaSessao(){
   if(activeAuditLotes.length === 0) return toast("Sem dados para exportar.");
 
@@ -805,61 +796,73 @@ async function dashboard(){
     $("aud").textContent = auditados;
     $("pen").textContent = pendentes;
     $("acc").textContent = accVal + "%";
+
     $("accBarTxt").textContent = accVal + "%";
     $("accBar").style.width = accVal + "%";
+    $("accBar").textContent = accVal + "%";
 
     renderDashTable();
-  } catch(error) {
-    console.error("ERRO DADOS:", error);
-    toast("Erro ao carregar auditorias.");
+  } catch(e) {
+    console.error(e);
+    toast("Erro ao carregar os dados da dashboard.");
   }
 }
 
 function renderDashTable(){
-  let q = normalizarTexto(v("dashSearch"));
-  filteredData = dashData.filter(x =>
-    normalizarTexto(x.lote).includes(q) || 
-    normalizarTexto(x.cultivar).includes(q) || 
-    normalizarTexto(x.local).includes(q) ||
-    normalizarTexto(x.cultura).includes(q) ||
-    normalizarTexto(x.mes).includes(q)
-  );
+  const searchTxt = normalizarTexto(v("dashSearch"));
+  
+  filteredData = dashData.filter(x => {
+    if(!searchTxt) return true;
+    return normalizarTexto(x.lote).includes(searchTxt) ||
+           normalizarTexto(x.cultivar).includes(searchTxt) ||
+           normalizarTexto(x.local).includes(searchTxt) ||
+           normalizarTexto(x.status).includes(searchTxt);
+  });
+
+  if(filteredData.length === 0){
+    $("dashTableBody").innerHTML = '<tr><td colspan="9" class="muted" style="text-align:center">Nenhum registro localizado.</td></tr>';
+    return;
+  }
 
   $("dashTableBody").innerHTML = filteredData.map(x => {
     let st = normalizarTexto(x.status);
     let cl = st === "VALIDADO" ? "ok" : (st.includes("DIVERG") ? "bad" : "warn");
+
     return `<tr>
-      <td><b>${esc(x.mes)}</b></td>
+      <td>${esc(x.mes || "—")}</td>
       <td><b>${esc(x.lote)}</b></td>
-      <td>${esc(x.local)}</td>
-      <td>${esc(x.cultura)}</td>
-      <td>${esc(x.cultivar)}</td>
-      <td>${esc(x.cat)}</td>
+      <td>${esc(x.local || "—")}</td>
+      <td>${esc(x.cultura || "—")}</td>
+      <td>${esc(x.cultivar || "—")}</td>
+      <td>${esc(x.cat || "—")}</td>
       <td>${x.qtd_sistema ?? "—"}</td>
-      <td>${x.qtd_fisica ?? "—"}</td>
+      <td><b>${x.qtd_fisica ?? "—"}</b></td>
       <td><span class="${cl}">${esc(x.status)}</span></td>
     </tr>`;
-  }).join("") || '<tr><td colspan="9" class="muted" style="text-align:center">Nenhuma auditoria encontrada.</td></tr>';
+  }).join("");
 }
 
 function exportToCSV(){
-  if(!filteredData || filteredData.length===0) return toast("Nenhum dado para exportar.");
-  let csv=["\uFEFFMes Auditoria;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
+  if(filteredData.length === 0) return toast("Não há dados visíveis para exportar.");
+
+  let csv = ["\uFEFFMes;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
   filteredData.forEach(x => {
-    csv.push(`"${x.mes}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
+    csv.push(`"${x.mes || ''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
   });
+
   let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
   let link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `Auditoria_${new Date().toISOString().slice(0,10)}.csv`;
+  link.download = `Export_Auditoria_${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
+
+  toast("Exportação concluída!");
 }
 
-window.onload = function(){
-  $("date").addEventListener("input", atualizarMesPorData);
+document.addEventListener("DOMContentLoaded", () => {
   $("date").addEventListener("change", atualizarMesPorData);
   dashboard();
-};
+});
 </script>
 </body>
 </html>
