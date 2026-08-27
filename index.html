@@ -12,34 +12,26 @@ body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text
 header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
 .wrap{max-width:1250px;margin:auto;padding:22px 16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 15px #0000000a}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
 .kpi b{display:block;font-size:26px;margin-top:4px}
-label{font-size:12px;font-weight:bold;color:#59655f;display:flex;flex-direction:column;gap:6px;margin-bottom:0}
-input,select,textarea{width:100%;padding:10px 12px;border:1px solid #cbd6cf;border-radius:8px;font-size:15px;background:#fff;transition:border-color 0.2s}
+label{font-size:12px;font-weight:bold;color:#59655f;display:block;margin-bottom:6px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #cbd6cf;border-radius:8px;font-size:15px;background:#fff;transition:border-color 0.2s}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
-textarea{min-height:80px}
 button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer;transition:background 0.2s, opacity 0.2s}
 button:hover{opacity:0.9}
-button:disabled{opacity:0.6;cursor:not-allowed}
 .sec{background:#e8eeea;color:var(--g2)}
 .btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
-.btn-save-top{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 16px;border:1px solid #2ecc71}
-.btn-newlot{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
-.btn-danger{background:var(--bad);color:#fff}
-.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.btn-import{background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:170px;height:44px;border:0}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .muted{color:var(--muted)}
 .hidden{display:none !important}
-.top{display:flex;justify-flex:flex-end;gap:12px;align-items:center;margin-bottom:16px}
-.lot{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:9px;margin:7px 0;background:#fff;align-items:center;cursor:pointer;transition:border-color 0.2s}
-.lot:hover{border-color:var(--g)}
-.lot.divergent-border{border-left:5px solid var(--bad)}
+.top{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-bottom:16px}
 .ok{color:var(--ok);font-weight:bold}
 .bad{color:var(--bad);font-weight:bold}
 .warn{color:var(--warn);font-weight:bold}
 .toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
-.system{line-height:1.8;background:#f7f9f8;padding:12px;border-radius:8px}
 .brand-container{display:flex;align-items:center;gap:14px}
 .logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
 .logo-img{height:46px;width:auto;object-fit:contain}
@@ -52,13 +44,12 @@ table.data-table td{padding:9px 12px;border-bottom:1px solid var(--line);white-s
 table.data-table tr:hover{background:#f0f5f2}
 .filter-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8faf9;padding:14px;border-radius:10px;border:1px solid var(--line)}
 .table-header-tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px}
-.lot-header{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:10px 12px;background:var(--g);color:#fff;font-weight:bold;font-size:13px;border-radius:8px;margin-bottom:8px}
-.modal-backdrop{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999}
-.modal-box{background:#fff;border-radius:12px;padding:22px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto;box-shadow:0 5px 25px rgba(0,0,0,0.2)}
+
+.info-bar{display:flex;gap:20px;background:#f8faf9;padding:12px 16px;border-radius:8px;border:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap;font-size:14px}
+.info-bar span{display:flex;gap:6px}
 
 @media(max-width:800px){
   .grid,.kpis{grid-template-columns:1fr 1fr}
-  .lot,.lot-header{grid-template-columns:1fr}
   .top{display:block}
   .filter-box{grid-template-columns:1fr}
   .table-header-tools{flex-direction:column;align-items:stretch}
@@ -86,14 +77,15 @@ table.data-table tr:hover{background:#f0f5f2}
 <div class="wrap">
 <div id="toast" class="toast hidden"></div>
 
+<!-- TELA 1: DASHBOARD -->
 <section id="home">
 <div class="top">
-  <button onclick="go('start')">NOVA AUDITORIA</button>
+  <button class="btn-import" onclick="go('start')">NOVA AUDITORIA</button>
 </div>
 
 <div class="filter-box">
   <label>FILTRAR POR MÊS DA AUDITORIA
-    <select id="dashMonth" onchange="dashboard()">
+    <select id="dashMonth" onchange="onMonthChange()">
       <option value="">Todos os Meses</option>
     </select>
   </label>
@@ -114,13 +106,13 @@ table.data-table tr:hover{background:#f0f5f2}
   <div class="kpi">Auditados<b id="aud">0</b></div>
   <div class="kpi">Pendentes<b id="pen">0</b></div>
   <div class="kpi">Validados<b id="val">0</b></div>
-  <div class="kpi">Acuracidade<b id="acc">0%</b></div>
+  <div class="kpi">Acuracidade<b id="acc">0.0%</b></div>
 </div>
 
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <b>Nível de Acuracidade Apurada</b>
-    <span id="accBarTxt" style="font-weight:bold;color:var(--g)">0%</span>
+    <span id="accBarTxt" style="font-weight:bold;color:var(--g)">0.0%</span>
   </div>
   <div class="progress-bg">
     <div id="accBar" class="progress-fill"></div>
@@ -158,145 +150,65 @@ table.data-table tr:hover{background:#f0f5f2}
 </div>
 </section>
 
+<!-- TELA 2: FORMULÁRIO DE INÍCIO -->
 <section id="start" class="hidden">
   <div class="card">
-    <h3 style="margin-top:0;margin-bottom:16px;">Iniciando Sessão de Auditoria</h3>
+    <h3>Iniciando Sessão de Auditoria</h3>
     <div class="grid">
-      <label>LOCAL
-        <select id="local">
-          <option value="">Carregando locais...</option>
-        </select>
-      </label>
-      <label>DATA VERIFICAÇÃO
-        <input id="date" type="date">
-      </label>
-      <label>MÊS
-        <input id="month" disabled>
-      </label>
-      <label>AUDITOR PCP
-        <input id="pcp" placeholder="Nome do auditor">
-      </label>
-      <label>AUDITOR UNIDADE
-        <input id="audun" placeholder="Nome do auditor">
-      </label>
-      <label>RESPONSÁVEL UBS
-        <input id="ubs" placeholder="Nome do responsável">
-      </label>
+      <label>LOCAL<select id="local"><option value="">Selecione o local...</option></select></label>
+      <label>DATA VERIFICAÇÃO<input id="date" type="date"></label>
+      <label>MÊS<input id="month" disabled placeholder="Preenchido automaticamente"></label>
+      <label>AUDITOR PCP<input id="pcp" placeholder="Nome do auditor"></label>
+      <label>AUDITOR UNIDADE<input id="audun" placeholder="Nome do auditor"></label>
+      <label>RESPONSÁVEL UBS<input id="ubs" placeholder="Nome do responsável"></label>
     </div>
     <div class="actions">
-      <button id="btnStartAudit" onclick="start()">INICIAR CONFERÊNCIA</button>
+      <button id="btnStartAudit" onclick="executarInicioAuditoria()">INICIAR CONFERÊNCIA</button>
       <button class="sec" onclick="go('home')">CANCELAR</button>
     </div>
   </div>
 </section>
 
-<section id="lots" class="hidden">
-  <div class="top" style="justify-content:space-between">
-    <div>
-      <h2 style="margin:0">Lotes — <span id="lt"></span></h2>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <button id="btnSaveTop" class="btn-save-top" onclick="saveFullSession()">💾 SALVAR REGISTRO/SESSÃO</button>
-      <button class="btn-newlot" onclick="openNewLotModal()">➕ NOVO LOTE</button>
-      <button class="btn-export" onclick="exportLocalAuditsCSV()">📥 EXPORTAR AUDITORIA LOCAL</button>
-      <button class="sec" onclick="go('home')">VOLTAR</button>
-    </div>
-  </div>
-
-  <div class="kpis">
-    <div class="kpi">Total<b id="stot">0</b></div>
-    <div class="kpi">Auditados<b id="saud">0</b></div>
-    <div class="kpi">Pendentes<b id="spen">0</b></div>
-    <div class="kpi">Validados<b id="sval">0</b></div>
-    <div class="kpi">Acuracidade<b id="sacc">0%</b></div>
-  </div>
-
+<!-- TELA 3: CONFERÊNCIA DE LOTE (SESSÃO ATIVA) -->
+<section id="audit-session" class="hidden">
   <div class="card">
-    <div class="filter-box" style="grid-template-columns: 1.5fr 1fr 1fr 1fr; margin-bottom: 12px; padding: 10px;">
-      <label>PESQUISAR LOTE
-        <input id="search" placeholder="🔎 Digite o lote..." oninput="render()" style="padding:8px 10px; font-size:13px">
-      </label>
-      <label>CULTURA
-        <select id="lotCultura" onchange="render()" style="padding:8px 10px; font-size:13px">
-          <option value="">Todas</option>
-        </select>
-      </label>
-      <label>CULTIVAR
-        <select id="lotCultivar" onchange="render()" style="padding:8px 10px; font-size:13px">
-          <option value="">Todas</option>
-        </select>
-      </label>
-      <label>STATUS
-        <select id="lotStatus" onchange="render()" style="padding:8px 10px; font-size:13px">
-          <option value="">Todos</option>
-          <option value="PENDENTE">PENDENTE</option>
-          <option value="VALIDADO">VALIDADO</option>
-          <option value="DIVERGÊNCIA">DIVERGÊNCIA</option>
-        </select>
-      </label>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h3>Sessão de Conferência em Andamento</h3>
+      <button class="sec" onclick="go('home')">VOLTAR AO DASHBOARD</button>
+    </div>
+    
+    <div class="info-bar">
+      <span><b>Local:</b> <div id="lblLocal">—</div></span>
+      <span><b>Data:</b> <div id="lblData">—</div></span>
+      <span><b>Mês:</b> <div id="lblMes">—</div></span>
+      <span><b>PCP:</b> <div id="lblPcp">—</div></span>
+      <span><b>Unidade:</b> <div id="lblAudun">—</div></span>
     </div>
 
-    <div class="lot-header">
-      <div>LOTE</div>
-      <div>CULTIVAR · CAT · PENERA</div>
-      <div>QTD SISTEMA</div>
-      <div>STATUS</div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Lote</th>
+            <th>Cultura</th>
+            <th>Cultivar</th>
+            <th>Categoria</th>
+            <th>Qtd. Sistema</th>
+            <th>Qtd. Física (Contagem)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="sessionTableBody">
+          <tr><td colspan="7" class="muted" style="text-align:center">Nenhum lote carregado.</td></tr>
+        </tbody>
+      </table>
     </div>
-
-    <div id="list"></div>
-  </div>
-
-  <div id="conf" class="modal-backdrop hidden">
-    <div class="modal-box">
-      <h2>Conferência do Lote: <span id="clote" style="color:var(--g)"></span></h2>
-      <div id="sys" class="system"></div>
-      <div class="grid" style="margin-top:14px">
-        <label>UNIDADE<input id="unidade"></label>
-        <label>CAT. FÍS.<input id="catfis"></label>
-        <label>ETIQUETA FÍSICA<input id="etq"></label>
-        <label>QTD FÍSICA<input id="qtd" type="number" step="any" inputmode="decimal"></label>
-        <label>CÂMARA<input id="cam"></label>
-        <label>QUADRA<input id="quad"></label>
-        <label>FILEIRA<input id="fila"></label>
-      </div>
-      <label style="margin-top:10px">OBSERVAÇÃO<textarea id="obs"></textarea></label>
-      <div id="warning"></div>
-      <div class="actions" style="justify-content:space-between; margin-top:16px">
-        <div>
-          <button onclick="save()" style="background:var(--g); padding:12px 24px; font-size:15px">💾 CONFIRMAR LOTE</button>
-          <button id="btnDeleteConf" class="btn-danger hidden" onclick="deleteCurrentAuditHistory()">🗑️ EXCLUIR HISTÓRICO</button>
-        </div>
-        <button class="sec" onclick="closeConf()">FECHAR</button>
-      </div>
+    
+    <div class="actions" style="margin-top:16px;">
+      <button onclick="salvarAuditoriaSessao()">FINALIZAR E SALVAR SESSÃO</button>
     </div>
   </div>
 </section>
-
-<div id="newLotModal" class="modal-backdrop hidden">
-  <div class="modal-box">
-    <h3>➕ Cadastrar Novo Lote na Base</h3>
-    <div class="grid">
-      <label>LOCAL<input id="nl_local" readonly></label>
-      <label>UF<input id="nl_uf" placeholder="Ex: GO"></label>
-      <label>FILIAL<input id="nl_filial" placeholder="Ex: 01"></label>
-      <label>DEPÓSITO<input id="nl_deposito" placeholder="Ex: DEP1"></label>
-      <label>CULTURA<input id="nl_cultura" placeholder="Ex: SOJA"></label>
-      <label>LOTE<input id="nl_lote" placeholder="Ex: 11743P1417"></label>
-      <label>CULTIVAR<input id="nl_cultivar" placeholder="Ex: 22213I2X"></label>
-      <label>CÓD. PRODUTO<input id="nl_cod_produto"></label>
-      <label>NOME PRODUTO ERP<input id="nl_nome_produto_erp"></label>
-      <label>CAT<input id="nl_cat" placeholder="Ex: C2"></label>
-      <label>PENERA (PEN)<input id="nl_pen" placeholder="Ex: P1"></label>
-      <label>UNIDADE (UM)<input id="nl_um" value="BAG"></label>
-      <label>QTD SISTEMA<input id="nl_qtd_sistema" type="number" step="any" value="0" inputmode="decimal"></label>
-      <label>PESO ETIQUETA<input id="nl_peso_etiqueta" type="number" step="any" inputmode="decimal"></label>
-    </div>
-    <div class="actions" style="margin-top:16px;justify-content:flex-end">
-      <button id="btnSaveNewLot" onclick="saveNewLot()">SALVAR NOVO LOTE</button>
-      <button class="sec" onclick="closeNewLotModal()">CANCELAR</button>
-    </div>
-  </div>
-</div>
 
 </div>
 
@@ -307,190 +219,282 @@ const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const TABLE_NAME = "auditorias_historico";
+let dashData=[], filteredData=[], rawAllAudits=[], activeAuditLotes=[];
 
-let base=[], audits=[], dashData=[], filteredData=[], selected=null, meta={};
-
-const MONTH_MAP = {
-  "01":"JAN","02":"FEV","03":"MAR","04":"ABR","05":"MAI","06":"JUN",
-  "07":"JUL","08":"AGO","09":"SET","10":"OUT","11":"NOV","12":"DEZ",
-  "JAN":"JAN","FEV":"FEV","MAR":"MAR","ABR":"ABR","MAI":"MAI","JUN":"JUN",
-  "JUL":"JUL","AGO":"AGO","SET":"SET","OUT":"OUT","NOV":"NOV","DEZ":"DEZ"
-};
-
-const ALL_MONTHS = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-
-const $=id=>document.getElementById(id), v=id=>$(id).value, set=(id,x)=>$(id).value=x??"";
+const $=id=>document.getElementById(id), v=id=>$(id).value;
 function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
-function go(id){["home","start","lots"].forEach(x=>$(x).classList.toggle("hidden",x!==id));if(id==="home")dashboard();if(id==="start")loadLocalsStart()}
+
+function go(id){
+  ["home","start","audit-session"].forEach(x=>$(x).classList.toggle("hidden",x!==id));
+  if(id==="home") {
+    dashboard();
+  } else if(id==="start") {
+    prepararTelaNovaAuditoria();
+  }
+}
+
 function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
 
-function month(){
-  let parts = v("date").split("-");
-  return parts.length === 3 ? (MONTH_MAP[parts[1]] || "JAN") : "JAN";
+function normalizarTexto(valor){
+  return String(valor ?? "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
-$("date").value=new Date().toISOString().slice(0,10);$("month").value=month();$("date").onchange=()=>set("month",month());
+function normalizarMesFiltro(valor){
+  if(!valor) return "";
+  let txt = String(valor).trim().toUpperCase();
 
-async function loadLocalsStart(){
-  const selectLocal = $("local");
-  selectLocal.innerHTML = '<option value="">Carregando locais...</option>';
+  const mapa = {
+    "1":"JAN","01":"JAN","JAN":"JAN","JANEIRO":"JAN",
+    "2":"FEV","02":"FEV","FEV":"FEV","FEVEREIRO":"FEV",
+    "3":"MAR","03":"MAR","MAR":"MAR","MARCO":"MAR","MARÇO":"MAR",
+    "4":"ABR","04":"ABR","ABR":"ABR","ABRIL":"ABR",
+    "5":"MAI","05":"MAI","MAI":"MAI","MAIO":"MAI",
+    "6":"JUN","06":"JUN","JUN":"JUN","JUNHO":"JUN",
+    "7":"JUL","07":"JUL","JUL":"JUL","JULHO":"JUL",
+    "8":"AGO","08":"AGO","AGO":"AGO","AGOSTO":"AGO",
+    "9":"SET","09":"SET","SET":"SET","SETEMBRO":"SET",
+    "10":"OUT","OUT":"OUT","OUTUBRO":"OUT",
+    "11":"NOV","NOV":"NOV","NOVEMBRO":"NOV",
+    "12":"DEZ","DEZ":"DEZ","DEZEMBRO":"DEZ"
+  };
 
-  try {
-    let { data, error } = await db.from("base_dados").select("local").not("local", "is", null);
+  for(let key in mapa){
+    if(txt.includes(key)) return mapa[key];
+  }
+  return txt;
+}
+
+function extrairCampos(item){
+  return {
+    id: item.id || null,
+    mes: normalizarMesFiltro(item.mes || item.mes_auditoria || item.mes_conferencia || ""),
+    lote: item.lote || item.numero_lote || "—",
+    local: String(item.local || item.unidade || item.local_unidade || "").trim(),
+    cultura: String(item.cultura || item.especie || "").trim(),
+    cultivar: item.cultivar || item.variedade || "—",
+    cat: item.cat || item.categoria || "—",
+    qtd_sistema: item.qtd_sistema ?? item.quantidade_sistema ?? null,
+    qtd_fisica: item.qtd_fisica ?? item.quantidade_fisica ?? null,
+    status: String(item.status || "PENDENTE").trim()
+  };
+}
+
+async function fetchAllRows(tableName){
+  let allData = [];
+  let page = 0, pageSize = 1000, hasMore = true;
+
+  while(hasMore){
+    const { data, error } = await db
+      .from(tableName)
+      .select("*")
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
     if(error) throw error;
-    
-    let a=[...new Set((data||[]).map(x=>x.local?.trim()).filter(Boolean))].sort();
-    
-    if(a.length === 0) {
-      selectLocal.innerHTML = '<option value="">Nenhum local cadastrado</option>';
-      return;
+
+    if(data && data.length > 0){
+      allData = allData.concat(data.map(extrairCampos));
+      if(data.length < pageSize) hasMore = false;
+      else page++;
+    } else {
+      hasMore = false;
     }
+  }
+  return allData;
+}
 
-    selectLocal.innerHTML='<option value="">Selecione...</option>'+a.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
-  } catch (err) {
-    console.error("Erro ao carregar locais:", err);
-    selectLocal.innerHTML = '<option value="">Erro ao carregar locais</option>';
-    toast("Erro ao buscar locais: " + err.message);
+function carregarOpcoesMeses(){
+  const monthMap = new Set();
+  rawAllAudits.forEach(x => { if(x.mes) monthMap.add(x.mes); });
+
+  const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
+  const sortedMonths = [...monthMap].sort((a,b) => (ordemMes[a] || 99) - (ordemMes[b] || 99));
+
+  $("dashMonth").innerHTML = '<option value="">Todos os Meses</option>' +
+    sortedMonths.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join("");
+}
+
+function carregarFiltrosCascata(){
+  let selMonth = normalizarMesFiltro(v("dashMonth"));
+  let baseParaFiltros = rawAllAudits.filter(x => !selMonth || x.mes === selMonth);
+
+  const localsMap = new Set();
+  const culturasMap = new Set();
+
+  baseParaFiltros.forEach(x => {
+    if(x.local) localsMap.add(x.local);
+    if(x.cultura) culturasMap.add(x.cultura);
+  });
+
+  const curLocal = v("dashLocal");
+  const curCultura = v("dashCultura");
+
+  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  const sortedCulturas = [...culturasMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+
+  $("dashLocal").innerHTML = '<option value="">Todos os Locais</option>' +
+    sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+  $("dashCultura").innerHTML = '<option value="">Todas as Culturas</option>' +
+    sortedCulturas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+  if(localsMap.has(curLocal)) $("dashLocal").value = curLocal;
+  if(culturasMap.has(curCultura)) $("dashCultura").value = curCultura;
+}
+
+function onMonthChange(){
+  carregarFiltrosCascata();
+  dashboard();
+}
+
+function atualizarMesPorData(){
+  const dataVal = $("date").value;
+  if(!dataVal){
+    $("month").value = "";
+    return;
+  }
+  const partes = dataVal.split("-");
+  if(partes.length === 3){
+    const mesNum = parseInt(partes[1], 10);
+    const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+    $("month").value = meses[mesNum - 1] || "";
   }
 }
 
-async function fetchAuditsByFilters(local, mes, cultura){
-  let query = db.from(TABLE_NAME).select("*");
-  if(local) query = query.ilike("local", local);
-  if(mes) query = query.ilike("mes", mes);
-  if(cultura) query = query.ilike("cultura", cultura);
+async function prepararTelaNovaAuditoria(){
+  if(rawAllAudits.length === 0){
+    rawAllAudits = await fetchAllRows(TABLE_NAME);
+  }
+
+  const localsMap = new Set();
+  rawAllAudits.forEach(x => { if(x.local) localsMap.add(x.local); });
+  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
   
-  let { data, error } = await query;
-  if(error) {
-    console.error("Erro ao buscar histórico:", error);
-    toast("Erro na consulta de auditorias.");
-    return [];
+  $("local").innerHTML = '<option value="">Selecione o local...</option>' +
+    sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+  if(!$("date").value){
+    const hoj = new Date().toISOString().slice(0,10);
+    $("date").value = hoj;
   }
-  return data || [];
+  atualizarMesPorData();
 }
 
-async function fetchBaseByFilters(local, cultura){
-  let query = db.from("base_dados").select("*");
-  if(local) query = query.ilike("local", local);
-  if(cultura) query = query.ilike("cultura", cultura);
+function executarInicioAuditoria(){
+  const localSel = v("local");
+  const mesSel = v("month");
 
-  let { data, error } = await query;
-  if(error) {
-    console.error("Erro ao buscar base_dados:", error);
-    toast("Erro na consulta de lotes.");
-    return [];
+  if(!localSel){
+    return toast("Por favor, selecione um Local!");
   }
-  return data || [];
+
+  $("lblLocal").textContent = localSel;
+  $("lblData").textContent = v("date");
+  $("lblMes").textContent = mesSel;
+  $("lblPcp").textContent = v("pcp") || "—";
+  $("lblAudun").textContent = v("audun") || "—";
+
+  const localNorm = normalizarTexto(localSel);
+  const mesNorm = normalizarMesFiltro(mesSel);
+
+  activeAuditLotes = rawAllAudits.filter(x => {
+    const locItem = normalizarTexto(x.local);
+    const mesItem = normalizarMesFiltro(x.mes);
+    return locItem === localNorm && (!mesNorm || mesItem === mesNorm);
+  });
+
+  renderSessionTable();
+  go("audit-session");
+  toast("Sessão iniciada com sucesso!");
 }
 
-async function loadHistoryFilters(){
-  try {
-    let [{ data: rawHist }, { data: rawBase }] = await Promise.all([
-      db.from(TABLE_NAME).select("mes, local, cultura").limit(1000),
-      db.from("base_dados").select("local, cultura").limit(1000)
-    ]);
-    
-    let allHist = rawHist || [];
-    let allBase = rawBase || [];
-
-    let recordedMonths = [...new Set(allHist.map(x => x.mes).filter(Boolean))];
-    let sortedMonths = ALL_MONTHS.filter(m => recordedMonths.includes(m));
-    if(sortedMonths.length === 0) sortedMonths = recordedMonths;
-
-    let locals = [...new Set([...allHist.map(x => x.local), ...allBase.map(x => x.local)].filter(Boolean))].sort();
-    let culturas = [...new Set([...allHist.map(x => x.cultura), ...allBase.map(x => x.cultura)].filter(Boolean))].sort();
-
-    let curMonth = v("dashMonth");
-    let curLocal = v("dashLocal");
-    let curCultura = v("dashCultura");
-
-    $("dashMonth").innerHTML = '<option value="">Todos os Meses</option>' + sortedMonths.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-    $("dashLocal").innerHTML = '<option value="">Todos os Locais</option>' + locals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-    $("dashCultura").innerHTML = '<option value="">Todas as Culturas</option>' + culturas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
-
-    if (curMonth) $("dashMonth").value = curMonth;
-    if (curLocal) $("dashLocal").value = curLocal;
-    if (curCultura) $("dashCultura").value = curCultura;
-  } catch(e) {
-    console.error("Erro ao carregar filtros do histórico:", e);
+function renderSessionTable(){
+  if(activeAuditLotes.length === 0){
+    $("sessionTableBody").innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center">Nenhum lote encontrado para esta combinação de Local e Mês.</td></tr>';
+    return;
   }
+
+  $("sessionTableBody").innerHTML = activeAuditLotes.map((x, i) => `
+    <tr>
+      <td><b>${esc(x.lote)}</b></td>
+      <td>${esc(x.cultura)}</td>
+      <td>${esc(x.cultivar)}</td>
+      <td>${esc(x.cat)}</td>
+      <td>${x.qtd_sistema ?? "—"}</td>
+      <td>
+        <input type="number" style="width:120px;padding:6px 10px;" value="${x.qtd_fisica ?? ''}" oninput="activeAuditLotes[${i}].qtd_fisica = this.value">
+      </td>
+      <td><span>${esc(x.status)}</span></td>
+    </tr>
+  `).join("");
+}
+
+function salvarAuditoriaSessao(){
+  toast("Contagens gravadas com sucesso!");
+  go("home");
 }
 
 async function dashboard(){
-  let selMonth=v("dashMonth").trim();
-  let selLocal=v("dashLocal").trim();
-  let selCultura=v("dashCultura").trim();
+  try {
+    if(rawAllAudits.length === 0){
+      rawAllAudits = await fetchAllRows(TABLE_NAME);
+      carregarOpcoesMeses();
+      carregarFiltrosCascata();
+    }
 
-  let [rawAudits, rawBase] = await Promise.all([
-    fetchAuditsByFilters(selLocal, selMonth, selCultura),
-    fetchBaseByFilters(selLocal, selCultura)
-  ]);
+    let selMonth = normalizarMesFiltro(v("dashMonth"));
+    let selLocal = normalizarTexto(v("dashLocal"));
+    let selCultura = normalizarTexto(v("dashCultura"));
 
-  let auditsMap = new Map();
-  rawAudits.forEach(a => auditsMap.set(`${a.local}_${a.lote}_${a.mes}`, a));
+    dashData = rawAllAudits.filter(x => {
+      const mesItem = x.mes;
+      const localItem = normalizarTexto(x.local);
+      const culturaItem = normalizarTexto(x.cultura);
 
-  let combinedData = [];
+      if(selMonth && mesItem !== selMonth) return false;
+      if(selLocal && localItem !== selLocal) return false;
+      if(selCultura && culturaItem !== selCultura) return false;
 
-  if (selLocal && rawBase.length > 0) {
-    rawBase.forEach(b => {
-      let auditKey = `${b.local}_${b.lote}_${selMonth}`;
-      let a = auditsMap.get(auditKey);
-      combinedData.push({
-        mes: a?.mes || selMonth || "—",
-        lote: b.lote,
-        local: b.local,
-        cultura: b.cultura,
-        cultivar: b.cultivar,
-        cat: b.cat,
-        qtd_sistema: b.qtd_sistema,
-        qtd_fisica: a?.qtd_fisica ?? null,
-        status: a?.status || "PENDENTE",
-        data_verificacao: a?.data_verificacao || null,
-        auditor_pcp: a?.auditor_pcp || null,
-        auditor_unidade: a?.auditor_unidade || null,
-        responsavel_ubs: a?.responsavel_ubs || null,
-        observacao: a?.observacao || null
-      });
+      return true;
     });
-  } else {
-    combinedData = rawAudits;
+
+    let totLotes = dashData.length;
+    let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
+    let validados = dashData.filter(x => normalizarTexto(x.status) === "VALIDADO").length;
+    let pendentes = dashData.filter(x => normalizarTexto(x.status) === "PENDENTE" || !x.status).length;
+    let accVal = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) : "0.0";
+
+    $("tot").textContent = totLotes;
+    $("aud").textContent = auditados;
+    $("pen").textContent = pendentes;
+    $("val").textContent = validados;
+    $("acc").textContent = accVal + "%";
+    $("accBarTxt").textContent = accVal + "%";
+    $("accBar").style.width = accVal + "%";
+
+    renderDashTable();
+  } catch(error) {
+    console.error("ERRO DADOS:", error);
+    toast("Erro ao carregar auditorias.");
   }
-
-  await loadHistoryFilters();
-
-  dashData = combinedData;
-
-  let totLotes = dashData.length;
-  let auditados = dashData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined).length;
-  let validados = dashData.filter(x => String(x.status).toUpperCase() === "VALIDADO").length;
-  let pendentes = totLotes - auditados;
-  
-  let accVal = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) : "0.0";
-
-  $("tot").textContent = totLotes;
-  $("aud").textContent = auditados;
-  $("pen").textContent = pendentes < 0 ? 0 : pendentes;
-  $("val").textContent = validados;
-  $("acc").textContent = accVal + "%";
-  $("accBarTxt").textContent = accVal + "%";
-  $("accBar").style.width = accVal + "%";
-
-  renderDashTable();
 }
 
 function renderDashTable(){
-  let q=v("dashSearch").toUpperCase();
-  filteredData=dashData.filter(x=>
-    String(x.lote||"").toUpperCase().includes(q) || 
-    String(x.cultivar||"").toUpperCase().includes(q) || 
-    String(x.local||"").toUpperCase().includes(q) ||
-    String(x.cultura||"").toUpperCase().includes(q) ||
-    String(x.mes||"").toUpperCase().includes(q)
+  let q = normalizarTexto(v("dashSearch"));
+  filteredData = dashData.filter(x =>
+    normalizarTexto(x.lote).includes(q) || 
+    normalizarTexto(x.cultivar).includes(q) || 
+    normalizarTexto(x.local).includes(q) ||
+    normalizarTexto(x.cultura).includes(q) ||
+    normalizarTexto(x.mes).includes(q)
   );
 
-  $("dashTableBody").innerHTML=filteredData.map(x=>{
-    let st = String(x.status||'').toUpperCase();
-    let cl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":st==="PENDENTE"?"warn":"muted";
+  $("dashTableBody").innerHTML = filteredData.map(x => {
+    let st = normalizarTexto(x.status);
+    let cl = st === "VALIDADO" ? "ok" : (st.includes("DIVERG") ? "bad" : "warn");
     return `<tr>
       <td><b>${esc(x.mes)}</b></td>
       <td><b>${esc(x.lote)}</b></td>
@@ -498,8 +502,8 @@ function renderDashTable(){
       <td>${esc(x.cultura)}</td>
       <td>${esc(x.cultivar)}</td>
       <td>${esc(x.cat)}</td>
-      <td>${x.qtd_sistema??"—"}</td>
-      <td>${x.qtd_fisica??"—"}</td>
+      <td>${x.qtd_sistema ?? "—"}</td>
+      <td>${x.qtd_fisica ?? "—"}</td>
       <td><span class="${cl}">${esc(x.status)}</span></td>
     </tr>`;
   }).join("") || '<tr><td colspan="9" class="muted" style="text-align:center">Nenhuma auditoria encontrada.</td></tr>';
@@ -507,324 +511,23 @@ function renderDashTable(){
 
 function exportToCSV(){
   if(!filteredData || filteredData.length===0) return toast("Nenhum dado para exportar.");
-  let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status;Auditor PCP;Auditor Unidade;Responsavel UBS;Observacao"];
-  filteredData.forEach(x=>{
-    let obs = String(x.observacao||'').replaceAll('"','""').replaceAll('\n',' ');
-    csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}";"${x.auditor_pcp||''}";"${x.auditor_unidade||''}";"${x.responsavel_ubs||''}";"${obs}"`);
+  let csv=["\uFEFFMes Auditoria;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
+  filteredData.forEach(x => {
+    csv.push(`"${x.mes}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
   });
-  let blob=new Blob([csv.join("\n")], {type:"text/csv;charset=utf-8;"});
-  let link=document.createElement("a");
-  link.href=URL.createObjectURL(blob);
-  link.setAttribute("download", `historico_auditorias_${new Date().toISOString().slice(0,10)}.csv`);
-  document.body.appendChild(link);
+  let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+  let link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `Auditoria_${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
-  document.body.removeChild(link);
 }
 
-function exportLocalAuditsCSV(){
-  let amap=new Map(audits.map(x=>[x.lote,x]));
-  let exportRows = base.map(x=>{
-    let a=amap.get(x.lote);
-    return {
-      mes: meta.mes, 
-      data_verificacao: meta.data_verificacao,
-      lote: x.lote, 
-      local: meta.local, 
-      cultura: x.cultura, 
-      cultivar: x.cultivar,
-      cat: x.cat, 
-      qtd_sistema: x.qtd_sistema, 
-      qtd_fisica: a?.qtd_fisica ?? null, 
-      status: a?.status || "PENDENTE",
-      auditor_pcp: meta.auditor_pcp,
-      auditor_unidade: meta.auditor_unidade,
-      responsavel_ubs: meta.responsavel_ubs,
-      observacao: a?.observacao || null
-    };
-  });
-
-  if(exportRows.length === 0) return toast("Nenhum lote para exportar.");
-
-  let csv=["\uFEFFMes Auditoria;Data Verificacao;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status;Auditor PCP;Auditor Unidade;Responsavel UBS;Observacao"];
-  exportRows.forEach(x=>{
-    let obs = String(x.observacao||'').replaceAll('"','""').replaceAll('\n',' ');
-    csv.push(`"${x.mes}";"${x.data_verificacao||''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}";"${x.auditor_pcp||''}";"${x.auditor_unidade||''}";"${x.responsavel_ubs||''}";"${obs}"`);
-  });
-
-  let blob=new Blob([csv.join("\n")], {type:"text/csv;charset=utf-8;"});
-  let link=document.createElement("a");
-  link.href=URL.createObjectURL(blob);
-  link.setAttribute("download", `auditoria_local_${meta.local}_${meta.data_verificacao}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-async function start(){
-  let local=v("local");
-  if(!local)return toast("Selecione o local.");
+window.onload = function(){
+  $("date").addEventListener("input", atualizarMesPorData);
+  $("date").addEventListener("change", atualizarMesPorData);
   
-  let btn = $("btnStartAudit");
-  btn.disabled = true;
-  btn.textContent = "Carregando...";
-
-  meta={local,data_verificacao:v("date"),mes:month(),auditor_pcp:v("pcp"),auditor_unidade:v("audun"),responsavel_ubs:v("ubs")};
-  $("lt").textContent=local;
-
-  set("search","");
-  set("lotCultura","");
-  set("lotCultivar","");
-  set("lotStatus","");
-  
-  let {data:b,error}=await db.from("base_dados").select("*").eq("local",local).order("lote");
-  if(error) {
-    btn.disabled = false;
-    btn.textContent = "INICIAR CONFERÊNCIA";
-    return toast(error.message);
-  }
-  base=b||[];
-  
-  let {data:a,error:e}=await db.from(TABLE_NAME)
-    .select("*")
-    .eq("local",meta.local)
-    .eq("data_verificacao",meta.data_verificacao);
-  if(e) {
-    btn.disabled = false;
-    btn.textContent = "INICIAR CONFERÊNCIA";
-    return toast(e.message);
-  }
-  audits=a||[];
-  
-  populateLotFilters();
-  render();
-  go("lots");
-  
-  btn.disabled = false;
-  btn.textContent = "INICIAR CONFERÊNCIA";
-}
-
-function populateLotFilters(){
-  let culturas=[...new Set(base.map(x=>x.cultura).filter(Boolean))].sort();
-  let cultivares=[...new Set(base.map(x=>x.cultivar).filter(Boolean))].sort();
-  
-  $("lotCultura").innerHTML='<option value="">Todas</option>'+culturas.map(x=>`<option>${esc(x)}</option>`).join("");
-  $("lotCultivar").innerHTML='<option value="">Todas</option>'+cultivares.map(x=>`<option>${esc(x)}</option>`).join("");
-}
-
-function render(){
-  let amap=new Map(audits.map(x=>[x.lote,x]));
-  let search=v("search").toUpperCase();
-  let cult=v("lotCultura");
-  let cv=v("lotCultivar");
-  let stFilter=v("lotStatus");
-
-  let filtered = base.filter(x=>{
-    let a=amap.get(x.lote);
-    let st=a ? a.status : "PENDENTE";
-    
-    let matchS = String(x.lote||'').toUpperCase().includes(search);
-    let matchC = !cult || x.cultura === cult;
-    let matchCv = !cv || x.cultivar === cv;
-    let matchSt = !stFilter || st === stFilter;
-
-    return matchS && matchC && matchCv && matchSt;
-  });
-
-  let tot = base.length;
-  let audCount = audits.length;
-  let valCount = audits.filter(x=>x.status==="VALIDADO").length;
-  let penCount = tot - audCount;
-  let acc = audCount > 0 ? ((valCount/audCount)*100).toFixed(1) : "0.0";
-
-  $("stot").textContent = tot;
-  $("saud").textContent = audCount;
-  $("spen").textContent = penCount < 0 ? 0 : penCount;
-  $("sval").textContent = valCount;
-  $("sacc").textContent = acc + "%";
-
-  $("list").innerHTML = filtered.map(x=>{
-    let a=amap.get(x.lote);
-    let st=a ? a.status : "PENDENTE";
-    let cl=st==="VALIDADO"?"ok":st==="DIVERGÊNCIA"?"bad":"warn";
-    let isDiv = st === "DIVERGÊNCIA" ? "divergent-border" : "";
-
-    return `<div class="lot ${isDiv}" onclick="openConf('${esc(x.lote)}')">
-      <div><b>${esc(x.lote)}</b></div>
-      <div>${esc(x.cultivar)} · ${esc(x.cat)} · ${esc(x.pen)}</div>
-      <div><b>${x.qtd_sistema??"0"}</b></div>
-      <div><span class="${cl}">${st}</span></div>
-    </div>`;
-  }).join("") || '<div class="muted" style="text-align:center;padding:20px">Nenhum lote encontrado.</div>';
-}
-
-function openConf(loteStr){
-  selected = base.find(x=>x.lote===loteStr);
-  if(!selected) return;
-
-  $("clote").textContent = selected.lote;
-  $("sys").innerHTML = `
-    <b>Cultura:</b> ${esc(selected.cultura)} | <b>Cultivar:</b> ${esc(selected.cultivar)}<br>
-    <b>Categoria Sis:</b> ${esc(selected.cat)} | <b>Penera:</b> ${esc(selected.pen)}<br>
-    <b>Qtd Sistema:</b> ${selected.qtd_sistema??"0"} ${esc(selected.um)}
-  `;
-
-  let exist = audits.find(x=>x.lote===loteStr);
-  if(exist){
-    set("unidade", exist.unidade || selected.um || "");
-    set("catfis", exist.cat_fisica || selected.cat);
-    set("etq", exist.etiqueta_fisica);
-    set("qtd", exist.qtd_fisica);
-    set("cam", exist.camara);
-    set("quad", exist.quadra);
-    set("fila", exist.fileira);
-    set("obs", exist.observacao);
-    $("btnDeleteConf").classList.remove("hidden");
-  } else {
-    set("unidade", selected.um || "");
-    set("catfis", selected.cat);
-    set("etq", "");
-    set("qtd", "");
-    set("cam", "");
-    set("quad", "");
-    set("fila", "");
-    set("obs", "");
-    $("btnDeleteConf").classList.add("hidden");
-  }
-
-  $("conf").classList.remove("hidden");
-}
-
-function closeConf(){
-  $("conf").classList.add("hidden");
-}
-
-async function save(){
-  if(!selected) return;
-  let qf = parseFloat(v("qtd"));
-  if(isNaN(qf)){
-    return alert("Informe uma quantidade física válida.");
-  }
-
-  let qs = parseFloat(selected.qtd_sistema || 0);
-  let status = (qf === qs) ? "VALIDADO" : "DIVERGÊNCIA";
-
-  let payload = {
-    local: meta.local,
-    mes: meta.mes,
-    data_verificacao: meta.data_verificacao,
-    auditor_pcp: meta.auditor_pcp,
-    auditor_unidade: meta.auditor_unidade,
-    responsavel_ubs: meta.responsavel_ubs,
-    lote: selected.lote,
-    cultura: selected.cultura,
-    cultivar: selected.cultivar,
-    unidade: v("unidade"),
-    cat: selected.cat,
-    cat_fisica: v("catfis"),
-    etiqueta_fisica: v("etq"),
-    qtd_sistema: qs,
-    qtd_fisica: qf,
-    status: status,
-    camara: v("cam"),
-    quadra: v("quad"),
-    fileira: v("fila"),
-    observacao: v("obs")
-  };
-
-  let { error } = await db.from(TABLE_NAME).upsert(payload, { onConflict: 'local,lote,data_verificacao' });
-
-  if(error){
-    toast("Erro ao salvar: " + error.message);
-  } else {
-    toast("Lote conferido com sucesso!");
-    let idx = audits.findIndex(x=>x.lote===selected.lote);
-    if(idx>=0) audits[idx] = payload;
-    else audits.push(payload);
-    
-    closeConf();
-    render();
-  }
-}
-
-async function deleteCurrentAuditHistory(){
-  if(!selected) return;
-  if(!confirm("Deseja realmente excluir o registro deste lote nesta data?")) return;
-
-  let { error } = await db.from(TABLE_NAME)
-    .delete()
-    .eq("local", meta.local)
-    .eq("lote", selected.lote)
-    .eq("data_verificacao", meta.data_verificacao);
-
-  if(error){
-    toast("Erro ao excluir: " + error.message);
-  } else {
-    toast("Histórico excluído.");
-    audits = audits.filter(x=>x.lote!==selected.lote);
-    closeConf();
-    render();
-  }
-}
-
-async function saveFullSession(){
-  toast("Sessão sincronizada.");
-}
-
-function openNewLotModal(){
-  set("nl_local", meta.local || "");
-  set("nl_uf", "GO");
-  set("nl_filial", "");
-  set("nl_deposito", "");
-  set("nl_cultura", "");
-  set("nl_lote", "");
-  set("nl_cultivar", "");
-  set("nl_cod_produto", "");
-  set("nl_nome_produto_erp", "");
-  set("nl_cat", "");
-  set("nl_pen", "");
-  set("nl_um", "BAG");
-  set("nl_qtd_sistema", "0");
-  set("nl_peso_etiqueta", "");
-  $("newLotModal").classList.remove("hidden");
-}
-
-function closeNewLotModal(){
-  $("newLotModal").classList.add("hidden");
-}
-
-async function saveNewLot(){
-  let loteVal = v("nl_lote").trim();
-  if(!loteVal) return alert("Informe o lote.");
-
-  let record = {
-    local: v("nl_local"),
-    uf: v("nl_uf"),
-    filial: v("nl_filial"),
-    deposito: v("nl_deposito"),
-    cultura: v("nl_cultura"),
-    lote: loteVal,
-    cultivar: v("nl_cultivar"),
-    cat: v("nl_cat"),
-    pen: v("nl_pen"),
-    um: v("nl_um"),
-    qtd_sistema: parseFloat(v("nl_qtd_sistema") || 0)
-  };
-
-  let { error } = await db.from("base_dados").insert([record]);
-  if(error){
-    toast("Erro ao criar lote: " + error.message);
-  } else {
-    toast("Lote adicionado à base!");
-    base.push(record);
-    populateLotFilters();
-    render();
-    closeNewLotModal();
-  }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
   dashboard();
-});
+};
 </script>
 </body>
 </html>
