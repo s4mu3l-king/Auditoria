@@ -6,6 +6,9 @@
 <title>Auditoria de Conferência</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Library Chart.js para o Gráfico de Barras -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 :root{--g:#145c3a;--g2:#0d442b;--bg:#f3f6f4;--card:#fff;--line:#dce5df;--text:#17231d;--muted:#66736c;--ok:#16804a;--bad:#b3261e;--warn:#a76b00}
 *{box-sizing:border-box}
@@ -71,8 +74,13 @@ table.data-table tr:hover{background:#f0f5f2}
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:100}
 .modal-content{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto}
 
+/* Layout Dashboard com Gráficos */
+.dash-analytics-grid{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:16px}
+.chart-container{position:relative;height:320px;width:100%}
+
 @media(max-width:1100px){
   .grid-7{grid-template-columns:repeat(3, 1fr);}
+  .dash-analytics-grid{grid-template-columns:1fr;}
 }
 @media(max-width:800px){
   .grid,.grid-4,.kpis{grid-template-columns:1fr 1fr}
@@ -138,6 +146,32 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
   <div class="progress-bg">
     <div id="accBar" class="progress-fill"></div>
+  </div>
+</div>
+
+<!-- NOVA SEÇÃO: Análise Visual (Tabela Dinâmica + Gráfico de Barras) -->
+<div class="dash-analytics-grid">
+  <!-- Tabela Pivotada por Mês e Unidade -->
+  <div class="card" style="margin-bottom:0;">
+    <b>Resumo por Mês e Unidade</b>
+    <div class="table-container" style="max-height:320px;overflow-y:auto;">
+      <table class="data-table" id="pivotTable">
+        <thead id="pivotTableHeader">
+          <tr><th>MÊS</th></tr>
+        </thead>
+        <tbody id="pivotTableBody">
+          <tr><td class="muted" style="text-align:center">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Gráfico de Barras Em Pé -->
+  <div class="card" style="margin-bottom:0;">
+    <b>Desempenho de Acuracidade e Lotes por Mês</b>
+    <div class="chart-container">
+      <canvas id="barChartCanvas"></canvas>
+    </div>
   </div>
 </div>
 
@@ -340,6 +374,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const TABLE_NAME = "auditorias_historico";
 let dashData=[], filteredData=[], rawAllAudits=[], activeAuditLotes=[];
 let selectedLoteIndex = -1;
+let barChartInstance = null;
 
 const $=id=>document.getElementById(id), v=id=>$(id).value;
 function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
@@ -486,6 +521,7 @@ async function dashboard(){
   $("accBar").style.width = acc + "%";
 
   renderDashTable();
+  renderPivotAndChart();
 }
 
 function renderDashTable(){
@@ -517,6 +553,137 @@ function renderDashTable(){
       <td><span class="${x.status === 'VALIDADO' ? 'ok' : x.status === 'PENDENTE' ? 'muted' : 'bad'}">${esc(x.status)}</span></td>
     </tr>
   `).join("");
+}
+
+/* Lógica da Tabela Pivotada e do Gráfico de Barras Em Pé */
+function renderPivotAndChart(){
+  const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
+  
+  const mesesSet = new Set();
+  const locaisSet = new Set();
+
+  filteredData.forEach(x => {
+    if(x.mes) mesesSet.add(x.mes);
+    if(x.local) locaisSet.add(x.local);
+  });
+
+  const meses = [...mesesSet].sort((a,b) => (ordemMes[a] || 99) - (ordemMes[b] || 99));
+  const locais = [...locaisSet].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+
+  // Estruturar dados por Mês x Local
+  const matrix = {};
+  meses.forEach(m => {
+    matrix[m] = {};
+    locais.forEach(l => {
+      matrix[m][l] = { tot: 0, validados: 0 };
+    });
+  });
+
+  filteredData.forEach(x => {
+    if(x.mes && x.local && matrix[x.mes] && matrix[x.mes][x.local]){
+      matrix[x.mes][x.local].tot++;
+      if(String(x.status).toUpperCase() === "VALIDADO"){
+        matrix[x.mes][x.local].validados++;
+      }
+    }
+  });
+
+  // 1. Construir a Tabela Pivotada
+  let thHTML = `<tr><th>MÊS</th>`;
+  locais.forEach(l => {
+    thHTML += `<th style="text-align:center;" colspan="2">${esc(l)}</th>`;
+  });
+  thHTML += `</tr><tr><th></th>`;
+  locais.forEach(() => {
+    thHTML += `<th style="font-size:10px;text-align:center;">Nº Lotes</th><th style="font-size:10px;text-align:center;">Acuracidade</th>`;
+  });
+  thHTML += `</tr>`;
+  $("pivotTableHeader").innerHTML = thHTML;
+
+  let tbodyHTML = "";
+  const totalGeralLocais = {};
+  locais.forEach(l => { totalGeralLocais[l] = { tot: 0, validados: 0 }; });
+
+  meses.forEach(m => {
+    tbodyHTML += `<tr><td><b>${esc(m)}</b></td>`;
+    locais.forEach(l => {
+      const cell = matrix[m][l];
+      const acc = cell.tot > 0 ? Math.round((cell.validados / cell.tot) * 100) + "%" : "0%";
+      tbodyHTML += `<td style="text-align:center;">${cell.tot}</td><td style="text-align:center;font-weight:bold;color:var(--g);">${acc}</td>`;
+      
+      totalGeralLocais[l].tot += cell.tot;
+      totalGeralLocais[l].validados += cell.validados;
+    });
+    tbodyHTML += `</tr>`;
+  });
+
+  // Linha Total Geral
+  tbodyHTML += `<tr style="background:#e8eeea;font-weight:bold;"><td>Total Geral</td>`;
+  locais.forEach(l => {
+    const totL = totalGeralLocais[l].tot;
+    const valL = totalGeralLocais[l].validados;
+    const accL = totL > 0 ? Math.round((valL / totL) * 100) + "%" : "0%";
+    tbodyHTML += `<td style="text-align:center;">${totL}</td><td style="text-align:center;color:var(--g);">${accL}</td>`;
+  });
+  tbodyHTML += `</tr>`;
+
+  $("pivotTableBody").innerHTML = tbodyHTML || '<tr><td colspan="10" class="muted" style="text-align:center">Sem dados.</td></tr>';
+
+  // 2. Renderizar o Gráfico de Barras Verticais (Chart.js)
+  const ctx = $("barChartCanvas").getContext("2d");
+  if(barChartInstance) {
+    barChartInstance.destroy();
+  }
+
+  const cores = ["#7ac99a", "#145c3a", "#2ecc71", "#16804a", "#48c9b0"];
+
+  const datasets = locais.map((loc, idx) => {
+    const dataLotes = meses.map(m => matrix[m][loc].tot);
+    return {
+      label: `${loc} - Nº Lotes`,
+      data: dataLotes,
+      backgroundColor: cores[idx % cores.length],
+      borderRadius: 6,
+      borderWidth: 1
+    };
+  });
+
+  barChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: meses,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            afterBody: function(context) {
+              const dataIndex = context[0].dataIndex;
+              const datasetIndex = context[0].datasetIndex;
+              const m = meses[dataIndex];
+              const loc = locais[datasetIndex];
+              const cell = matrix[m][loc];
+              const acc = cell.tot > 0 ? ((cell.validados / cell.tot) * 100).toFixed(1) + "%" : "0.0%";
+              return `Acuracidade: ${acc}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#e2e9e4' }
+        },
+        x: {
+          grid: { display: false }
+        }
+      }
+    }
+  });
 }
 
 function exportToCSV(){
@@ -638,6 +805,7 @@ function executarInicioAuditoria(){
 
   activeAuditLotes = Array.from(mapaLotesUnicos.values()).map(item => ({
     ...item,
+    id: null,
     qtd_fisica: null,
     cat_fis: "",
     etiqueta_fisica: "",
@@ -927,11 +1095,13 @@ function exportarPlanilhaSessao(){
   XLSX.writeFile(wb, `auditoria_sessao_${v("date") || "local"}.xlsx`);
 }
 
-function sanitizarParaSupabase(origem) {
+function preparaçaoNovoRegistro(origem) {
   const camposNumericos = ["qtd_sistema", "qtd_fisica"];
   const clone = { ...origem };
 
   delete clone.id;
+  delete clone.historico_id;
+  delete clone.auditoria_id;
 
   for (const key in clone) {
     if (camposNumericos.includes(key)) {
@@ -954,9 +1124,9 @@ async function finalizarAuditoriaSessao(){
     }
   }
 
-  toast("Enviando auditorias para o banco de dados...");
+  toast("Enviando novas auditorias para o banco de dados...");
 
-  const payload = activeAuditLotes.map(sanitizarParaSupabase);
+  const payload = activeAuditLotes.map(preparaçaoNovoRegistro);
 
   try {
     const { data, error } = await db
@@ -969,7 +1139,7 @@ async function finalizarAuditoriaSessao(){
       return;
     }
 
-    alert("Auditoria finalizada e gravada com sucesso!");
+    alert("Auditoria finalizada e anexada no final do histórico com sucesso!");
     rawAllAudits = [];
     go("home");
   } catch(err) {
