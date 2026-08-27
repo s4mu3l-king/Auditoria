@@ -10,7 +10,7 @@
 :root{--g:#145c3a;--g2:#0d442b;--bg:#f3f6f4;--card:#fff;--line:#dce5df;--text:#17231d;--muted:#66736c;--ok:#16804a;--bad:#b3261e;--warn:#a76b00}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
-header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-space-between;align-items:center;position:sticky;top:0;z-index:5}
 .wrap{max-width:1300px;margin:auto;padding:22px 16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 15px #0000000a}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
@@ -26,10 +26,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
 button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer;transition:background 0.2s, opacity 0.2s}
 button:hover{opacity:0.9}
 .sec{background:#e8eeea;color:var(--g2)}
-.btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
+.btn-export{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
 .btn-import{background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:170px;height:44px;border:0}
-.btn-add{background:#0056b3;color:#fff}
-.btn-finish{background:#28a745;color:#fff;font-size:15px;padding:14px 22px}
+.btn-add{background:var(--g);color:#fff}
+.btn-finish{background:var(--g);color:#fff;font-size:15px;padding:14px 22px}
+.btn-del{background:var(--bad);color:#fff;padding:4px 8px;font-size:11px;border-radius:4px}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .muted{color:var(--muted)}
 .hidden{display:none !important}
@@ -52,7 +53,7 @@ table.data-table tr:hover{background:#f0f5f2}
 .info-bar{display:flex;gap:20px;background:#f8faf9;padding:12px 16px;border-radius:8px;border:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap;font-size:14px}
 .info-bar span{display:flex;gap:6px}
 
-/* Sugestões de autocomplete */
+/* Autocomplete */
 .autocomplete-wrapper{position:relative}
 .suggestions-box{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:0 0 8px 8px;max-height:180px;overflow-y:auto;z-index:20;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
 .suggestion-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:14px}
@@ -179,7 +180,6 @@ table.data-table tr:hover{background:#f0f5f2}
 
 <!-- TELA 3: TELA OPERACIONAL - LOTES AUDITADOS -->
 <section id="audit-session" class="hidden">
-  <!-- BANNER SUPERIOR DE CONTADORES DE LOTES -->
   <div class="kpis">
     <div class="kpi">Total de Lotes<b id="opTot">0</b></div>
     <div class="kpi">Lotes Auditados<b id="opAud">0</b></div>
@@ -199,12 +199,12 @@ table.data-table tr:hover{background:#f0f5f2}
         <span><b>Mês:</b> <div id="lblMes">—</div></span>
       </div>
       <div style="display:flex;gap:10px;">
+        <button class="btn-export" onclick="exportarPlanilhaSessao()">📥 EXPORTAR PLANILHA</button>
         <button class="btn-add" onclick="abrirModalAdicionarLote()">+ ADICIONAR LOTE</button>
         <button class="sec" onclick="go('home')">PAINEL PRINCIPAL</button>
       </div>
     </div>
 
-    <!-- SEÇÃO 5: BUSCA E AUTOCOMPLETAR DO LOTE -->
     <div style="background:#f4f8f5;padding:16px;border-radius:10px;border:1px solid var(--line);margin-bottom:16px;">
       <h4 style="margin:0 0 10px 0;color:var(--g)">Pesquisa e Seleção do Lote</h4>
       <div class="grid-4">
@@ -220,7 +220,6 @@ table.data-table tr:hover{background:#f0f5f2}
       </div>
     </div>
 
-    <!-- SEÇÃO 6: CAMPOS PARA CONFERÊNCIA FÍSICA -->
     <div style="background:#fff;padding:16px;border-radius:10px;border:1px solid var(--line);margin-bottom:16px;">
       <h4 style="margin:0 0 10px 0;color:var(--g)">Dados da Conferência Física</h4>
       <div class="grid-4" style="margin-bottom:12px;">
@@ -237,11 +236,10 @@ table.data-table tr:hover{background:#f0f5f2}
         </label>
       </div>
       <div style="display:flex;justify-content:flex-end;">
-        <button style="min-width:180px;background:var(--g);" onclick="salvarConferenciaLote()">SALVAR LOTE</button>
+        <button style="min-width:180px;" onclick="salvarConferenciaLote()">SALVAR LOTE</button>
       </div>
     </div>
 
-    <!-- TABELA DE STATUS E LOTES DA SESSÃO -->
     <h4>Lotes da Sessão</h4>
     <div class="table-container">
       <table class="data-table">
@@ -257,10 +255,11 @@ table.data-table tr:hover{background:#f0f5f2}
             <th>Câmara/Quadra/Fileira</th>
             <th>Status</th>
             <th>Observação</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="sessionTableBody">
-          <tr><td colspan="10" class="muted" style="text-align:center">Nenhum lote carregado.</td></tr>
+          <tr><td colspan="11" class="muted" style="text-align:center">Nenhum lote carregado.</td></tr>
         </tbody>
       </table>
     </div>
@@ -271,7 +270,7 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
 </section>
 
-<!-- MODAL: ADICIONAR LOTE MANUALMENTE (SEÇÃO 13) -->
+<!-- MODAL: ADICIONAR LOTE MANUALMENTE -->
 <div id="modalAddLote" class="modal-overlay hidden">
   <div class="modal-content">
     <h3 style="margin-top:0;color:var(--g)">Adicionar Novo Lote à Auditoria</h3>
@@ -503,16 +502,18 @@ function executarInicioAuditoria(){
   const localNorm = normalizarTexto(localSel);
   const mesNorm = normalizarMesFiltro(mesSel);
 
+  // FILTRA OS LOTES DA BASE: Mesmo Local + Mês + QTD SISTEMA > 0
   activeAuditLotes = rawAllAudits.filter(x => {
     const locItem = normalizarTexto(x.local);
     const mesItem = normalizarMesFiltro(x.mes);
-    return locItem === localNorm && (!mesNorm || mesItem === mesNorm);
+    const qtdSys = Number(x.qtd_sistema ?? 0);
+    return locItem === localNorm && (!mesNorm || mesItem === mesNorm) && qtdSys > 0;
   });
 
   atualizarPainelOperacional();
   renderSessionTable();
   go("audit-session");
-  toast("Sessão de auditoria iniciada com sucesso!");
+  toast(`Sessão iniciada com ${activeAuditLotes.length} lotes com saldo sistêmico!`);
 }
 
 /* ========================================================
@@ -635,7 +636,16 @@ function salvarConferenciaLote(){
   atualizarPainelOperacional();
   renderSessionTable();
   limparCamposConferencia();
-  toast("Lote conferido e gravado com sucesso!");
+  toast("Lote conferido e gravado na sessão!");
+}
+
+function excluirLoteSessao(index){
+  if(confirm("Deseja realmente remover este lote da auditoria atual?")){
+    activeAuditLotes.splice(index, 1);
+    atualizarPainelOperacional();
+    renderSessionTable();
+    toast("Lote removido da sessão!");
+  }
 }
 
 function limparCamposConferencia(){
@@ -701,11 +711,11 @@ function salvarNovoLoteManual(){
 
 function renderSessionTable(){
   if(activeAuditLotes.length === 0){
-    $("sessionTableBody").innerHTML = '<tr><td colspan="10" class="muted" style="text-align:center">Nenhum lote carregado para esta sessão.</td></tr>';
+    $("sessionTableBody").innerHTML = '<tr><td colspan="11" class="muted" style="text-align:center">Nenhum lote carregado para esta sessão.</td></tr>';
     return;
   }
 
-  $("sessionTableBody").innerHTML = activeAuditLotes.map((x) => {
+  $("sessionTableBody").innerHTML = activeAuditLotes.map((x, index) => {
     let st = normalizarTexto(x.status);
     let cl = st === "VALIDADO" ? "ok" : (st.includes("DIVERG") ? "bad" : "warn");
     const locFis = [x.camara ? `Câm: ${x.camara}` : "", x.quadra ? `Qd: ${x.quadra}` : "", x.fileira ? `Fil: ${x.fileira}` : ""].filter(Boolean).join(" / ") || "—";
@@ -721,11 +731,12 @@ function renderSessionTable(){
       <td>${esc(locFis)}</td>
       <td><span class="${cl}">${esc(x.status)}</span></td>
       <td><small>${esc(x.observacao || "—")}</small></td>
+      <td><button class="btn-del" onclick="excluirLoteSessao(${index})">Excluir</button></td>
     </tr>`;
   }).join("");
 }
 
-function finalizarAuditoriaSessao(){
+function exportarPlanilhaSessao(){
   if(activeAuditLotes.length === 0) return toast("Sem dados para exportar.");
 
   let auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
@@ -753,8 +764,49 @@ function finalizarAuditoriaSessao(){
   link.href = URL.createObjectURL(blob);
   link.download = `Relatorio_Auditoria_${v("lblLocal")}_${v("lblData")}.csv`;
   link.click();
+  toast("Planilha exportada com sucesso!");
+}
 
-  toast("Auditoria finalizada e relatório gerado!");
+async function finalizarAuditoriaSessao(){
+  if(activeAuditLotes.length === 0) return toast("Sem dados para salvar.");
+
+  toast("Enviando histórico para o Supabase...");
+
+  // Prepara registros para persisitir no Supabase
+  const payloads = activeAuditLotes.map(x => ({
+    ...(x.id ? { id: x.id } : {}),
+    lote: x.lote,
+    local: x.local,
+    mes: x.mes,
+    cultura: x.cultura,
+    cultivar: x.cultivar,
+    cat: x.cat,
+    peneira: x.peneira,
+    um: x.um,
+    tratamento: x.tratamento,
+    qtd_sistema: x.qtd_sistema,
+    qtd_fisica: x.qtd_fisica,
+    peso_etiqueta: x.peso_etiqueta,
+    cat_fisica: x.cat_fisica,
+    etiqueta_fisica: x.etiqueta_fisica,
+    camara: x.camara,
+    quadra: x.quadra,
+    fileira: x.fileira,
+    observacao: x.observacao,
+    status: x.status
+  }));
+
+  const { error } = await db.from(TABLE_NAME).upsert(payloads);
+
+  if(error){
+    console.error("Erro ao salvar Supabase:", error);
+    toast("Erro ao gravar no banco. Baixando planilha offline...");
+  } else {
+    toast("Auditoria enviada com sucesso ao Supabase!");
+    rawAllAudits = []; // Limpa cache para regravar na dashboard
+  }
+
+  exportarPlanilhaSessao();
   go("home");
 }
 
@@ -802,25 +854,25 @@ async function dashboard(){
     $("accBar").textContent = accVal + "%";
 
     renderDashTable();
-  } catch(e) {
-    console.error(e);
-    toast("Erro ao carregar os dados da dashboard.");
+  } catch(err){
+    console.error(err);
+    toast("Erro ao carregar dados do Dashboard!");
   }
 }
 
 function renderDashTable(){
-  const searchTxt = normalizarTexto(v("dashSearch"));
-  
+  const query = v("dashSearch").trim().toLowerCase();
   filteredData = dashData.filter(x => {
-    if(!searchTxt) return true;
-    return normalizarTexto(x.lote).includes(searchTxt) ||
-           normalizarTexto(x.cultivar).includes(searchTxt) ||
-           normalizarTexto(x.local).includes(searchTxt) ||
-           normalizarTexto(x.status).includes(searchTxt);
+    if(!query) return true;
+    return String(x.lote).toLowerCase().includes(query) ||
+           String(x.local).toLowerCase().includes(query) ||
+           String(x.cultura).toLowerCase().includes(query) ||
+           String(x.cultivar).toLowerCase().includes(query) ||
+           String(x.status).toLowerCase().includes(query);
   });
 
   if(filteredData.length === 0){
-    $("dashTableBody").innerHTML = '<tr><td colspan="9" class="muted" style="text-align:center">Nenhum registro localizado.</td></tr>';
+    $("dashTableBody").innerHTML = '<tr><td colspan="9" class="muted" style="text-align:center">Nenhum lote encontrado.</td></tr>';
     return;
   }
 
@@ -829,12 +881,12 @@ function renderDashTable(){
     let cl = st === "VALIDADO" ? "ok" : (st.includes("DIVERG") ? "bad" : "warn");
 
     return `<tr>
-      <td>${esc(x.mes || "—")}</td>
+      <td>${esc(x.mes)}</td>
       <td><b>${esc(x.lote)}</b></td>
-      <td>${esc(x.local || "—")}</td>
-      <td>${esc(x.cultura || "—")}</td>
-      <td>${esc(x.cultivar || "—")}</td>
-      <td>${esc(x.cat || "—")}</td>
+      <td>${esc(x.local)}</td>
+      <td>${esc(x.cultura)}</td>
+      <td>${esc(x.cultivar)}</td>
+      <td>${esc(x.cat)}</td>
       <td>${x.qtd_sistema ?? "—"}</td>
       <td><b>${x.qtd_fisica ?? "—"}</b></td>
       <td><span class="${cl}">${esc(x.status)}</span></td>
@@ -843,26 +895,21 @@ function renderDashTable(){
 }
 
 function exportToCSV(){
-  if(filteredData.length === 0) return toast("Não há dados visíveis para exportar.");
-
+  if(filteredData.length === 0) return toast("Sem dados para exportar.");
   let csv = ["\uFEFFMes;Lote;Local;Cultura;Cultivar;Categoria;Qtd Sistema;Qtd Fisica;Status"];
   filteredData.forEach(x => {
-    csv.push(`"${x.mes || ''}";"${x.lote}";"${x.local||''}";"${x.cultura||''}";"${x.cultivar||''}";"${x.cat||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
+    csv.push(`"${x.mes}";"${x.lote}";"${x.local}";"${x.cultura}";"${x.cultivar}";"${x.cat}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.status}"`);
   });
 
   let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
   let link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `Export_Auditoria_${new Date().toISOString().slice(0,10)}.csv`;
+  link.download = `Dashboard_Auditoria_${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
-
-  toast("Exportação concluída!");
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  $("date").addEventListener("change", atualizarMesPorData);
-  dashboard();
-});
+// Inicializa a dashboard
+dashboard();
 </script>
 </body>
 </html>
