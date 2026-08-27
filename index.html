@@ -240,7 +240,7 @@ table.data-table tr:hover{background:#f0f5f2}
       <div class="grid-4" style="margin-bottom:12px;">
         <label>CAT. FÍS.<input id="inputCatFis" placeholder="Cat. encontrada"></label>
         <label>ETIQUETA FÍSICA<input id="inputEtiquetaFis" placeholder="Peso/Cod. Etiqueta"></label>
-        <label>QTD FÍSICA<input id="inputQtdFis" type="number" placeholder="Quantidade em sacos/bags"></label>
+        <label>QTD FÍSICA<input id="inputQtdFis" type="number" step="any" placeholder="Quantidade em sacos/bags"></label>
         <label>CÂMARA<input id="inputCamara" placeholder="Câmara"></label>
       </div>
       <div class="grid-4" style="margin-bottom:12px;">
@@ -318,7 +318,7 @@ table.data-table tr:hover{background:#f0f5f2}
       <label>PEN. (Peneira)<input id="addPen"></label>
       <label>U.M.<input id="addUm" placeholder="Ex: SC / KG"></label>
       <label>TRATAMENTO<input id="addTratamento"></label>
-      <label>QTD SISTEMA<input id="addQtdSistema" type="number" value="0"></label>
+      <label>QTD SISTEMA<input id="addQtdSistema" type="number" step="any" value="0"></label>
     </div>
     <div class="grid-4" style="margin-bottom:16px;">
       <label>PESO ETIQUETA<input id="addPesoEtiqueta"></label>
@@ -388,6 +388,14 @@ function normalizarMesFiltro(valor){
   return txt;
 }
 
+function parseNumericValue(val){
+  if(val === null || val === undefined || val === "") return null;
+  if(typeof val === "number") return isNaN(val) ? null : val;
+  const cleaned = String(val).trim().replace(",", ".");
+  if(cleaned === "" || isNaN(cleaned)) return null;
+  return Number(cleaned);
+}
+
 function extrairCampos(item){
   return {
     id: item.id || item.historico_id || item.auditoria_id || null,
@@ -402,8 +410,8 @@ function extrairCampos(item){
     peneira: item.peneira || item.pen || "—",
     um: item.um || item.unidade_medida || "",
     tratamento: item.tratamento || "—",
-    qtd_sistema: item.qtd_sistema ?? item.quantidade_sistema ?? item.saldo_sistema ?? item.saldo ?? null,
-    qtd_fisica: item.qtd_fisica ?? item.quantidade_fisica ?? item.saldo_fisico ?? null,
+    qtd_sistema: parseNumericValue(item.qtd_sistema ?? item.quantidade_sistema ?? item.saldo_sistema ?? item.saldo),
+    qtd_fisica: parseNumericValue(item.qtd_fisica ?? item.quantidade_fisica ?? item.saldo_fisico),
     peso_etiqueta: item.peso_etiqueta || item.etiqueta_sistema || "",
     cat_fis: item.cat_fis || "",
     etiqueta_fisica: item.etiqueta_fisica || "",
@@ -726,7 +734,7 @@ function salvarConferenciaLote(){
   const item = activeAuditLotes[selectedLoteIndex];
   const catFis = v("inputCatFis").trim();
   const etqFis = v("inputEtiquetaFis").trim();
-  const qtdFis = v("inputQtdFis").trim();
+  const qtdFisRaw = v("inputQtdFis");
   const camara = v("inputCamara").trim();
   const quadra = v("inputQuadra").trim();
   const fileira = v("inputFileira").trim();
@@ -734,7 +742,7 @@ function salvarConferenciaLote(){
 
   item.cat_fis = catFis;
   item.etiqueta_fisica = etqFis;
-  item.qtd_fisica = qtdFis !== "" ? Number(qtdFis) : null;
+  item.qtd_fisica = parseNumericValue(qtdFisRaw);
   item.camara = camara;
   item.quadra = quadra;
   item.fileira = fileira;
@@ -839,7 +847,7 @@ function salvarNovoLoteManual(){
     peneira: v("addPen").trim(),
     um: v("addUm").trim(),
     tratamento: v("addTratamento").trim(),
-    qtd_sistema: v("addQtdSistema") !== "" ? Number(v("addQtdSistema")) : 0,
+    qtd_sistema: parseNumericValue(v("addQtdSistema")),
     peso_etiqueta: v("addPesoEtiqueta").trim(),
     cat_fis: "",
     qtd_fisica: null,
@@ -919,6 +927,23 @@ function exportarPlanilhaSessao(){
   XLSX.writeFile(wb, `auditoria_sessao_${v("date") || "local"}.xlsx`);
 }
 
+function sanitizarParaSupabase(origem) {
+  const camposNumericos = ["qtd_sistema", "qtd_fisica"];
+  const clone = { ...origem };
+
+  delete clone.id;
+
+  for (const key in clone) {
+    if (camposNumericos.includes(key)) {
+      clone[key] = parseNumericValue(clone[key]);
+    } else if (typeof clone[key] === "string" && clone[key].trim() === "") {
+      clone[key] = null;
+    }
+  }
+
+  return clone;
+}
+
 async function finalizarAuditoriaSessao(){
   if(activeAuditLotes.length === 0) return toast("Não há dados para finalizar!");
 
@@ -931,22 +956,7 @@ async function finalizarAuditoriaSessao(){
 
   toast("Enviando auditorias para o banco de dados...");
 
-  // Tratamento dos campos para evitar erros de sintaxe e conflito no Supabase
-  const payload = activeAuditLotes.map(item => {
-    const dataObj = { ...item };
-    delete dataObj.id; // Permite a geração automática do ID sequencial no banco
-
-    // Converte qualquer string vazia em campos numéricos para null
-    dataObj.qtd_sistema = (dataObj.qtd_sistema === "" || dataObj.qtd_sistema === null || dataObj.qtd_sistema === undefined) 
-      ? null 
-      : Number(dataObj.qtd_sistema);
-
-    dataObj.qtd_fisica = (dataObj.qtd_fisica === "" || dataObj.qtd_fisica === null || dataObj.qtd_fisica === undefined) 
-      ? null 
-      : Number(dataObj.qtd_fisica);
-
-    return dataObj;
-  });
+  const payload = activeAuditLotes.map(sanitizarParaSupabase);
 
   try {
     const { data, error } = await db
