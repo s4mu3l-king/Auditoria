@@ -500,7 +500,11 @@ async function dashboard(){
   const selLocal = v("dashLocal");
   const selCultura = v("dashCultura");
 
+  // Filtra ignorando registros onde qtd_sistema é 0, nula ou menor/igual a zero
   filteredData = rawAllAudits.filter(x => {
+    const qtdSys = Number(x.qtd_sistema) || 0;
+    if(qtdSys <= 0) return false;
+
     if(selMonth && x.mes !== selMonth) return false;
     if(selLocal && x.local !== selLocal) return false;
     if(selCultura && x.cultura !== selCultura) return false;
