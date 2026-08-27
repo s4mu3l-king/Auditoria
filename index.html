@@ -12,12 +12,12 @@ body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text
 header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
 .wrap{max-width:1250px;margin:auto;padding:22px 16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 15px #0000000a}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
 .kpi b{display:block;font-size:26px;margin-top:4px}
-label{font-size:12px;font-weight:bold;color:#59655f;display:block;margin-bottom:6px}
-input,select,textarea{width:100%;padding:12px;border:1px solid #cbd6cf;border-radius:8px;font-size:15px;background:#fff;transition:border-color 0.2s}
+label{font-size:12px;font-weight:bold;color:#59655f;display:flex;flex-direction:column;gap:6px;margin-bottom:0}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #cbd6cf;border-radius:8px;font-size:15px;background:#fff;transition:border-color 0.2s}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
 textarea{min-height:80px}
 button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer;transition:background 0.2s, opacity 0.2s}
@@ -25,14 +25,13 @@ button:hover{opacity:0.9}
 button:disabled{opacity:0.6;cursor:not-allowed}
 .sec{background:#e8eeea;color:var(--g2)}
 .btn-export{background:#1e7e34;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
-.btn-import{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px;border:1px solid #2ecc71}
 .btn-save-top{background:#0d442b;color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 16px;border:1px solid #2ecc71}
 .btn-newlot{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
 .btn-danger{background:var(--bad);color:#fff}
-.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
 .muted{color:var(--muted)}
 .hidden{display:none !important}
-.top{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-bottom:16px}
+.top{display:flex;justify-flex:flex-end;gap:12px;align-items:center;margin-bottom:16px}
 .lot{display:grid;grid-template-columns:1fr 1.6fr .8fr 1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:9px;margin:7px 0;background:#fff;align-items:center;cursor:pointer;transition:border-color 0.2s}
 .lot:hover{border-color:var(--g)}
 .lot.divergent-border{border-left:5px solid var(--bad)}
@@ -41,7 +40,6 @@ button:disabled{opacity:0.6;cursor:not-allowed}
 .warn{color:var(--warn);font-weight:bold}
 .toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
 .system{line-height:1.8;background:#f7f9f8;padding:12px;border-radius:8px}
-.dangerbox{background:#fff4f3;border:1px solid #f0c9c5;padding:12px;border-radius:8px;margin:12px 0}
 .brand-container{display:flex;align-items:center;gap:14px}
 .logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
 .logo-img{height:46px;width:auto;object-fit:contain}
@@ -90,7 +88,6 @@ table.data-table tr:hover{background:#f0f5f2}
 
 <section id="home">
 <div class="top">
-  <button class="btn-import" onclick="abrirModalImportacao()">📥 IMPORTAR DADOS</button>
   <button onclick="go('start')">NOVA AUDITORIA</button>
 </div>
 
@@ -163,14 +160,28 @@ table.data-table tr:hover{background:#f0f5f2}
 
 <section id="start" class="hidden">
   <div class="card">
-    <h3>Iniciando Sessão de Auditoria</h3>
+    <h3 style="margin-top:0;margin-bottom:16px;">Iniciando Sessão de Auditoria</h3>
     <div class="grid">
-      <label>LOCAL<select id="local"></select></label>
-      <label>DATA VERIFICAÇÃO<input id="date" type="date"></label>
-      <label>MÊS<input id="month" disabled></label>
-      <label>AUDITOR PCP<input id="pcp" placeholder="Nome do auditor"></label>
-      <label>AUDITOR UNIDADE<input id="audun" placeholder="Nome do auditor"></label>
-      <label>RESPONSÁVEL UBS<input id="ubs" placeholder="Nome do responsável"></label>
+      <label>LOCAL
+        <select id="local">
+          <option value="">Carregando locais...</option>
+        </select>
+      </label>
+      <label>DATA VERIFICAÇÃO
+        <input id="date" type="date">
+      </label>
+      <label>MÊS
+        <input id="month" disabled>
+      </label>
+      <label>AUDITOR PCP
+        <input id="pcp" placeholder="Nome do auditor">
+      </label>
+      <label>AUDITOR UNIDADE
+        <input id="audun" placeholder="Nome do auditor">
+      </label>
+      <label>RESPONSÁVEL UBS
+        <input id="ubs" placeholder="Nome do responsável">
+      </label>
     </div>
     <div class="actions">
       <button id="btnStartAudit" onclick="start()">INICIAR CONFERÊNCIA</button>
@@ -202,31 +213,27 @@ table.data-table tr:hover{background:#f0f5f2}
 
   <div class="card">
     <div class="filter-box" style="grid-template-columns: 1.5fr 1fr 1fr 1fr; margin-bottom: 12px; padding: 10px;">
-      <div>
-        <label style="margin-bottom:4px">PESQUISAR LOTE</label>
+      <label>PESQUISAR LOTE
         <input id="search" placeholder="🔎 Digite o lote..." oninput="render()" style="padding:8px 10px; font-size:13px">
-      </div>
-      <div>
-        <label style="margin-bottom:4px">CULTURA</label>
+      </label>
+      <label>CULTURA
         <select id="lotCultura" onchange="render()" style="padding:8px 10px; font-size:13px">
           <option value="">Todas</option>
         </select>
-      </div>
-      <div>
-        <label style="margin-bottom:4px">CULTIVAR</label>
+      </label>
+      <label>CULTIVAR
         <select id="lotCultivar" onchange="render()" style="padding:8px 10px; font-size:13px">
           <option value="">Todas</option>
         </select>
-      </div>
-      <div>
-        <label style="margin-bottom:4px">STATUS</label>
+      </label>
+      <label>STATUS
         <select id="lotStatus" onchange="render()" style="padding:8px 10px; font-size:13px">
           <option value="">Todos</option>
           <option value="PENDENTE">PENDENTE</option>
           <option value="VALIDADO">VALIDADO</option>
           <option value="DIVERGÊNCIA">DIVERGÊNCIA</option>
         </select>
-      </div>
+      </label>
     </div>
 
     <div class="lot-header">
@@ -244,6 +251,7 @@ table.data-table tr:hover{background:#f0f5f2}
       <h2>Conferência do Lote: <span id="clote" style="color:var(--g)"></span></h2>
       <div id="sys" class="system"></div>
       <div class="grid" style="margin-top:14px">
+        <label>UNIDADE<input id="unidade"></label>
         <label>CAT. FÍS.<input id="catfis"></label>
         <label>ETIQUETA FÍSICA<input id="etq"></label>
         <label>QTD FÍSICA<input id="qtd" type="number" step="any" inputmode="decimal"></label>
@@ -263,20 +271,6 @@ table.data-table tr:hover{background:#f0f5f2}
     </div>
   </div>
 </section>
-
-<!-- Modal de Importação de Planilha -->
-<div id="modal-importacao" class="modal-backdrop hidden">
-  <div class="modal-box">
-    <h3>📥 Importar Planilha de Dados</h3>
-    <label style="margin-top:12px">SELECIONE A PLANILHA (.XLSX / .CSV)</label>
-    <input type="file" id="input-excel" accept=".xlsx, .xls, .csv" style="margin-top:6px" />
-    <div id="status-importacao" style="margin-top:15px; font-weight:bold; color:var(--g)"></div>
-    <div class="actions" style="margin-top:20px; justify-content:flex-end">
-      <button onclick="processarEEnviarPlanilha()" style="background:var(--g)">Processar e Salvar</button>
-      <button onclick="fecharModalImportacao()" class="sec">Cancelar</button>
-    </div>
-  </div>
-</div>
 
 <div id="newLotModal" class="modal-backdrop hidden">
   <div class="modal-box">
@@ -313,7 +307,6 @@ const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const TABLE_NAME = "auditorias_historico";
-const SIGLAS_TRATAMENTO_VALIDAS = ["TSI", "ST", "FT", "IN", "FUN", "GRAO", "TRAT", "SO", "SOIE", "FD", "FDIE", "FDIEAR", "FDIEVC", "FEIE"];
 
 let base=[], audits=[], dashData=[], filteredData=[], selected=null, meta={};
 
@@ -338,177 +331,27 @@ function month(){
 
 $("date").value=new Date().toISOString().slice(0,10);$("month").value=month();$("date").onchange=()=>set("month",month());
 
-/* MODAL E IMPORTAÇÃO DE PLANILHA */
-function abrirModalImportacao() {
-  $("modal-importacao").classList.remove("hidden");
-  $("status-importacao").innerText = "";
-  $("input-excel").value = "";
-}
-
-function fecharModalImportacao() {
-  $("modal-importacao").classList.add("hidden");
-  $("input-excel").value = "";
-}
-
-function colParaIndice(colStr) {
-  let col = colStr.trim().toUpperCase();
-  let idx = 0;
-  for (let i = 0; i < col.length; i++) {
-    idx = idx * 26 + (col.charCodeAt(i) - 64);
-  }
-  return idx - 1;
-}
-
-const LETRAS_COLUNAS_IGNORADAS = [
-  "A", "P", "Q", "R", "S", "V", "W", "Y", "AD", 
-  "AF", "AG", "AH", "AI", "AJ", "AK", "AL", "AM", "AN", "AO", "AP"
-];
-const INDICES_IGNORADOS = new Set(LETRAS_COLUNAS_IGNORADAS.map(colParaIndice));
-const INDICE_CORTE_FINAL = colParaIndice("AQ");
-
-async function processarEEnviarPlanilha() {
-  const input = $("input-excel");
-  const divStatus = $("status-importacao");
-
-  if (!input.files || input.files.length === 0) {
-    return alert("Por favor, selecione um arquivo de planilha.");
-  }
-
-  const file = input.files[0];
-  divStatus.innerText = "Lendo e validando dados da planilha...";
-
-  const reader = new FileReader();
-  reader.onload = async function (e) {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      
-      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-      if (rows.length < 2) {
-        divStatus.innerText = "❌ A planilha precisa ter ao menos cabeçalho e linhas de dados.";
-        return;
-      }
-
-      const parseNumStrict = (val) => {
-        if (typeof val === "number") return isNaN(val) ? 0 : val;
-        if (!val) return 0;
-        let s = String(val).trim();
-        
-        if (s.includes("/") || /[a-zA-Z]/.test(s)) return 0;
-        
-        s = s.replace(/[^0-9.,-]/g, "");
-        if (!s) return 0;
-
-        if (s.includes(",") && s.includes(".")) {
-          s = s.replace(/\./g, "").replace(",", ".");
-        } else if (s.includes(",")) {
-          s = s.replace(",", ".");
-        }
-
-        const n = parseFloat(s);
-        return isNaN(n) ? 0 : n;
-      };
-
-      const registrosParaInserir = [];
-
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.length === 0) continue;
-
-        const getColVal = (idx) => (idx >= 0 && row[idx] !== undefined) ? String(row[idx]).trim() : "";
-
-        const filial = getColVal(0);              // A
-        const colB = getColVal(1);                // B
-        const colC = getColVal(2);                // C
-        const deposito = getColVal(3);            // D
-        const cultura = getColVal(4) || getColVal(5); // E ou F
-        const colI = getColVal(8);                // I
-        const lote = getColVal(9) || getColVal(8) || getColVal(7); // J (ou I/H)
-        const cat = getColVal(10);                // K
-        const pen = getColVal(11);                // L
-        const um = getColVal(12) || "BAG";        // M
-
-        let colAE = 0;
-
-        for (let c = row.length - 1; c >= 0; c--) {
-          if (INDICES_IGNORADOS.has(c) || c >= INDICE_CORTE_FINAL) {
-            continue;
-          }
-
-          let numCandidate = parseNumStrict(row[c]);
-          if (numCandidate > 0) {
-            colAE = numCandidate;
-            break;
-          }
-        }
-
-        if (!lote || colAE <= 0) continue;
-
-        let localFinal = "";
-        let ufFinal = "";
-        if (colB === "0101" && colC === "10") {
-          localFinal = "UBS I"; ufFinal = "GO";
-        } else if (colB === "102" && colC === "10") {
-          localFinal = "LPCO"; ufFinal = "GO";
-        } else if (colB.includes("BJ") || colC.includes("BJ")) {
-          localFinal = "BJ"; ufFinal = "MG";
-        } else if (colB.includes("AGROSEMEAR") || colC.includes("AGROSEMEAR")) {
-          localFinal = "AGROSEMEAR"; ufFinal = "MT";
-        } else {
-          localFinal = colB || colC || "GERAL"; ufFinal = "GO";
-        }
-
-        const partesTratamento = colI.split(/\s+/);
-        const ultimaSigla = partesTratamento[partesTratamento.length - 1].toUpperCase();
-        const tratamentoFinal = SIGLAS_TRATAMENTO_VALIDAS.includes(ultimaSigla) ? ultimaSigla : "ST";
-
-        registrosParaInserir.push({
-          local: localFinal,
-          uf: ufFinal,
-          filial: filial,
-          deposito: deposito,
-          cultura: cultura,
-          lote: lote,
-          cultivar: cultura,
-          Tratamento: tratamentoFinal,
-          cat: cat,
-          pen: pen,
-          um: um,
-          qtd_sistema: colAE,
-          peso_etiqueta: null
-        });
-      }
-
-      if (registrosParaInserir.length === 0) {
-        divStatus.innerText = "⚠️ Nenhum registro válido encontrado com quantidade numérica > 0.";
-        return;
-      }
-
-      divStatus.innerText = `Salvando ${registrosParaInserir.length} registros no Supabase...`;
-
-      const { error } = await db.from('base_dados').upsert(registrosParaInserir);
-      if (error) throw error;
-
-      divStatus.innerText = "✅ Importação concluída com sucesso!";
-      await dashboard();
-
-      setTimeout(() => { fecharModalImportacao(); }, 1500);
-    } catch (err) {
-      console.error(err);
-      divStatus.innerText = "❌ Erro ao processar planilha: " + err.message;
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
 async function loadLocalsStart(){
-  let {data,error}=await db.from("base_dados").select("local").order("local");
-  if(error)return toast("Erro ao buscar locais: " + error.message);
-  let a=[...new Set((data||[]).map(x=>x.local).filter(Boolean))];
-  $("local").innerHTML='<option value="">Selecione...</option>'+a.map(x=>`<option>${esc(x)}</option>`).join("");
+  const selectLocal = $("local");
+  selectLocal.innerHTML = '<option value="">Carregando locais...</option>';
+
+  try {
+    let { data, error } = await db.from("base_dados").select("local").not("local", "is", null);
+    if(error) throw error;
+    
+    let a=[...new Set((data||[]).map(x=>x.local?.trim()).filter(Boolean))].sort();
+    
+    if(a.length === 0) {
+      selectLocal.innerHTML = '<option value="">Nenhum local cadastrado</option>';
+      return;
+    }
+
+    selectLocal.innerHTML='<option value="">Selecione...</option>'+a.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  } catch (err) {
+    console.error("Erro ao carregar locais:", err);
+    selectLocal.innerHTML = '<option value="">Erro ao carregar locais</option>';
+    toast("Erro ao buscar locais: " + err.message);
+  }
 }
 
 async function fetchAuditsByFilters(local, mes, cultura){
@@ -827,6 +670,7 @@ function openConf(loteStr){
 
   let exist = audits.find(x=>x.lote===loteStr);
   if(exist){
+    set("unidade", exist.unidade || selected.um || "");
     set("catfis", exist.cat_fisica || selected.cat);
     set("etq", exist.etiqueta_fisica);
     set("qtd", exist.qtd_fisica);
@@ -836,6 +680,7 @@ function openConf(loteStr){
     set("obs", exist.observacao);
     $("btnDeleteConf").classList.remove("hidden");
   } else {
+    set("unidade", selected.um || "");
     set("catfis", selected.cat);
     set("etq", "");
     set("qtd", "");
@@ -873,6 +718,7 @@ async function save(){
     lote: selected.lote,
     cultura: selected.cultura,
     cultivar: selected.cultivar,
+    unidade: v("unidade"),
     cat: selected.cat,
     cat_fisica: v("catfis"),
     etiqueta_fisica: v("etq"),
@@ -976,7 +822,6 @@ async function saveNewLot(){
   }
 }
 
-// Inicializa a consulta assim que a página é totalmente carregada
 document.addEventListener("DOMContentLoaded", () => {
   dashboard();
 });
