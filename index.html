@@ -354,6 +354,7 @@ const BASE_TABLE_NAME = "base_dados";
 const TABLE_NAME = "auditorias_historico";
 
 let dashData=[], filteredData=[], rawAllAudits=[], activeAuditLotes=[];
+let currentSessionHeader = { pcp: "", audun: "", ubs: "" }; // Estado global para armazenar os auditores da sessão
 let selectedLoteIndex = -1;
 let barChartInstance = null;
 
@@ -756,6 +757,13 @@ async function executarInicioAuditoria(){
     return toast("Por favor, selecione um Local!");
   }
 
+  // Guardando os dados no objeto de sessão para exportação posterior
+  currentSessionHeader = {
+    pcp: v("pcp").trim() || "—",
+    audun: v("audun").trim() || "—",
+    ubs: v("ubs").trim() || "—"
+  };
+
   $("lblLocal").textContent = localSel;
   $("lblData").textContent = v("date");
   $("lblMes").textContent = mesSel;
@@ -964,16 +972,18 @@ function renderSessionTable(){
   }).join("");
 }
 
-/* EXPORTAÇÃO ATUALIZADA COM OS NOVOS CAMPOS DO RESUMO */
+/* EXPORTAÇÃO CORRIGIDA - BUSCA OS CAMPOS DO ESTADO DA SESSÃO OU DOS INPUTS DA TELA */
 function exportarPlanilhaSessao(){
   if(activeAuditLotes.length === 0) return toast("Nenhum lote na sessão!");
 
   const local = v("lblLocal");
   const data = v("lblData");
   const mes = v("lblMes");
-  const pcp = v("pcp") || "—";
-  const audun = v("audun") || "—";
-  const ubs = v("ubs") || "—";
+
+  // Garante que pega do estado da sessão ou fallback dos inputs HTML
+  const pcp = currentSessionHeader.pcp || v("pcp").trim() || "—";
+  const audun = currentSessionHeader.audun || v("audun").trim() || "—";
+  const ubs = currentSessionHeader.ubs || v("ubs").trim() || "—";
 
   const totalLotes = activeAuditLotes.length;
   const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null).length;
