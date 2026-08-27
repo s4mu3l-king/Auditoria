@@ -290,18 +290,9 @@ table.data-table tr:hover{background:#f0f5f2}
       <table class="data-table">
         <thead>
           <tr>
-            <th>
-              Lote<br>
-              <input id="fltLote" placeholder="Filtrar lote..." oninput="renderSessionTable()">
-            </th>
-            <th>
-              Cultura<br>
-              <input id="fltCultura" placeholder="Filtrar cultura..." oninput="renderSessionTable()">
-            </th>
-            <th>
-              Cultivar<br>
-              <input id="fltCultivar" placeholder="Filtrar cultivar..." oninput="renderSessionTable()">
-            </th>
+            <th>Lote<br><input id="fltLote" placeholder="Filtrar lote..." oninput="renderSessionTable()"></th>
+            <th>Cultura<br><input id="fltCultura" placeholder="Filtrar cultura..." oninput="renderSessionTable()"></th>
+            <th>Cultivar<br><input id="fltCultivar" placeholder="Filtrar cultivar..." oninput="renderSessionTable()"></th>
             <th>Qtd. Sistema</th>
             <th>Qtd. Física</th>
             <th>Cat. Sist.</th>
@@ -309,10 +300,7 @@ table.data-table tr:hover{background:#f0f5f2}
             <th>Etiqueta Fís.</th>
             <th>Etiqueta Sistema</th>
             <th>Câmara/Quadra/Fileira</th>
-            <th>
-              Status<br>
-              <input id="fltStatus" placeholder="Filtrar status..." oninput="renderSessionTable()">
-            </th>
+            <th>Status<br><input id="fltStatus" placeholder="Filtrar status..." oninput="renderSessionTable()"></th>
             <th>Observação</th>
             <th>Ações</th>
           </tr>
@@ -367,9 +355,7 @@ const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
 const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// Tabela BASE (Saldo Atual para conferência)
 const BASE_TABLE_NAME = "base_dados";
-// Tabela HISTÓRICO (Onde SALVA as auditorias concluídas)
 const TABLE_NAME = "auditorias_historico";
 
 let dashData=[], filteredData=[], rawAllAudits=[], activeAuditLotes=[];
@@ -808,8 +794,9 @@ async function executarInicioAuditoria(){
 
     activeAuditLotes = Array.from(mapaLotesUnicos.values()).map(item => ({
       ...item,
-      id: null,        // Id nulo para forçar o .insert() no histórico
-      mes: mesSel,     // Atribui o MÊS da auditoria atual selecionada
+      id: null,
+      local: localSel,
+      mes: mesSel,
       qtd_fisica: null,
       cat_fis: "",
       etiqueta_fisica: "",
@@ -820,164 +807,65 @@ async function executarInicioAuditoria(){
       status: "PENDENTE"
     }));
 
-    atualizarPainelOperacional();
+    limparFormularioConferencia();
+    updateSessionKPIs();
     renderSessionTable();
     go("audit-session");
 
-    if(activeAuditLotes.length === 0){
-      toast("Atenção: nenhum lote com Qtd. Sistema > 0 foi encontrado em base_dados.");
-    } else {
-      toast(`${activeAuditLotes.length} lotes carregados da base_dados!`);
-    }
-
-  } catch(err) {
-    console.error("Falha geral:", err);
-    toast("Ocorreu uma falha ao conectar com o Supabase.");
+  } catch(e) {
+    console.error("Exceção ao iniciar auditoria:", e);
+    toast("Ocorreu um erro ao carregar os dados.");
   }
-}
-
-function atualizarPainelOperacional(){
-  const totalLotes = activeAuditLotes.length;
-  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
-  const restantes = totalLotes - auditados;
-
-  const faltantes = activeAuditLotes.filter(x => {
-    return x.qtd_fisica === null || x.qtd_fisica === undefined || String(x.qtd_fisica).trim() === "";
-  }).length;
-
-  $("opTot").textContent = totalLotes;
-  $("opAud").textContent = auditados;
-  $("opRest").textContent = restantes;
-  $("opFaltantes").textContent = faltantes;
 }
 
 function onSearchLoteInput(){
-  const query = v("searchLoteInput").trim().toLowerCase();
-  const box = $("suggestionsBox");
-  box.innerHTML = "";
-
-  if(!query){
-    box.classList.add("hidden");
+  const inputVal = normalizarTexto(v("searchLoteInput"));
+  const sugBox = $("suggestionsBox");
+  
+  if(!inputVal){
+    sugBox.classList.add("hidden");
     return;
   }
 
-  const matches = activeAuditLotes.map((item, idx) => ({ item, idx }))
-    .filter(obj => String(obj.item.lote).toLowerCase().includes(query));
+  const matches = activeAuditLotes.filter(x => normalizarTexto(x.lote).includes(inputVal));
 
   if(matches.length === 0){
-    box.classList.add("hidden");
-    return;
+    sugBox.innerHTML = '<div class="suggestion-item muted">Nenhum lote encontrado</div>';
+  } else {
+    sugBox.innerHTML = matches.slice(0, 10).map((item) => {
+      const idx = activeAuditLotes.indexOf(item);
+      return `<div class="suggestion-item" onclick="selecionarLoteParaConferencia(${idx})">
+        <b>${esc(item.lote)}</b> - ${esc(item.cultivar)} (${esc(item.status)})
+      </div>`;
+    }).join("");
   }
-
-  matches.forEach(obj => {
-    const div = document.createElement("div");
-    div.className = "suggestion-item";
-    div.textContent = obj.item.lote;
-    div.onclick = () => selecionarLoteSugestao(obj.idx);
-    box.appendChild(div);
-  });
-
-  box.classList.remove("hidden");
+  sugBox.classList.remove("hidden");
 }
 
-function selecionarLoteSugestao(index){
+function selecionarLoteParaConferencia(index){
   selectedLoteIndex = index;
-  const item = activeAuditLotes[index];
+  const lote = activeAuditLotes[index];
+  
+  $("searchLoteInput").value = lote.lote;
+  $("dispCultivar").value = lote.cultivar;
+  $("dispCat").value = lote.cat;
+  $("dispPeneira").value = lote.peneira;
+  $("dispUm").value = lote.um;
+  $("dispTratamento").value = lote.tratamento;
+  $("dispQtdSistema").value = lote.qtd_sistema ?? 0;
 
-  $("searchLoteInput").value = item.lote;
-  $("dispCultivar").value = item.cultivar || "—";
-  $("dispCat").value = item.cat || "—";
-  $("dispPeneira").value = item.peneira || "—";
-  $("dispUm").value = item.um || "—";
-  $("dispTratamento").value = item.tratamento || "—";
-  $("dispQtdSistema").value = item.qtd_sistema ?? "—";
-
-  $("inputCatFis").value = item.cat_fis || item.cat || "";
-  $("inputEtiquetaFis").value = item.etiqueta_fisica || "";
-  $("inputQtdFis").value = item.qtd_fisica ?? "";
-  $("inputCamara").value = item.camara || "";
-  $("inputQuadra").value = item.quadra || "";
-  $("inputFileira").value = item.fileira || "";
-  $("inputObs").value = item.observacao || "";
+  $("inputCatFis").value = lote.cat_fis || lote.cat;
+  $("inputEtiquetaFis").value = lote.etiqueta_fisica || lote.peso_etiqueta || "";
+  $("inputQtdFis").value = lote.qtd_fisica !== null ? lote.qtd_fisica : "";
+  $("inputCamara").value = lote.camara || "";
+  $("inputQuadra").value = lote.quadra || "";
+  $("inputFileira").value = lote.fileira || "";
+  $("inputObs").value = lote.observacao || "";
 
   $("suggestionsBox").classList.add("hidden");
 }
 
-function salvarConferenciaLote(){
-  if(selectedLoteIndex === -1){
-    return toast("Pesquise e selecione um lote válido antes de salvar!");
-  }
-
-  const item = activeAuditLotes[selectedLoteIndex];
-  const catFis = v("inputCatFis").trim();
-  const etqFis = v("inputEtiquetaFis").trim();
-  const qtdFisRaw = v("inputQtdFis");
-  const camara = v("inputCamara").trim();
-  const quadra = v("inputQuadra").trim();
-  const fileira = v("inputFileira").trim();
-  const obs = v("inputObs").trim();
-
-  item.cat_fis = catFis;
-  item.etiqueta_fisica = etqFis;
-  item.qtd_fisica = parseNumericValue(qtdFisRaw);
-  item.camara = camara;
-  item.quadra = quadra;
-  item.fileira = fileira;
-  item.observacao = obs;
-
-  let divergencias = [];
-  const qtdSysExistente = item.qtd_sistema !== null && item.qtd_sistema !== undefined && String(item.qtd_sistema).trim() !== "";
-
-  if (item.qtd_fisica !== null) {
-    if (!qtdSysExistente) {
-      item.status = "VERIFICAR QUANTIDADE SISTÊMICA NÃO CONSTA";
-    } else {
-      if (Number(item.qtd_fisica) !== Number(item.qtd_sistema)) {
-        divergencias.push("QTD FÍSICA DIFERENTE DA QTD SISTEMA");
-      }
-      
-      if (etqFis && item.peso_etiqueta && etqFis !== String(item.peso_etiqueta).trim()) {
-        divergencias.push("ETIQUETA FÍSICA DIFERENTE DA ETIQUETA SISTEMA");
-      }
-
-      if (divergencias.length > 0) {
-        item.status = "DIVERGÊNCIA — " + divergencias.join(" | ");
-      } else {
-        item.status = "VALIDADO";
-      }
-    }
-  } else {
-    item.status = "PENDENTE";
-  }
-
-  atualizarPainelOperacional();
-  renderSessionTable();
-  limparCamposConferencia();
-  toast("Lote conferido e gravado na sessão!");
-}
-
-function limparConferenciaLote(index){
-  const item = activeAuditLotes[index];
-  if(confirm(`Deseja limpar/apagar a conferência do lote ${item.lote}? O lote voltará ao status PENDENTE.`)){
-    item.qtd_fisica = null;
-    item.cat_fis = "";
-    item.etiqueta_fisica = "";
-    item.camara = "";
-    item.quadra = "";
-    item.fileira = "";
-    item.observacao = "";
-    item.status = "PENDENTE";
-
-    atualizarPainelOperacional();
-    renderSessionTable();
-    if(selectedLoteIndex === index){
-      limparCamposConferencia();
-    }
-    toast("Conferência do lote resetada para Pendente!");
-  }
-}
-
-function limparCamposConferencia(){
+function limparFormularioConferencia(){
   selectedLoteIndex = -1;
   $("searchLoteInput").value = "";
   $("dispCultivar").value = "";
@@ -986,7 +874,6 @@ function limparCamposConferencia(){
   $("dispUm").value = "";
   $("dispTratamento").value = "";
   $("dispQtdSistema").value = "";
-
   $("inputCatFis").value = "";
   $("inputEtiquetaFis").value = "";
   $("inputQtdFis").value = "";
@@ -996,8 +883,158 @@ function limparCamposConferencia(){
   $("inputObs").value = "";
 }
 
+function salvarConferenciaLote(){
+  if(selectedLoteIndex < 0){
+    return toast("Selecione um lote válido na busca!");
+  }
+
+  const lote = activeAuditLotes[selectedLoteIndex];
+  const qFis = parseNumericValue(v("inputQtdFis"));
+
+  if(qFis === null){
+    return toast("Informe uma quantidade física válida!");
+  }
+
+  lote.cat_fis = v("inputCatFis").trim();
+  lote.etiqueta_fisica = v("inputEtiquetaFis").trim();
+  lote.qtd_fisica = qFis;
+  lote.camara = v("inputCamara").trim();
+  lote.quadra = v("inputQuadra").trim();
+  lote.fileira = v("inputFileira").trim();
+  lote.observacao = v("inputObs").trim();
+
+  const qSis = Number(lote.qtd_sistema) || 0;
+  if(qFis === qSis && normalizarTexto(lote.cat_fis) === normalizarTexto(lote.cat)){
+    lote.status = "VALIDADO";
+  } else {
+    lote.status = "DIVERGÊN";
+  }
+
+  toast(`Lote ${lote.lote} atualizado com sucesso!`);
+  limparFormularioConferencia();
+  updateSessionKPIs();
+  renderSessionTable();
+}
+
+function updateSessionKPIs(){
+  const total = activeAuditLotes.length;
+  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null).length;
+  const restantes = total - auditados;
+
+  $("opTot").textContent = total;
+  $("opAud").textContent = auditados;
+  $("opRest").textContent = restantes;
+  $("opFaltantes").textContent = restantes;
+}
+
+function renderSessionTable(){
+  const fltL = v("fltLote").toLowerCase();
+  const fltC = v("fltCultura").toLowerCase();
+  const fltCv = v("fltCultivar").toLowerCase();
+  const fltSt = v("fltStatus").toLowerCase();
+
+  const filtered = activeAuditLotes.filter(x => {
+    if(fltL && !String(x.lote).toLowerCase().includes(fltL)) return false;
+    if(fltC && !String(x.cultura).toLowerCase().includes(fltC)) return false;
+    if(fltCv && !String(x.cultivar).toLowerCase().includes(fltCv)) return false;
+    if(fltSt && !String(x.status).toLowerCase().includes(fltSt)) return false;
+    return true;
+  });
+
+  if(filtered.length === 0){
+    $("sessionTableBody").innerHTML = '<tr><td colspan="13" class="muted" style="text-align:center">Nenhum lote encontrado.</td></tr>';
+    return;
+  }
+
+  $("sessionTableBody").innerHTML = filtered.map(x => {
+    const originalIndex = activeAuditLotes.indexOf(x);
+    return `
+      <tr>
+        <td><b>${esc(x.lote)}</b></td>
+        <td>${esc(x.cultura)}</td>
+        <td>${esc(x.cultivar)}</td>
+        <td>${x.qtd_sistema ?? "—"}</td>
+        <td><b>${x.qtd_fisica ?? "—"}</b></td>
+        <td>${esc(x.cat)}</td>
+        <td>${esc(x.cat_fis || "—")}</td>
+        <td>${esc(x.etiqueta_fisica || "—")}</td>
+        <td>${esc(x.peso_etiqueta || "—")}</td>
+        <td>${esc([x.camara, x.quadra, x.fileira].filter(Boolean).join('/') || "—")}</td>
+        <td><span class="${x.status === 'VALIDADO' ? 'ok' : x.status === 'PENDENTE' ? 'muted' : 'bad'}">${esc(x.status)}</span></td>
+        <td>${esc(x.observacao || "—")}</td>
+        <td>
+          <button style="padding:4px 8px;font-size:11px;" onclick="selecionarLoteParaConferencia(${originalIndex})">Editar</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function exportarPlanilhaSessao(){
+  if(activeAuditLotes.length === 0) return toast("Nenhum lote na sessão!");
+
+  const local = v("lblLocal");
+  const data = v("lblData");
+  const mes = v("lblMes");
+  const totalLotes = activeAuditLotes.length;
+  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null).length;
+  const validados = activeAuditLotes.filter(x => x.status === "VALIDADO").length;
+  const acuracidade = totalLotes > 0 ? ((validados / totalLotes) * 100).toFixed(1) + "%" : "0.0%";
+
+  const resumoRows = [
+    ["--- RESUMO DA AUDITORIA ---", ""],
+    ["Local", local],
+    ["Data", data],
+    ["Mes", mes],
+    ["Total de Lotes", totalLotes],
+    ["Auditados", auditados],
+    ["Validados", validados],
+    ["Acuracidade Apurada", acuracidade],
+    [],
+    ["--- DETALHAMENTO DOS LOTES ---", ""]
+  ];
+
+  const worksheet = XLSX.utils.aoa_to_sheet(resumoRows);
+
+  const lotesExport = activeAuditLotes.map(x => ({
+    "Lote": x.lote,
+    "Cultura": x.cultura,
+    "Cultivar": x.cultivar,
+    "Categoria": x.cat,
+    "UM Sis": x.um,
+    "Cat Fisica": x.cat_fis,
+    "Qtd Sistem": x.qtd_sistema,
+    "Qtd Fisica": x.qtd_fisica,
+    "Etiqueta Fi": x.etiqueta_fisica,
+    "Etiqueta Si": x.peso_etiqueta,
+    "Camara": x.camara,
+    "Quadra": x.quadra,
+    "Fileira": x.fileira,
+    "Status": x.status,
+    "Observacao": x.observacao
+  }));
+
+  XLSX.utils.sheet_add_json(worksheet, lotesExport, { origin: "A11", skipHeader: false });
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Auditoria");
+  XLSX.writeFile(workbook, `Auditoria_${local}_${data}.xlsx`);
+}
+
 function abrirModalAdicionarLote(){
-  $("addLocal").value = $("lblLocal") ? $("lblLocal").textContent.trim() : "";
+  $("addLocal").value = v("lblLocal");
+  $("addUf").value = "";
+  $("addFilial").value = "";
+  $("addCultura").value = "SOJA";
+  $("addLote").value = "";
+  $("addCultivar").value = "";
+  $("addCat").value = "";
+  $("addPen").value = "";
+  $("addUm").value = "BG";
+  $("addTratamento").value = "";
+  $("addQtdSistema").value = "0";
+  $("addPesoEtiqueta").value = "";
+
   $("modalAddLote").classList.remove("hidden");
 }
 
@@ -1006,15 +1043,15 @@ function fecharModalAdicionarLote(){
 }
 
 function salvarNovoLoteManual(){
-  const loteCod = v("addLote").trim();
-  if(!loteCod){
-    return toast("Informe o código do Lote!");
+  const numLote = v("addLote").trim();
+  if(!numLote){
+    return toast("Informe o número do lote!");
   }
 
-  const novoLoteObj = {
+  const novoLote = {
     id: null,
-    mes: $("lblMes") ? $("lblMes").textContent.trim() : "",
-    lote: loteCod,
+    mes: v("lblMes"),
+    lote: numLote,
     local: v("addLocal").trim(),
     uf: v("addUf").trim(),
     filial: v("addFilial").trim(),
@@ -1025,140 +1062,81 @@ function salvarNovoLoteManual(){
     um: v("addUm").trim(),
     tratamento: v("addTratamento").trim(),
     qtd_sistema: parseNumericValue(v("addQtdSistema")),
+    qtd_fisica: null,
     peso_etiqueta: v("addPesoEtiqueta").trim(),
     cat_fis: "",
-    qtd_fisica: null,
+    etiqueta_fisica: "",
+    camara: "",
+    quadra: "",
+    fileira: "",
+    observacao: "Lote inserido manualmente",
     status: "PENDENTE"
   };
 
-  activeAuditLotes.push(novoLoteObj);
+  activeAuditLotes.push(novoLote);
   fecharModalAdicionarLote();
-  atualizarPainelOperacional();
+  updateSessionKPIs();
   renderSessionTable();
-
-  selecionarLoteSugestao(activeAuditLotes.length - 1);
   toast("Novo lote adicionado com sucesso!");
 }
 
-function renderSessionTable(){
-  if(activeAuditLotes.length === 0){
-    $("sessionTableBody").innerHTML = '<tr><td colspan="13" class="muted" style="text-align:center">Nenhum lote carregado para esta sessão.</td></tr>';
-    return;
-  }
-
-  const fltLote = v("fltLote") ? v("fltLote").trim().toLowerCase() : "";
-  const fltCultura = v("fltCultura") ? v("fltCultura").trim().toLowerCase() : "";
-  const fltCultivar = v("fltCultivar") ? v("fltCultivar").trim().toLowerCase() : "";
-  const fltStatus = v("fltStatus") ? v("fltStatus").trim().toLowerCase() : "";
-
-  const lotesFiltrados = activeAuditLotes.map((x, originalIndex) => ({ x, originalIndex })).filter(obj => {
-    const item = obj.x;
-    if (fltLote && !String(item.lote).toLowerCase().includes(fltLote)) return false;
-    if (fltCultura && !String(item.cultura).toLowerCase().includes(fltCultura)) return false;
-    if (fltCultivar && !String(item.cultivar).toLowerCase().includes(fltCultivar)) return false;
-    if (fltStatus && !String(item.status).toLowerCase().includes(fltStatus)) return false;
-    return true;
-  });
-
-  if(lotesFiltrados.length === 0){
-    $("sessionTableBody").innerHTML = '<tr><td colspan="13" class="muted" style="text-align:center">Nenhum lote encontrado com os filtros aplicados.</td></tr>';
-    return;
-  }
-
-  $("sessionTableBody").innerHTML = lotesFiltrados.map(obj => {
-    const x = obj.x;
-    const index = obj.originalIndex;
-    const locFisico = [x.camara, x.quadra, x.fileira].filter(Boolean).join(" / ") || "—";
-    const statusClass = x.status === "VALIDADO" ? "ok" : x.status === "PENDENTE" ? "muted" : "bad";
-
-    return `
-      <tr>
-        <td><b>${esc(x.lote)}</b></td>
-        <td>${esc(x.cultura)}</td>
-        <td>${esc(x.cultivar)}</td>
-        <td>${x.qtd_sistema ?? "—"}</td>
-        <td>${x.qtd_fisica ?? "—"}</td>
-        <td>${esc(x.cat || "—")}</td>
-        <td>${esc(x.cat_fis || "—")}</td>
-        <td>${esc(x.etiqueta_fisica || "—")}</td>
-        <td>${esc(x.peso_etiqueta || "—")}</td>
-        <td>${esc(locFisico)}</td>
-        <td><span class="${statusClass}">${esc(x.status)}</span></td>
-        <td>${esc(x.observacao || "—")}</td>
-        <td>
-          <button class="sec" style="padding:4px 8px;font-size:11px;" onclick="selecionarLoteSugestao(${index})">Editar</button>
-          <button class="btn-clear" onclick="limparConferenciaLote(${index})">Limpar</button>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-function exportarPlanilhaSessao(){
-  if(activeAuditLotes.length === 0) return toast("Nenhum dado na sessão para exportar.");
-  const ws = XLSX.utils.json_to_sheet(activeAuditLotes);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "SessaoAuditoria");
-  XLSX.writeFile(wb, `auditoria_sessao_${v("date") || "local"}.xlsx`);
-}
-
-function preparaçaoNovoRegistro(origem) {
-  const camposNumericos = ["qtd_sistema", "qtd_fisica"];
-  const clone = { ...origem };
-
-  delete clone.id;
-  delete clone.historico_id;
-  delete clone.auditoria_id;
-
-  for (const key in clone) {
-    if (camposNumericos.includes(key)) {
-      clone[key] = parseNumericValue(clone[key]);
-    } else if (typeof clone[key] === "string" && clone[key].trim() === "") {
-      clone[key] = null;
-    }
-  }
-
-  return clone;
-}
-
-/* GRAVAÇÃO NA TABELA auditorias_historico */
 async function finalizarAuditoriaSessao(){
-  if(activeAuditLotes.length === 0) return toast("Não há dados para finalizar!");
-
-  const pendentes = activeAuditLotes.filter(x => x.qtd_fisica === null || x.qtd_fisica === undefined);
-  if(pendentes.length > 0){
-    if(!confirm(`Ainda existem ${pendentes.length} lotes pendentes. Deseja finalizar a auditoria assim mesmo?`)){
-      return;
-    }
+  if(activeAuditLotes.length === 0) return toast("Nenhum lote para finalizar!");
+  
+  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null);
+  if(auditados.length === 0){
+    return toast("Nenhum lote foi auditado ainda nesta sessão!");
   }
 
-  toast("Enviando novas auditorias para o banco de dados...");
-
-  const payload = activeAuditLotes.map(preparaçaoNovoRegistro);
+  toast("Salvando sessão no banco de dados...");
 
   try {
-    const { data, error } = await db
-      .from(TABLE_NAME)
-      .insert(payload);
+    const payload = activeAuditLotes.map(item => ({
+      mes: item.mes,
+      lote: item.lote,
+      local: item.local,
+      uf: item.uf,
+      filial: item.filial,
+      cultura: item.cultura,
+      cultivar: item.cultivar,
+      cat: item.cat,
+      peneira: item.peneira,
+      um: item.um,
+      tratamento: item.tratamento,
+      qtd_sistema: item.qtd_sistema,
+      qtd_fisica: item.qtd_fisica,
+      peso_etiqueta: item.peso_etiqueta,
+      cat_fis: item.cat_fis,
+      etiqueta_fisica: item.etiqueta_fisica,
+      camara: item.camara,
+      quadra: item.quadra,
+      fileira: item.fileira,
+      observacao: item.observacao,
+      status: item.status
+    }));
+
+    const { error } = await db.from(TABLE_NAME).insert(payload);
 
     if(error){
-      console.error("Erro na gravação final:", error);
-      alert("Erro ao gravar histórico no Supabase: " + error.message);
+      console.error("Erro ao salvar auditoria:", error);
+      toast("Erro ao salvar no Supabase!");
       return;
     }
 
-    alert("Auditoria finalizada e gravada com sucesso em auditorias_historico!");
-    rawAllAudits = [];
-    go("home");
-  } catch(err) {
-    console.error("Erro de execução:", err);
-    alert("Ocorreu uma falha ao tentar conectar ao Supabase.");
+    toast("Auditoria concluída e salva no histórico!");
+    rawAllAudits = []; 
+    setTimeout(() => go("home"), 1200);
+
+  } catch(e) {
+    console.error("Exceção ao finalizar:", e);
+    toast("Ocorreu uma falha na gravação dos dados.");
   }
 }
 
-window.onload = () => {
+// Inicialização
+window.addEventListener("DOMContentLoaded", () => {
   dashboard();
-};
+});
 </script>
 </body>
 </html>
