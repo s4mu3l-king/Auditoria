@@ -1,188 +1,965 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auditoria - Conferência de Estoque</title>
-  <style>
-    /* Estilos Globais e Layout */
-    * {
-      box-sizing: border-box;
-      font-family: Arial, sans-serif;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #f4f6f8;
-      color: #333;
-    }
-    header {
-      background-color: #1b5e37;
-      color: white;
-      padding: 12px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .brand-container {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .logo-box {
-      background: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-    }
-    .logo-img {
-      height: 32px;
-    }
-    .header-actions {
-      margin-left: auto;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Auditoria de Conferência</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--g:#145c3a;--g2:#0d442b;--bg:#f3f6f4;--card:#fff;--line:#dce5df;--text:#17231d;--muted:#66736c;--ok:#16804a;--bad:#b3261e;--warn:#a76b00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
 
-    /* Botões */
-    button {
-      cursor: pointer;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 6px;
-      font-weight: bold;
-      transition: background 0.2s;
-    }
-    button.sec {
-      background-color: #e9ecef;
-      color: #1b5e37;
-    }
-    button.sec:hover {
-      background-color: #dce1e6;
-    }
-    button.pri {
-      background-color: #1b5e37;
-      color: white;
-    }
-    button.pri:hover {
-      background-color: #144729;
-    }
+/* HEADER ALINHADO */
+header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-space:space-between;align-items:center;position:sticky;top:0;z-index:5}
+.brand-container{display:flex;align-items:center;gap:14px}
+.header-actions{display:flex;align-items:center;gap:10px}
+.logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
+.logo-img{height:46px;width:auto;object-fit:contain}
 
-    /* Main Container */
-    .container {
-      padding: 24px;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
+.wrap{max-width:1400px;margin:auto;padding:22px 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 15px #0000000a}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.grid-7{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.grid-7 label{display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi b{display:block;font-size:26px;margin-top:4px}
+.kpi-alert{background:#fff3cd;border:1px solid #ffeeba;color:#856404}
+.kpi-alert b{color:#856404;font-size:28px}
+label{font-size:11px;font-weight:bold;color:#59655f;display:block;margin-bottom:5px}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid #cbd6cf;border-radius:8px;font-size:13px;background:#fff;transition:border-color 0.2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
+button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer;transition:background 0.2s, opacity 0.2s}
+button:hover{opacity:0.9}
+.sec{background:#e8eeea;color:var(--g2)}
+.btn-export{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
+.btn-import{background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:170px;height:44px;border:0}
+.btn-add{background:var(--g);color:#fff}
+.btn-finish{background:var(--g);color:#fff;font-size:15px;padding:14px 22px}
+.btn-clear{background:var(--warn);color:#fff;padding:6px 10px;font-size:11px;border-radius:6px;border:none}
+.btn-clear:hover{background:#8c5900}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.muted{color:var(--muted)}
+.hidden{display:none !important}
 
-    /* Grid do Formulário de Pesquisa */
-    .section-title {
-      color: #1b5e37;
-      margin-top: 0;
-      margin-bottom: 16px;
-    }
-    .grid-7 {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 12px;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .grid-7 label {
-      font-size: 11px;
-      font-weight: bold;
-      color: #555;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      height: 100%;
-    }
-    .grid-7 input {
-      margin-top: 6px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 14px;
-      width: 100%;
-    }
-    .autocomplete-wrapper {
-      position: relative;
-    }
-    .suggestions-box {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 1px solid #ccc;
-      border-top: none;
-      border-radius: 0 0 6px 6px;
-      max-height: 150px;
-      overflow-y: auto;
-      z-index: 10;
-    }
-    .hidden {
-      display: none;
-    }
-  </style>
+/* BOTÃO NOVA AUDITORIA À DIREITA */
+.top{display:flex;justify-content:flex-end;gap:12px;align-items:center;margin-bottom:16px;width:100%}
+
+.ok{color:var(--ok);font-weight:bold}
+.bad{color:var(--bad);font-weight:bold}
+.warn{color:var(--warn);font-weight:bold}
+.toast{position:fixed;right:16px;bottom:16px;background:#173b2b;color:#fff;padding:13px 17px;border-radius:9px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+
+.progress-bg{width:100%;background:#e2e9e4;height:24px;border-radius:12px;overflow:hidden;margin-top:10px;position:relative}
+.progress-fill{height:100%;background:linear-gradient(90deg, #16804a, #2ecc71);width:0%;transition:width 0.5s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#fff;font-size:12px;font-weight:bold}
+.table-container{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:8px}
+table.data-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+table.data-table th{background:var(--g);color:#fff;padding:10px 12px;white-space:nowrap}
+table.data-table th input{margin-top:4px;padding:4px 6px;font-size:11px;border-radius:4px;border:1px solid #fff;color:#000;background:#fff}
+table.data-table td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.data-table tr:hover{background:#f0f5f2}
+.filter-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8faf9;padding:14px;border-radius:10px;border:1px solid var(--line)}
+.info-bar{display:flex;gap:20px;background:#f8faf9;padding:12px 16px;border-radius:8px;border:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap;font-size:14px}
+.info-bar span{display:flex;gap:6px}
+
+/* Autocomplete */
+.autocomplete-wrapper{position:relative}
+.suggestions-box{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:0 0 8px 8px;max-height:180px;overflow-y:auto;z-index:20;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
+.suggestion-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:14px}
+.suggestion-item:hover{background:#e8eeea}
+
+/* Modal Styling */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal-content{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto}
+
+@media(max-width:1100px){
+  .grid-7{grid-template-columns:repeat(3, 1fr);}
+}
+@media(max-width:800px){
+  .grid,.grid-4,.kpis{grid-template-columns:1fr 1fr}
+  .filter-box{grid-template-columns:1fr}
+}
+@media(max-width:520px){
+  .grid,.grid-4,.grid-7,.kpis{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
 
-  <!-- Cabeçalho com o Botão de Dashboard no Canto Superior Direito -->
-  <header>
-    <div class="brand-container">
-      <div class="logo-box">
-        <img src="https://github.com/s4mu3l-king/Auditoria/blob/main/logo.png%20-%20Copia.png?raw=true" alt="Logo Cereal Ouro" class="logo-img">
-      </div>
-      <div>
-        <b>♟ AUDITORIA</b> <small>Conferência de Estoque</small>
-      </div>
+<header>
+  <div class="brand-container">
+    <div class="logo-box">
+      <img src="https://github.com/s4mu3l-king/Auditoria/blob/main/logo.png%20-%20Copia.png?raw=true" alt="Logo Cereal Ouro" class="logo-img">
     </div>
+    <div><b>♟ AUDITORIA</b> <small>Conferência de Estoque</small></div>
+  </div>
 
-    <div class="header-actions">
-      <button class="sec" onclick="go('home')">Dashboard</button>
+  <div class="header-actions">
+    <button class="sec" onclick="go('home')">Dashboard</button>
+  </div>
+</header>
+
+<div class="wrap">
+<div id="toast" class="toast hidden"></div>
+
+<!-- TELA 1: DASHBOARD -->
+<section id="home">
+<div class="top">
+  <button class="btn-import" onclick="go('start')">NOVA AUDITORIA</button>
+</div>
+
+<div class="filter-box">
+  <label>FILTRAR POR MÊS DA AUDITORIA
+    <select id="dashMonth" onchange="onMonthChange()">
+      <option value="">Todos os Meses</option>
+    </select>
+  </label>
+  <label>FILTRAR POR LOCAL
+    <select id="dashLocal" onchange="dashboard()">
+      <option value="">Todos os Locais</option>
+    </select>
+  </label>
+  <label>FILTRAR POR CULTURA
+    <select id="dashCultura" onchange="dashboard()">
+      <option value="">Todas as Culturas</option>
+    </select>
+  </label>
+</div>
+
+<div class="kpis">
+  <div class="kpi">Lotes Totais<b id="tot">0</b></div>
+  <div class="kpi">Auditados<b id="aud">0</b></div>
+  <div class="kpi">Pendentes<b id="pen">0</b></div>
+  <div class="kpi">Acuracidade<b id="acc">0.0%</b></div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <b>Nível de Acuracidade Apurada</b>
+    <span id="accBarTxt" style="font-weight:bold;color:var(--g)">0.0%</span>
+  </div>
+  <div class="progress-bg">
+    <div id="accBar" class="progress-fill"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;" class="table-header-tools">
+    <b>Visão Geral dos Lotes e Auditorias</b>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <input id="dashSearch" placeholder="🔎 Filtrar tabela..." oninput="renderDashTable()" style="width:200px">
+      <button class="btn-export" onclick="exportToCSV()">📥 EXPORTAR EXCEL / CSV</button>
     </div>
-  </header>
+  </div>
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Mês Auditoria</th>
+          <th>Lote</th>
+          <th>Local</th>
+          <th>Cultura</th>
+          <th>Cultivar</th>
+          <th>Categoria</th>
+          <th>Qtd. Sistema</th>
+          <th>Qtd. Física</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="dashTableBody">
+        <tr><td colspan="9" class="muted" style="text-align:center">Carregando dados...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
 
-  <!-- Conteúdo Principal -->
-  <div class="container">
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
-      <button class="pri" onclick="novaAuditoria()">NOVA AUDITORIA</button>
+<!-- TELA 2: FORMULÁRIO DE INÍCIO DA AUDITORIA -->
+<section id="start" class="hidden">
+  <div class="card">
+    <h3>Iniciando Sessão de Auditoria</h3>
+    <div class="grid">
+      <label>LOCAL<select id="local"><option value="">Selecione o local...</option></select></label>
+      <label>DATA VERIFICAÇÃO<input id="date" type="date" onchange="atualizarMesPorData()"></label>
+      <label>MÊS<input id="month" disabled placeholder="Preenchido automaticamente"></label>
+      <label>AUDITOR PCP<input id="pcp" placeholder="Nome do auditor"></label>
+      <label>AUDITOR UNIDADE<input id="audun" placeholder="Nome do auditor"></label>
+      <label>RESPONSÁVEL UBS<input id="ubs" placeholder="Nome do responsável"></label>
     </div>
+    <div class="actions" style="justify-content: flex-end; margin-top: 18px;">
+      <button class="sec" onclick="go('home')">CANCELAR</button>
+      <button id="btnStartAudit" onclick="executarInicioAuditoria()">INICIAR CONFERÊNCIA</button>
+    </div>
+  </div>
+</section>
 
-    <!-- Seção de Pesquisa com Alinhamento Vertical Ajustado -->
-    <h3 class="section-title">Pesquisa e Seleção do Lote</h3>
-    <div class="grid-7">
-      <div class="autocomplete-wrapper">
-        <label>
-          PESQUISAR LOTE (Digite ex: 1417)
-          <input id="searchLoteInput" placeholder="Digite o lote..." oninput="onSearchLoteInput()" autocomplete="off">
-        </label>
-        <div id="suggestionsBox" class="suggestions-box hidden"></div>
-      </div>
-      <label>CULTIVAR<input id="dispCultivar" readonly style="background:#e9ecef" value="761 I2X"></label>
-      <label>CAT<input id="dispCat" readonly style="background:#e9ecef" value="S2"></label>
-      <label>PENEIRA<input id="dispPeneira" readonly style="background:#e9ecef" value="P1"></label>
-      <label>U.M.<input id="dispUm" readonly style="background:#e9ecef" value="BG"></label>
-      <label>TRATAMENTO<input id="dispTratamento" readonly style="background:#e9ecef" value="SEM TRATAMENTO"></label>
-      <label>QTD SISTEMA<input id="dispQtdSistema" readonly style="background:#e9ecef; font-weight:bold" value="30"></label>
+<!-- TELA 3: TELA OPERACIONAL - LOTES AUDITADOS -->
+<section id="audit-session" class="hidden">
+  <div class="kpis">
+    <div class="kpi">Total de Lotes<b id="opTot">0</b></div>
+    <div class="kpi">Lotes Auditados<b id="opAud">0</b></div>
+    <div class="kpi">Lotes Restantes<b id="opRest">0</b></div>
+    <div class="kpi kpi-alert">
+      <span style="font-size:11px;font-weight:bold;">CONTADOR DE PENDÊNCIAS</span>
+      <b id="opFaltantes">0</b>
+      <small style="font-size:10px;display:block;margin-top:2px;">LOTES FALTANTES PARA AUDITAR</small>
     </div>
   </div>
 
-  <script>
-    function go(route) {
-      console.log("Navegando para:", route);
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="info-bar" style="margin-bottom:0;padding:8px 14px;">
+        <span><b>Local:</b> <div id="lblLocal">—</div></span> | 
+        <span><b>Data:</b> <div id="lblData">—</div></span> | 
+        <span><b>Mês:</b> <div id="lblMes">—</div></span>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-export" onclick="exportarPlanilhaSessao()">📥 EXPORTAR PLANILHA</button>
+        <button class="btn-add" onclick="abrirModalAdicionarLote()">+ ADICIONAR LOTE</button>
+        <button class="sec" onclick="go('home')">PAINEL PRINCIPAL</button>
+      </div>
+    </div>
+
+    <!-- PESQUISA E SELEÇÃO DO LOTE COM CAMPOS COMPLEMENTARES -->
+    <div style="background:#f4f8f5;padding:16px;border-radius:10px;border:1px solid var(--line);margin-bottom:16px;">
+      <h4 style="margin:0 0 10px 0;color:var(--g)">Pesquisa e Seleção do Lote</h4>
+      <div class="grid-7">
+        <div class="autocomplete-wrapper">
+          <label>PESQUISAR LOTE (Digite ex: 1417)
+            <input id="searchLoteInput" placeholder="Digite o lote..." oninput="onSearchLoteInput()" autocomplete="off">
+          </label>
+          <div id="suggestionsBox" class="suggestions-box hidden"></div>
+        </div>
+        <label>CULTIVAR<input id="dispCultivar" readonly style="background:#e9ecef"></label>
+        <label>CAT<input id="dispCat" readonly style="background:#e9ecef"></label>
+        <label>PENEIRA<input id="dispPeneira" readonly style="background:#e9ecef"></label>
+        <label>U.M.<input id="dispUm" readonly style="background:#e9ecef"></label>
+        <label>TRATAMENTO<input id="dispTratamento" readonly style="background:#e9ecef"></label>
+        <label>QTD SISTEMA<input id="dispQtdSistema" readonly style="background:#e9ecef;font-weight:bold"></label>
+      </div>
+    </div>
+
+    <div style="background:#fff;padding:16px;border-radius:10px;border:1px solid var(--line);margin-bottom:16px;">
+      <h4 style="margin:0 0 10px 0;color:var(--g)">Dados da Conferência Física</h4>
+      <div class="grid-4" style="margin-bottom:12px;">
+        <label>CAT. FÍS.<input id="inputCatFis" placeholder="Cat. encontrada"></label>
+        <label>ETIQUETA FÍSICA<input id="inputEtiquetaFis" placeholder="Peso/Cod. Etiqueta"></label>
+        <label>QTD FÍSICA<input id="inputQtdFis" type="number" placeholder="Quantidade em sacos/bags"></label>
+        <label>CÂMARA<input id="inputCamara" placeholder="Câmara"></label>
+      </div>
+      <div class="grid-4" style="margin-bottom:12px;">
+        <label>QUADRA<input id="inputQuadra" placeholder="Quadra"></label>
+        <label>FILEIRA<input id="inputFileira" placeholder="Fileira"></label>
+        <label style="grid-column: span 2;">OBSERVAÇÃO
+          <input id="inputObs" placeholder="Registre qualquer observação relevante sobre o lote...">
+        </label>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button style="min-width:180px;" onclick="salvarConferenciaLote()">SALVAR LOTE</button>
+      </div>
+    </div>
+
+    <h4>Lotes da Sessão</h4>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>
+              Lote<br>
+              <input id="fltLote" placeholder="Filtrar lote..." oninput="renderSessionTable()">
+            </th>
+            <th>
+              Cultura<br>
+              <input id="fltCultura" placeholder="Filtrar cultura..." oninput="renderSessionTable()">
+            </th>
+            <th>
+              Cultivar<br>
+              <input id="fltCultivar" placeholder="Filtrar cultivar..." oninput="renderSessionTable()">
+            </th>
+            <th>Qtd. Sistema</th>
+            <th>Qtd. Física</th>
+            <th>Etiqueta Fís.</th>
+            <th>Etiqueta Sistema</th>
+            <th>Câmara/Quadra/Fileira</th>
+            <th>
+              Status<br>
+              <input id="fltStatus" placeholder="Filtrar status..." oninput="renderSessionTable()">
+            </th>
+            <th>Observação</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="sessionTableBody">
+          <tr><td colspan="11" class="muted" style="text-align:center">Nenhum lote carregado.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="actions" style="margin-top:20px;justify-content:flex-end;">
+      <button class="btn-finish" onclick="finalizarAuditoriaSessao()">FINALIZAR AUDITORIA</button>
+    </div>
+  </div>
+</section>
+
+<!-- MODAL: ADICIONAR LOTE MANUALMENTE -->
+<div id="modalAddLote" class="modal-overlay hidden">
+  <div class="modal-content">
+    <h3 style="margin-top:0;color:var(--g)">Adicionar Novo Lote à Auditoria</h3>
+    <p class="muted" style="font-size:13px">Preencha as informações do lote não localizado na base sistêmica original.</p>
+    <div class="grid" style="margin-bottom:12px;">
+      <label>LOCAL<input id="addLocal"></label>
+      <label>UF<input id="addUf"></label>
+      <label>FILIAL<input id="addFilial"></label>
+    </div>
+    <div class="grid-4" style="margin-bottom:12px;">
+      <label>CULTURA<input id="addCultura"></label>
+      <label>LOTE<input id="addLote" placeholder="Ex: 11743P1417"></label>
+      <label>CULTIVAR<input id="addCultivar"></label>
+      <label>CAT<input id="addCat"></label>
+    </div>
+    <div class="grid-4" style="margin-bottom:16px;">
+      <label>PEN. (Peneira)<input id="addPen"></label>
+      <label>U.M.<input id="addUm" placeholder="Ex: SC / KG"></label>
+      <label>TRATAMENTO<input id="addTratamento"></label>
+      <label>QTD SISTEMA<input id="addQtdSistema" type="number" value="0"></label>
+    </div>
+    <div class="grid-4" style="margin-bottom:16px;">
+      <label>PESO ETIQUETA<input id="addPesoEtiqueta"></label>
+    </div>
+    <div class="actions" style="justify-content:flex-end;">
+      <button class="sec" onclick="fecharModalAdicionarLote()">CANCELAR</button>
+      <button onclick="salvarNovoLoteManual()">SALVAR LOTE</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const SUPABASE_URL="https://vvzalcepxmlvgenxxykb.supabase.co";
+const SUPABASE_KEY="sb_publishable__2PcCGXtMDCTckWTPYgCHw_zTTPiGM2";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const TABLE_NAME = "auditorias_historico";
+let dashData=[], filteredData=[], rawAllAudits=[], activeAuditLotes=[];
+let selectedLoteIndex = -1;
+
+const $=id=>document.getElementById(id), v=id=>$(id).value;
+function toast(t){$("toast").textContent=t;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),3500)}
+
+function go(id){
+  ["home","start","audit-session"].forEach(x=>$(x).classList.toggle("hidden",x!==id));
+  if(id==="home") {
+    dashboard();
+  } else if(id==="start") {
+    prepararTelaNovaAuditoria();
+  }
+}
+
+function esc(x){return String(x??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
+
+function normalizarTexto(valor){
+  return String(valor ?? "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizarMesFiltro(valor){
+  if(!valor) return "";
+  let txt = String(valor).trim().toUpperCase();
+
+  const mapa = {
+    "1":"JAN","01":"JAN","JAN":"JAN","JANEIRO":"JAN",
+    "2":"FEV","02":"FEV","FEV":"FEV","FEVEREIRO":"FEV",
+    "3":"MAR","03":"MAR","MAR":"MAR","MARCO":"MAR","MARÇO":"MAR",
+    "4":"ABR","04":"ABR","ABR":"ABR","ABRIL":"ABR",
+    "5":"MAI","05":"MAI","MAI":"MAI","MAIO":"MAI",
+    "6":"JUN","06":"JUN","JUN":"JUN","JUNHO":"JUN",
+    "7":"JUL","07":"JUL","JUL":"JUL","JULHO":"JUL",
+    "8":"AGO","08":"AGO","AGO":"AGO","AGOSTO":"AGO",
+    "9":"SET","09":"SET","SET":"SET","SETEMBRO":"SET",
+    "10":"OUT","OUT":"OUT","OUTUBRO":"OUT",
+    "11":"NOV","NOV":"NOV","NOVEMBRO":"NOV",
+    "12":"DEZ","DEZ":"DEZ","DEZEMBRO":"DEZ"
+  };
+
+  for(let key in mapa){
+    if(txt === key || txt.includes(key)) return mapa[key];
+  }
+  return txt;
+}
+
+function extrairCampos(item){
+  return {
+    id: item.id || item.historico_id || item.auditoria_id || null,
+    mes: normalizarMesFiltro(item.mes || item.mes_auditoria || item.mes_conferencia || ""),
+    lote: item.lote || item.numero_lote || item.cod_lote || "—",
+    local: String(item.local || item.unidade || item.local_unidade || item.localidade || "").trim(),
+    uf: item.uf || "",
+    filial: item.filial || "",
+    cultura: String(item.cultura || item.especie || "").trim(),
+    cultivar: item.cultivar || item.variedade || "—",
+    cat: item.cat || item.categoria || "—",
+    peneira: item.peneira || item.pen || "—",
+    um: item.um || item.unidade_medida || "",
+    tratamento: item.tratamento || "—",
+    qtd_sistema: item.qtd_sistema ?? item.quantidade_sistema ?? item.saldo_sistema ?? item.saldo ?? null,
+    qtd_fisica: item.qtd_fisica ?? item.quantidade_fisica ?? item.saldo_fisico ?? null,
+    peso_etiqueta: item.peso_etiqueta || item.etiqueta_sistema || "",
+    cat_fisica: item.cat_fisica || "",
+    etiqueta_fisica: item.etiqueta_fisica || "",
+    camara: item.camara || "",
+    quadra: item.quadra || "",
+    fileira: item.fileira || "",
+    observacao: item.observacao || item.obs || "",
+    status: String(item.status || "PENDENTE").trim()
+  };
+}
+
+async function fetchAllRows(tableName){
+  let allData = [];
+  let page = 0, pageSize = 1000, hasMore = true;
+
+  while(hasMore){
+    const { data, error } = await db
+      .from(tableName)
+      .select("*")
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if(error){
+      console.error("Erro Supabase:", error);
+      toast("Erro de conexão com o Supabase.");
+      throw error;
     }
 
-    function novaAuditoria() {
-      console.log("Nova auditoria iniciada.");
+    if(data && data.length > 0){
+      allData = allData.concat(data.map(extrairCampos));
+      if(data.length < pageSize) hasMore = false;
+      else page++;
+    } else {
+      hasMore = false;
+    }
+  }
+  return allData;
+}
+
+async function dashboard(){
+  if(rawAllAudits.length === 0){
+    try {
+      rawAllAudits = await fetchAllRows(TABLE_NAME);
+      carregarOpcoesMeses();
+      carregarFiltrosCascata();
+    } catch(e) {
+      return;
+    }
+  }
+
+  const selMonth = normalizarMesFiltro(v("dashMonth"));
+  const selLocal = v("dashLocal");
+  const selCultura = v("dashCultura");
+
+  filteredData = rawAllAudits.filter(x => {
+    if(selMonth && x.mes !== selMonth) return false;
+    if(selLocal && x.local !== selLocal) return false;
+    if(selCultura && x.cultura !== selCultura) return false;
+    return true;
+  });
+
+  const tot = filteredData.length;
+  const aud = filteredData.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
+  const pen = tot - aud;
+  const validados = filteredData.filter(x => String(x.status).toUpperCase() === "VALIDADO").length;
+  const acc = tot > 0 ? ((validados / tot) * 100).toFixed(1) : "0.0";
+
+  $("tot").textContent = tot;
+  $("aud").textContent = aud;
+  $("pen").textContent = pen;
+  $("acc").textContent = acc + "%";
+  $("accBarTxt").textContent = acc + "%";
+  $("accBar").style.width = acc + "%";
+
+  renderDashTable();
+}
+
+function renderDashTable(){
+  const search = v("dashSearch").trim().toLowerCase();
+  const rows = filteredData.filter(x => {
+    if(!search) return true;
+    return String(x.lote).toLowerCase().includes(search) ||
+           String(x.cultivar).toLowerCase().includes(search) ||
+           String(x.local).toLowerCase().includes(search) ||
+           String(x.status).toLowerCase().includes(search);
+  });
+
+  if(rows.length === 0){
+    $("dashTableBody").innerHTML = '<tr><td colspan="9" class="muted" style="text-align:center">Nenhum registro localizado.</td></tr>';
+    return;
+  }
+
+  $("dashTableBody").innerHTML = rows.map(x => `
+    <tr>
+      <td>${esc(x.mes)}</td>
+      <td><b>${esc(x.lote)}</b></td>
+      <td>${esc(x.local)}</td>
+      <td>${esc(x.cultura)}</td>
+      <td>${esc(x.cultivar)}</td>
+      <td>${esc(x.cat)}</td>
+      <td>${x.qtd_sistema ?? "—"}</td>
+      <td>${x.qtd_fisica ?? "—"}</td>
+      <td><span class="${x.status === 'VALIDADO' ? 'ok' : x.status === 'PENDENTE' ? 'muted' : 'bad'}">${esc(x.status)}</span></td>
+    </tr>
+  `).join("");
+}
+
+function exportToCSV(){
+  if(filteredData.length === 0) return toast("Sem dados para exportar!");
+  const ws = XLSX.utils.json_to_sheet(filteredData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
+  XLSX.writeFile(wb, "auditoria_export.xlsx");
+}
+
+function carregarOpcoesMeses(){
+  const monthMap = new Set();
+  rawAllAudits.forEach(x => { if(x.mes) monthMap.add(x.mes); });
+
+  const ordemMes = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
+  const sortedMonths = [...monthMap].sort((a,b) => (ordemMes[a] || 99) - (ordemMes[b] || 99));
+
+  $("dashMonth").innerHTML = '<option value="">Todos os Meses</option>' +
+    sortedMonths.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join("");
+}
+
+function carregarFiltrosCascata(){
+  let selMonth = normalizarMesFiltro(v("dashMonth"));
+  let baseParaFiltros = rawAllAudits.filter(x => !selMonth || x.mes === selMonth);
+
+  const localsMap = new Set();
+  const culturasMap = new Set();
+
+  baseParaFiltros.forEach(x => {
+    if(x.local) localsMap.add(x.local);
+    if(x.cultura) culturasMap.add(x.cultura);
+  });
+
+  const curLocal = v("dashLocal");
+  const curCultura = v("dashCultura");
+
+  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  const sortedCulturas = [...culturasMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+
+  $("dashLocal").innerHTML = '<option value="">Todos os Locais</option>' +
+    sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+  $("dashCultura").innerHTML = '<option value="">Todas as Culturas</option>' +
+    sortedCulturas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+  if(localsMap.has(curLocal)) $("dashLocal").value = curLocal;
+  if(culturasMap.has(curCultura)) $("dashCultura").value = curCultura;
+}
+
+function onMonthChange(){
+  carregarFiltrosCascata();
+  dashboard();
+}
+
+function atualizarMesPorData(){
+  const dataVal = $("date").value;
+  if(!dataVal){
+    $("month").value = "";
+    return;
+  }
+  const partes = dataVal.split("-");
+  if(partes.length === 3){
+    const mesNum = parseInt(partes[1], 10);
+    const meses = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+    $("month").value = meses[mesNum - 1] || "";
+  }
+}
+
+async function prepararTelaNovaAuditoria(){
+  if(rawAllAudits.length === 0){
+    rawAllAudits = await fetchAllRows(TABLE_NAME);
+  }
+
+  const localsMap = new Set();
+  rawAllAudits.forEach(x => { if(x.local) localsMap.add(x.local); });
+  const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  
+  $("local").innerHTML = '<option value="">Selecione o local...</option>' +
+    sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+  if(!$("date").value){
+    const hoj = new Date().toISOString().slice(0,10);
+    $("date").value = hoj;
+  }
+  atualizarMesPorData();
+}
+
+function executarInicioAuditoria(){
+  const localSel = v("local");
+  const mesSel = v("month");
+
+  if(!localSel){
+    return toast("Por favor, selecione um Local!");
+  }
+
+  $("lblLocal").textContent = localSel;
+  $("lblData").textContent = v("date");
+  $("lblMes").textContent = mesSel;
+
+  const localTarget = normalizarTexto(localSel);
+
+  // 1. Filtra registros do local selecionado E com Qtd. Sistema > 0
+  const lotesDoLocal = rawAllAudits.filter(x => {
+    if(!x.local) return false;
+    
+    const qtdSys = Number(x.qtd_sistema) || 0;
+    if(qtdSys <= 0) return false;
+
+    const locBanco = normalizarTexto(x.local);
+    return locBanco === localTarget || locBanco.includes(localTarget) || localTarget.includes(locBanco);
+  });
+
+  // 2. Desduplica lotes
+  const mapaLotesUnicos = new Map();
+  lotesDoLocal.forEach(item => {
+    const chaveLote = String(item.lote).trim().toUpperCase();
+    if (!mapaLotesUnicos.has(chaveLote)) {
+      mapaLotesUnicos.set(chaveLote, item);
+    }
+  });
+
+  // 3. Inicia 100% PENDENTE
+  activeAuditLotes = Array.from(mapaLotesUnicos.values()).map(item => ({
+    ...item,
+    qtd_fisica: null,
+    cat_fisica: "",
+    etiqueta_fisica: "",
+    camara: "",
+    quadra: "",
+    fileira: "",
+    observacao: "",
+    status: "PENDENTE"
+  }));
+
+  atualizarPainelOperacional();
+  renderSessionTable();
+  go("audit-session");
+  
+  if(activeAuditLotes.length === 0){
+    toast("Atenção: nenhum lote com Qtd. Sistema > 0 foi encontrado para este local.");
+  } else {
+    toast(`Nova sessão iniciada com ${activeAuditLotes.length} lotes pendentes!`);
+  }
+}
+
+function atualizarPainelOperacional(){
+  const totalLotes = activeAuditLotes.length;
+  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
+  const restantes = totalLotes - auditados;
+
+  const faltantes = activeAuditLotes.filter(x => {
+    return x.qtd_fisica === null || x.qtd_fisica === undefined || String(x.qtd_fisica).trim() === "";
+  }).length;
+
+  $("opTot").textContent = totalLotes;
+  $("opAud").textContent = auditados;
+  $("opRest").textContent = restantes;
+  $("opFaltantes").textContent = faltantes;
+}
+
+function onSearchLoteInput(){
+  const query = v("searchLoteInput").trim().toLowerCase();
+  const box = $("suggestionsBox");
+  box.innerHTML = "";
+
+  if(!query){
+    box.classList.add("hidden");
+    return;
+  }
+
+  const matches = activeAuditLotes.map((item, idx) => ({ item, idx }))
+    .filter(obj => String(obj.item.lote).toLowerCase().includes(query));
+
+  if(matches.length === 0){
+    box.classList.add("hidden");
+    return;
+  }
+
+  matches.forEach(obj => {
+    const div = document.createElement("div");
+    div.className = "suggestion-item";
+    div.textContent = obj.item.lote;
+    div.onclick = () => selecionarLoteSugestao(obj.idx);
+    box.appendChild(div);
+  });
+
+  box.classList.remove("hidden");
+}
+
+function selecionarLoteSugestao(index){
+  selectedLoteIndex = index;
+  const item = activeAuditLotes[index];
+
+  $("searchLoteInput").value = item.lote;
+  $("dispCultivar").value = item.cultivar || "—";
+  $("dispCat").value = item.cat || "—";
+  $("dispPeneira").value = item.peneira || "—";
+  $("dispUm").value = item.um || "—";
+  $("dispTratamento").value = item.tratamento || "—";
+  $("dispQtdSistema").value = item.qtd_sistema ?? "—";
+
+  $("inputCatFis").value = item.cat_fisica || item.cat || "";
+  $("inputEtiquetaFis").value = item.etiqueta_fisica || "";
+  $("inputQtdFis").value = item.qtd_fisica ?? "";
+  $("inputCamara").value = item.camara || "";
+  $("inputQuadra").value = item.quadra || "";
+  $("inputFileira").value = item.fileira || "";
+  $("inputObs").value = item.observacao || "";
+
+  $("suggestionsBox").classList.add("hidden");
+}
+
+function salvarConferenciaLote(){
+  if(selectedLoteIndex === -1){
+    return toast("Pesquise e selecione um lote válido antes de salvar!");
+  }
+
+  const item = activeAuditLotes[selectedLoteIndex];
+  const catFis = v("inputCatFis").trim();
+  const etqFis = v("inputEtiquetaFis").trim();
+  const qtdFis = v("inputQtdFis").trim();
+  const camara = v("inputCamara").trim();
+  const quadra = v("inputQuadra").trim();
+  const fileira = v("inputFileira").trim();
+  const obs = v("inputObs").trim();
+
+  item.cat_fisica = catFis;
+  item.etiqueta_fisica = etqFis;
+  item.qtd_fisica = qtdFis !== "" ? Number(qtdFis) : null;
+  item.camara = camara;
+  item.quadra = quadra;
+  item.fileira = fileira;
+  item.observacao = obs;
+
+  let divergencias = [];
+  const qtdSysExistente = item.qtd_sistema !== null && item.qtd_sistema !== undefined && String(item.qtd_sistema).trim() !== "";
+
+  if (item.qtd_fisica !== null) {
+    if (!qtdSysExistente) {
+      item.status = "VERIFICAR QUANTIDADE SISTÊMICA NÃO CONSTA";
+    } else {
+      if (Number(item.qtd_fisica) !== Number(item.qtd_sistema)) {
+        divergencias.push("QTD FÍSICA DIFERENTE DA QTD SISTEMA");
+      }
+      
+      if (etqFis && item.peso_etiqueta && etqFis !== String(item.peso_etiqueta).trim()) {
+        divergencias.push("ETIQUETA FÍSICA DIFERENTE DA ETIQUETA SISTEMA");
+      }
+
+      if (divergencias.length > 0) {
+        item.status = "DIVERGÊNCIA — " + divergencias.join(" | ");
+      } else {
+        item.status = "VALIDADO";
+      }
+    }
+  } else {
+    item.status = "PENDENTE";
+  }
+
+  atualizarPainelOperacional();
+  renderSessionTable();
+  limparCamposConferencia();
+  toast("Lote conferido e gravado na sessão!");
+}
+
+function limparConferenciaLote(index){
+  const item = activeAuditLotes[index];
+  if(confirm(`Deseja limpar/apagar a conferência do lote ${item.lote}? O lote voltará ao status PENDENTE.`)){
+    item.qtd_fisica = null;
+    item.cat_fisica = "";
+    item.etiqueta_fisica = "";
+    item.camara = "";
+    item.quadra = "";
+    item.fileira = "";
+    item.observacao = "";
+    item.status = "PENDENTE";
+
+    atualizarPainelOperacional();
+    renderSessionTable();
+    if(selectedLoteIndex === index){
+      limparCamposConferencia();
+    }
+    toast("Conferência do lote resetada para Pendente!");
+  }
+}
+
+function limparCamposConferencia(){
+  selectedLoteIndex = -1;
+  $("searchLoteInput").value = "";
+  $("dispCultivar").value = "";
+  $("dispCat").value = "";
+  $("dispPeneira").value = "";
+  $("dispUm").value = "";
+  $("dispTratamento").value = "";
+  $("dispQtdSistema").value = "";
+
+  $("inputCatFis").value = "";
+  $("inputEtiquetaFis").value = "";
+  $("inputQtdFis").value = "";
+  $("inputCamara").value = "";
+  $("inputQuadra").value = "";
+  $("inputFileira").value = "";
+  $("inputObs").value = "";
+}
+
+function abrirModalAdicionarLote(){
+  $("addLocal").value = $("lblLocal") ? $("lblLocal").textContent.trim() : "";
+  $("modalAddLote").classList.remove("hidden");
+}
+
+function fecharModalAdicionarLote(){
+  $("modalAddLote").classList.add("hidden");
+}
+
+function salvarNovoLoteManual(){
+  const loteCod = v("addLote").trim();
+  if(!loteCod){
+    return toast("Informe o código do Lote!");
+  }
+
+  const novoLoteObj = {
+    id: null,
+    mes: $("lblMes") ? $("lblMes").textContent.trim() : "",
+    lote: loteCod,
+    local: v("addLocal").trim(),
+    uf: v("addUf").trim(),
+    filial: v("addFilial").trim(),
+    cultura: v("addCultura").trim(),
+    cultivar: v("addCultivar").trim(),
+    cat: v("addCat").trim(),
+    peneira: v("addPen").trim(),
+    um: v("addUm").trim(),
+    tratamento: v("addTratamento").trim(),
+    qtd_sistema: v("addQtdSistema") !== "" ? Number(v("addQtdSistema")) : 0,
+    peso_etiqueta: v("addPesoEtiqueta").trim(),
+    qtd_fisica: null,
+    status: "PENDENTE"
+  };
+
+  activeAuditLotes.push(novoLoteObj);
+  rawAllAudits.push(novoLoteObj);
+
+  fecharModalAdicionarLote();
+  atualizarPainelOperacional();
+  renderSessionTable();
+
+  selecionarLoteSugestao(activeAuditLotes.length - 1);
+  toast("Novo lote adicionado com sucesso!");
+}
+
+function renderSessionTable(){
+  if(activeAuditLotes.length === 0){
+    $("sessionTableBody").innerHTML = '<tr><td colspan="11" class="muted" style="text-align:center">Nenhum lote carregado para esta sessão.</td></tr>';
+    return;
+  }
+
+  const fltLote = v("fltLote") ? v("fltLote").trim().toLowerCase() : "";
+  const fltCultura = v("fltCultura") ? v("fltCultura").trim().toLowerCase() : "";
+  const fltCultivar = v("fltCultivar") ? v("fltCultivar").trim().toLowerCase() : "";
+  const fltStatus = v("fltStatus") ? v("fltStatus").trim().toLowerCase() : "";
+
+  const lotesFiltrados = activeAuditLotes.map((x, originalIndex) => ({ x, originalIndex })).filter(obj => {
+    const item = obj.x;
+    if (fltLote && !String(item.lote).toLowerCase().includes(fltLote)) return false;
+    if (fltCultura && !String(item.cultura).toLowerCase().includes(fltCultura)) return false;
+    if (fltCultivar && !String(item.cultivar).toLowerCase().includes(fltCultivar)) return false;
+    if (fltStatus && !String(item.status).toLowerCase().includes(fltStatus)) return false;
+    return true;
+  });
+
+  if(lotesFiltrados.length === 0){
+    $("sessionTableBody").innerHTML = '<tr><td colspan="11" class="muted" style="text-align:center">Nenhum lote encontrado com os filtros aplicados.</td></tr>';
+    return;
+  }
+
+  $("sessionTableBody").innerHTML = lotesFiltrados.map(obj => {
+    const x = obj.x;
+    const index = obj.originalIndex;
+    const locFisico = [x.camara, x.quadra, x.fileira].filter(Boolean).join(" / ") || "—";
+    const statusClass = x.status === "VALIDADO" ? "ok" : x.status === "PENDENTE" ? "muted" : "bad";
+
+    return `
+      <tr>
+        <td><b>${esc(x.lote)}</b></td>
+        <td>${esc(x.cultura)}</td>
+        <td>${esc(x.cultivar)}</td>
+        <td>${x.qtd_sistema ?? "—"}</td>
+        <td>${x.qtd_fisica ?? "—"}</td>
+        <td>${esc(x.etiqueta_fisica || "—")}</td>
+        <td>${esc(x.peso_etiqueta || "—")}</td>
+        <td>${esc(locFisico)}</td>
+        <td><span class="${statusClass}">${esc(x.status)}</span></td>
+        <td>${esc(x.observacao || "—")}</td>
+        <td>
+          <button class="sec" style="padding:4px 8px;font-size:11px;" onclick="selecionarLoteSugestao(${index})">Editar</button>
+          <button class="btn-clear" onclick="limparConferenciaLote(${index})">Limpar</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function exportarPlanilhaSessao(){
+  if(activeAuditLotes.length === 0) return toast("Nenhum dado na sessão para exportar.");
+  const ws = XLSX.utils.json_to_sheet(activeAuditLotes);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "SessaoAuditoria");
+  XLSX.writeFile(wb, `auditoria_sessao_${v("date") || "local"}.xlsx`);
+}
+
+async function finalizarAuditoriaSessao(){
+  if(activeAuditLotes.length === 0) return toast("Não há dados para finalizar!");
+
+  const pendentes = activeAuditLotes.filter(x => x.qtd_fisica === null || x.qtd_fisica === undefined);
+  if(pendentes.length > 0){
+    if(!confirm(`Ainda existem ${pendentes.length} lotes pendentes. Deseja finalizar a auditoria assim mesmo?`)){
+      return;
+    }
+  }
+
+  toast("Enviando auditorias para o banco de dados...");
+
+  try {
+    const { data, error } = await db
+      .from(TABLE_NAME)
+      .upsert(activeAuditLotes);
+
+    if(error){
+      console.error("Erro na gravação final:", error);
+      alert("Erro ao gravar histórico no Supabase: " + error.message);
+      return;
     }
 
-    function onSearchLoteInput() {
-      // Lógica de busca e autocompletar
-    }
-  </script>
+    alert("Auditoria finalizada e gravada com sucesso!");
+    rawAllAudits = [];
+    go("home");
+  } catch(err) {
+    console.error("Erro de execução:", err);
+    alert("Ocorreu uma falha ao tentar conectar ao Supabase.");
+  }
+}
 
+// Inicializa no Dashboard ao carregar
+window.onload = () => {
+  dashboard();
+};
+</script>
 </body>
 </html>
