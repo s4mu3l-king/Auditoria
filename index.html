@@ -132,7 +132,7 @@ table.data-table tr:hover{background:#f0f5f2}
 </div>
 
 <div class="card">
-  <div style="display:flex;justify-space-between;align-items:center;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
     <b>Nível de Acuracidade Apurada</b>
     <span id="accBarTxt" style="font-weight:bold;color:var(--g)">0.0%</span>
   </div>
@@ -931,10 +931,20 @@ async function finalizarAuditoriaSessao(){
 
   toast("Enviando auditorias para o banco de dados...");
 
-  // Remove o 'id' dos itens para garantir inserção correta sem conflito de chaves
+  // Tratamento dos campos para evitar erros de sintaxe e conflito no Supabase
   const payload = activeAuditLotes.map(item => {
     const dataObj = { ...item };
-    delete dataObj.id; 
+    delete dataObj.id; // Permite a geração automática do ID sequencial no banco
+
+    // Converte qualquer string vazia em campos numéricos para null
+    dataObj.qtd_sistema = (dataObj.qtd_sistema === "" || dataObj.qtd_sistema === null || dataObj.qtd_sistema === undefined) 
+      ? null 
+      : Number(dataObj.qtd_sistema);
+
+    dataObj.qtd_fisica = (dataObj.qtd_fisica === "" || dataObj.qtd_fisica === null || dataObj.qtd_fisica === undefined) 
+      ? null 
+      : Number(dataObj.qtd_fisica);
+
     return dataObj;
   });
 
