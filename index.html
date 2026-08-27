@@ -18,17 +18,18 @@ header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-spa
 .logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
 .logo-img{height:46px;width:auto;object-fit:contain}
 
-.wrap{max-width:1300px;margin:auto;padding:22px 16px}
+.wrap{max-width:1400px;margin:auto;padding:22px 16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 15px #0000000a}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.grid-7{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
 .kpi b{display:block;font-size:26px;margin-top:4px}
 .kpi-alert{background:#fff3cd;border:1px solid #ffeeba;color:#856404}
 .kpi-alert b{color:#856404;font-size:28px}
-label{font-size:12px;font-weight:bold;color:#59655f;display:block;margin-bottom:6px}
-input,select,textarea{width:100%;padding:10px 12px;border:1px solid #cbd6cf;border-radius:8px;font-size:14px;background:#fff;transition:border-color 0.2s}
+label{font-size:11px;font-weight:bold;color:#59655f;display:block;margin-bottom:5px}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid #cbd6cf;border-radius:8px;font-size:13px;background:#fff;transition:border-color 0.2s}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
 button{border:0;border-radius:8px;padding:12px 16px;background:var(--g);color:#fff;font-weight:bold;cursor:pointer;transition:background 0.2s, opacity 0.2s}
 button:hover{opacity:0.9}
@@ -37,7 +38,8 @@ button:hover{opacity:0.9}
 .btn-import{background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:170px;height:44px;border:0}
 .btn-add{background:var(--g);color:#fff}
 .btn-finish{background:var(--g);color:#fff;font-size:15px;padding:14px 22px}
-.btn-del{background:var(--bad);color:#fff;padding:4px 8px;font-size:11px;border-radius:4px}
+.btn-clear{background:var(--warn);color:#fff;padding:6px 10px;font-size:11px;border-radius:6px;border:none}
+.btn-clear:hover{background:#8c5900}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
 .muted{color:var(--muted)}
 .hidden{display:none !important}
@@ -55,6 +57,7 @@ button:hover{opacity:0.9}
 .table-container{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:8px}
 table.data-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
 table.data-table th{background:var(--g);color:#fff;padding:10px 12px;white-space:nowrap}
+table.data-table th input{margin-top:4px;padding:4px 6px;font-size:11px;border-radius:4px;border:1px solid #fff;color:#000;background:#fff}
 table.data-table td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
 table.data-table tr:hover{background:#f0f5f2}
 .filter-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;background:#f8faf9;padding:14px;border-radius:10px;border:1px solid var(--line)}
@@ -71,12 +74,15 @@ table.data-table tr:hover{background:#f0f5f2}
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:100}
 .modal-content{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:800px;max-height:90vh;overflow-y:auto}
 
+@media(max-width:1100px){
+  .grid-7{grid-template-columns:repeat(3, 1fr);}
+}
 @media(max-width:800px){
   .grid,.grid-4,.kpis{grid-template-columns:1fr 1fr}
   .filter-box{grid-template-columns:1fr}
 }
 @media(max-width:520px){
-  .grid,.grid-4,.kpis{grid-template-columns:1fr}
+  .grid,.grid-4,.grid-7,.kpis{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -216,9 +222,10 @@ table.data-table tr:hover{background:#f0f5f2}
       </div>
     </div>
 
+    <!-- PESQUISA E SELEÇÃO DO LOTE COM CAMPOS COMPLEMENTARES -->
     <div style="background:#f4f8f5;padding:16px;border-radius:10px;border:1px solid var(--line);margin-bottom:16px;">
       <h4 style="margin:0 0 10px 0;color:var(--g)">Pesquisa e Seleção do Lote</h4>
-      <div class="grid-4">
+      <div class="grid-7">
         <div class="autocomplete-wrapper">
           <label>PESQUISAR LOTE (Digite ex: 1417)
             <input id="searchLoteInput" placeholder="Digite o lote..." oninput="onSearchLoteInput()" autocomplete="off">
@@ -226,8 +233,11 @@ table.data-table tr:hover{background:#f0f5f2}
           <div id="suggestionsBox" class="suggestions-box hidden"></div>
         </div>
         <label>CULTIVAR<input id="dispCultivar" readonly style="background:#e9ecef"></label>
+        <label>CAT<input id="dispCat" readonly style="background:#e9ecef"></label>
         <label>PENEIRA<input id="dispPeneira" readonly style="background:#e9ecef"></label>
+        <label>U.M.<input id="dispUm" readonly style="background:#e9ecef"></label>
         <label>TRATAMENTO<input id="dispTratamento" readonly style="background:#e9ecef"></label>
+        <label>QTD SISTEMA<input id="dispQtdSistema" readonly style="background:#e9ecef;font-weight:bold"></label>
       </div>
     </div>
 
@@ -256,15 +266,27 @@ table.data-table tr:hover{background:#f0f5f2}
       <table class="data-table">
         <thead>
           <tr>
-            <th>Lote</th>
-            <th>Cultura</th>
-            <th>Cultivar</th>
+            <th>
+              Lote<br>
+              <input id="fltLote" placeholder="Filtrar lote..." oninput="renderSessionTable()">
+            </th>
+            <th>
+              Cultura<br>
+              <input id="fltCultura" placeholder="Filtrar cultura..." oninput="renderSessionTable()">
+            </th>
+            <th>
+              Cultivar<br>
+              <input id="fltCultivar" placeholder="Filtrar cultivar..." oninput="renderSessionTable()">
+            </th>
             <th>Qtd. Sistema</th>
             <th>Qtd. Física</th>
             <th>Etiqueta Fís.</th>
-            <th>Peso Etq. Sys</th>
+            <th>Etiqueta Sistema</th>
             <th>Câmara/Quadra/Fileira</th>
-            <th>Status</th>
+            <th>
+              Status<br>
+              <input id="fltStatus" placeholder="Filtrar status..." oninput="renderSessionTable()">
+            </th>
             <th>Observação</th>
             <th>Ações</th>
           </tr>
@@ -516,11 +538,10 @@ function executarInicioAuditoria(){
 
   const localTarget = normalizarTexto(localSel);
 
-  // 1. Filtra os registros do local selecionado E onde Qtd. Sistema > 0
+  // 1. Filtra registros do local selecionado E com Qtd. Sistema > 0
   const lotesDoLocal = rawAllAudits.filter(x => {
     if(!x.local) return false;
     
-    // Valida se possui saldo sistêmico estritamente maior que zero
     const qtdSys = Number(x.qtd_sistema) || 0;
     if(qtdSys <= 0) return false;
 
@@ -528,7 +549,7 @@ function executarInicioAuditoria(){
     return locBanco === localTarget || locBanco.includes(localTarget) || localTarget.includes(locBanco);
   });
 
-  // 2. Remove lotes duplicados mantendo apenas uma ocorrência única por Lote
+  // 2. Desduplica lotes
   const mapaLotesUnicos = new Map();
   lotesDoLocal.forEach(item => {
     const chaveLote = String(item.lote).trim().toUpperCase();
@@ -537,7 +558,7 @@ function executarInicioAuditoria(){
     }
   });
 
-  // 3. Reseta a sessão física para iniciar 100% como PENDENTE
+  // 3. Inicia 100% PENDENTE
   activeAuditLotes = Array.from(mapaLotesUnicos.values()).map(item => ({
     ...item,
     qtd_fisica: null,
@@ -611,8 +632,11 @@ function selecionarLoteSugestao(index){
 
   $("searchLoteInput").value = item.lote;
   $("dispCultivar").value = item.cultivar || "—";
+  $("dispCat").value = item.cat || "—";
   $("dispPeneira").value = item.peneira || "—";
+  $("dispUm").value = item.um || "—";
   $("dispTratamento").value = item.tratamento || "—";
+  $("dispQtdSistema").value = item.qtd_sistema ?? "—";
 
   $("inputCatFis").value = item.cat_fisica || item.cat || "";
   $("inputEtiquetaFis").value = item.etiqueta_fisica || "";
@@ -659,7 +683,7 @@ function salvarConferenciaLote(){
       }
       
       if (etqFis && item.peso_etiqueta && etqFis !== String(item.peso_etiqueta).trim()) {
-        divergencias.push("ETIQUETA FÍSICA DIFERENTE DO PESO ETIQUETA");
+        divergencias.push("ETIQUETA FÍSICA DIFERENTE DA ETIQUETA SISTEMA");
       }
 
       if (divergencias.length > 0) {
@@ -678,12 +702,25 @@ function salvarConferenciaLote(){
   toast("Lote conferido e gravado na sessão!");
 }
 
-function excluirLoteSessao(index){
-  if(confirm("Deseja realmente remover este lote da auditoria atual?")){
-    activeAuditLotes.splice(index, 1);
+/* APAGA APENAS A CONFERÊNCIA DO LOTE (SEM REMOVER O LOTE DA LISTA) */
+function limparConferenciaLote(index){
+  const item = activeAuditLotes[index];
+  if(confirm(`Deseja limpar/apagar a conferência do lote ${item.lote}? O lote voltará ao status PENDENTE.`)){
+    item.qtd_fisica = null;
+    item.cat_fisica = "";
+    item.etiqueta_fisica = "";
+    item.camara = "";
+    item.quadra = "";
+    item.fileira = "";
+    item.observacao = "";
+    item.status = "PENDENTE";
+
     atualizarPainelOperacional();
     renderSessionTable();
-    toast("Lote removido da sessão!");
+    if(selectedLoteIndex === index){
+      limparCamposConferencia();
+    }
+    toast("Conferência do lote resetada para Pendente!");
   }
 }
 
@@ -691,8 +728,11 @@ function limparCamposConferencia(){
   selectedLoteIndex = -1;
   $("searchLoteInput").value = "";
   $("dispCultivar").value = "";
+  $("dispCat").value = "";
   $("dispPeneira").value = "";
+  $("dispUm").value = "";
   $("dispTratamento").value = "";
+  $("dispQtdSistema").value = "";
 
   $("inputCatFis").value = "";
   $("inputEtiquetaFis").value = "";
@@ -704,7 +744,7 @@ function limparCamposConferencia(){
 }
 
 function abrirModalAdicionarLote(){
-  $("addLocal").value = v("lblLocal") !== "—" ? v("lblLocal") : "";
+  $("addLocal").value = $("lblLocal") ? $("lblLocal").textContent.trim() : "";
   $("modalAddLote").classList.remove("hidden");
 }
 
@@ -720,7 +760,7 @@ function salvarNovoLoteManual(){
 
   const novoLoteObj = {
     id: null,
-    mes: v("lblMes") !== "—" ? v("lblMes") : "",
+    mes: $("lblMes") ? $("lblMes").textContent.trim() : "",
     lote: loteCod,
     local: v("addLocal").trim(),
     uf: v("addUf").trim(),
@@ -754,7 +794,30 @@ function renderSessionTable(){
     return;
   }
 
-  $("sessionTableBody").innerHTML = activeAuditLotes.map((x, index) => {
+  // Obter valores dos filtros do cabeçalho
+  const fltLote = v("fltLote") ? v("fltLote").trim().toLowerCase() : "";
+  const fltCultura = v("fltCultura") ? v("fltCultura").trim().toLowerCase() : "";
+  const fltCultivar = v("fltCultivar") ? v("fltCultivar").trim().toLowerCase() : "";
+  const fltStatus = v("fltStatus") ? v("fltStatus").trim().toLowerCase() : "";
+
+  // Filtragem local dos elementos da sessão
+  const lotesFiltrados = activeAuditLotes.map((x, originalIndex) => ({ x, originalIndex })).filter(obj => {
+    const item = obj.x;
+    if (fltLote && !String(item.lote).toLowerCase().includes(fltLote)) return false;
+    if (fltCultura && !String(item.cultura).toLowerCase().includes(fltCultura)) return false;
+    if (fltCultivar && !String(item.cultivar).toLowerCase().includes(fltCultivar)) return false;
+    if (fltStatus && !String(item.status).toLowerCase().includes(fltStatus)) return false;
+    return true;
+  });
+
+  if(lotesFiltrados.length === 0){
+    $("sessionTableBody").innerHTML = '<tr><td colspan="11" class="muted" style="text-align:center">Nenhum lote encontrado com os filtros aplicados.</td></tr>';
+    return;
+  }
+
+  $("sessionTableBody").innerHTML = lotesFiltrados.map(obj => {
+    const x = obj.x;
+    const index = obj.originalIndex;
     let st = normalizarTexto(x.status);
     let cl = st === "VALIDADO" ? "ok" : (st.includes("DIVERG") ? "bad" : "warn");
     const locFis = [x.camara ? `Câm: ${x.camara}` : "", x.quadra ? `Qd: ${x.quadra}` : "", x.fileira ? `Fil: ${x.fileira}` : ""].filter(Boolean).join(" / ") || "—";
@@ -770,7 +833,7 @@ function renderSessionTable(){
       <td>${esc(locFis)}</td>
       <td><span class="${cl}">${esc(x.status)}</span></td>
       <td><small>${esc(x.observacao || "—")}</small></td>
-      <td><button class="btn-del" onclick="excluirLoteSessao(${index})">Excluir</button></td>
+      <td><button class="btn-clear" onclick="limparConferenciaLote(${index})" title="Reseta a conferência física e mantém o lote na lista">Limpar Conf.</button></td>
     </tr>`;
   }).join("");
 }
@@ -778,30 +841,34 @@ function renderSessionTable(){
 function exportarPlanilhaSessao(){
   if(activeAuditLotes.length === 0) return toast("Sem dados para exportar.");
 
+  const localVal = $("lblLocal") ? $("lblLocal").textContent.trim() : "";
+  const dataVal = $("lblData") ? $("lblData").textContent.trim() : "";
+  const mesVal = $("lblMes") ? $("lblMes").textContent.trim() : "";
+
   let auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
   let validados = activeAuditLotes.filter(x => normalizarTexto(x.status) === "VALIDADO").length;
   let acuracidade = auditados > 0 ? ((validados / auditados) * 100).toFixed(1) + "%" : "0.0%";
 
   let csv = ["\uFEFF--- RESUMO DA AUDITORIA ---"];
-  csv.push(`Local;${v("lblLocal")}`);
-  csv.push(`Data;${v("lblData")}`);
-  csv.push(`Mes;${v("lblMes")}`);
+  csv.push(`Local;${localVal}`);
+  csv.push(`Data;${dataVal}`);
+  csv.push(`Mes;${mesVal}`);
   csv.push(`Total de Lotes;${activeAuditLotes.length}`);
   csv.push(`Auditados;${auditados}`);
   csv.push(`Validados;${validados}`);
   csv.push(`Acuracidade Apurada;${acuracidade}`);
   csv.push("");
   csv.push("--- DETALHAMENTO DOS LOTES ---");
-  csv.push("Lote;Cultura;Cultivar;Categoria Sis;Cat Fisica;Qtd Sistema;Qtd Fisica;Etiqueta Fisica;Peso Etiqueta Sis;Camara;Quadra;Fileira;Status;Observacao");
+  csv.push("Lote;Cultura;Cultivar;Categoria Sis;UM Sis;Cat Fisica;Qtd Sistema;Qtd Fisica;Etiqueta Fisica;Etiqueta Sistema;Camara;Quadra;Fileira;Status;Observacao");
 
   activeAuditLotes.forEach(x => {
-    csv.push(`"${x.lote}";"${x.cultura}";"${x.cultivar}";"${x.cat}";"${x.cat_fisica||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.etiqueta_fisica||''}";"${x.peso_etiqueta||''}";"${x.camara||''}";"${x.quadra||''}";"${x.fileira||''}";"${x.status}";"${x.observacao||''}"`);
+    csv.push(`"${x.lote}";"${x.cultura}";"${x.cultivar}";"${x.cat}";"${x.um||''}";"${x.cat_fisica||''}";"${x.qtd_sistema??""}";"${x.qtd_fisica??""}";"${x.etiqueta_fisica||''}";"${x.peso_etiqueta||''}";"${x.camara||''}";"${x.quadra||''}";"${x.fileira||''}";"${x.status}";"${x.observacao||''}"`);
   });
 
   let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
   let link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `Relatorio_Auditoria_${v("lblLocal")}_${v("lblData")}.csv`;
+  link.download = `Relatorio_Auditoria_${localVal.replace(/[^a-zA-Z0-9]/g, "_")}_${dataVal}.csv`;
   link.click();
   toast("Planilha exportada com sucesso!");
 }
