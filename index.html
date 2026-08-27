@@ -398,14 +398,14 @@ function extrairCampos(item){
     filial: item.filial || "",
     cultura: String(item.cultura || item.especie || "").trim(),
     cultivar: item.cultivar || item.variedade || "—",
-    cat: item.cat || item.categoria || "—", // <--- Coluna 'cat' no Supabase
+    cat: item.cat || item.categoria || "—",
     peneira: item.peneira || item.pen || "—",
     um: item.um || item.unidade_medida || "",
     tratamento: item.tratamento || "—",
     qtd_sistema: item.qtd_sistema ?? item.quantidade_sistema ?? item.saldo_sistema ?? item.saldo ?? null,
     qtd_fisica: item.qtd_fisica ?? item.quantidade_fisica ?? item.saldo_fisico ?? null,
     peso_etiqueta: item.peso_etiqueta || item.etiqueta_sistema || "",
-    cat_fis: item.cat_fis || "", // <--- Coluna 'cat_fis' no Supabase
+    cat_fis: item.cat_fis || "",
     etiqueta_fisica: item.etiqueta_fisica || "",
     camara: item.camara || "",
     quadra: item.quadra || "",
@@ -931,10 +931,17 @@ async function finalizarAuditoriaSessao(){
 
   toast("Enviando auditorias para o banco de dados...");
 
+  // Remove a chave id nula antes de enviar para evitar erro de schema cache
+  const payload = activeAuditLotes.map(item => {
+    const dataObj = { ...item };
+    if (!dataObj.id) delete dataObj.id;
+    return dataObj;
+  });
+
   try {
     const { data, error } = await db
       .from(TABLE_NAME)
-      .upsert(activeAuditLotes);
+      .upsert(payload, { onConflict: 'lote' });
 
     if(error){
       console.error("Erro na gravação final:", error);
