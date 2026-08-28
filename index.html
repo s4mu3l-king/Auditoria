@@ -845,7 +845,7 @@ async function carregarSessaoExistente(){
   }
 }
 
-// INICIALIZAÇÃO DA NOVA AUDITORIA
+// INICIALIZAÇÃO DA NOVA AUDITORIA (FILTRANDO QTD_SISTEMA > 0)
 async function executarInicioAuditoria(){
   const loc = v("local");
   const dt = v("date");
@@ -874,19 +874,26 @@ async function executarInicioAuditoria(){
 
     currentSessionHeader = { pcp, audun, ubs };
 
-    activeAuditLotes = baseLotes.map(item => {
-      const parsed = extrairCampos(item);
-      return {
-        ...parsed,
-        local: loc,
-        mes: ms,
-        data_verificacao: dt,
-        auditor_pcp: pcp,
-        auditor_unidade: audun,
-        responsavel_ubs: ubs,
-        status: "PENDENTE"
-      };
-    });
+    // Filtra para manter somente os lotes com Qtd Sistema > 0
+    activeAuditLotes = baseLotes
+      .map(item => {
+        const parsed = extrairCampos(item);
+        return {
+          ...parsed,
+          local: loc,
+          mes: ms,
+          data_verificacao: dt,
+          auditor_pcp: pcp,
+          auditor_unidade: audun,
+          responsavel_ubs: ubs,
+          status: "PENDENTE"
+        };
+      })
+      .filter(lote => (Number(lote.qtd_sistema) || 0) > 0);
+
+    if(activeAuditLotes.length === 0){
+      return toast("Nenhum lote com quantidade maior que zero encontrado para este local.");
+    }
 
     $("lblLocal").textContent = loc;
     $("lblData").textContent = dt;
@@ -894,7 +901,7 @@ async function executarInicioAuditoria(){
 
     go("audit-session");
     renderSessionTable();
-    toast(`Auditoria iniciada com ${activeAuditLotes.length} lotes!`);
+    toast(`Auditoria iniciada com ${activeAuditLotes.length} lotes ativos!`);
 
   } catch(e) {
     console.error("Erro ao iniciar conferência:", e);
