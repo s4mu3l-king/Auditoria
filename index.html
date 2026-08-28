@@ -354,7 +354,7 @@ const BASE_TABLE_NAME = "base_dados";
 const TABLE_NAME = "auditorias_historico";
 
 let dashData=[], filteredData=[], rawAllAudits=[], activeAuditLotes=[];
-let currentSessionHeader = { pcp: "", audun: "", ubs: "" }; // Estado global para armazenar os auditores da sessão
+let currentSessionHeader = { pcp: "", audun: "", ubs: "" };
 let selectedLoteIndex = -1;
 let barChartInstance = null;
 
@@ -757,7 +757,6 @@ async function executarInicioAuditoria(){
     return toast("Por favor, selecione um Local!");
   }
 
-  // Guardando os dados no objeto de sessão para exportação posterior
   currentSessionHeader = {
     pcp: v("pcp").trim() || "—",
     audun: v("audun").trim() || "—",
@@ -816,55 +815,146 @@ async function executarInicioAuditoria(){
 
   } catch(e) {
     console.error("Exceção ao iniciar auditoria:", e);
-    toast("Ocorreu um erro ao carregar os dados.");
+    toast("Ocorreu um erro ao carregar a sessão.");
   }
 }
 
-function onSearchLoteInput(){
-  const inputVal = normalizarTexto(v("searchLoteInput"));
-  const sugBox = $("suggestionsBox");
-  
-  if(!inputVal){
-    sugBox.classList.add("hidden");
+function updateSessionKPIs(){
+  const tot = activeAuditLotes.length;
+  const aud = activeAuditLotes.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
+  const rest = tot - aud;
+
+  $("opTot").textContent = tot;
+  $("opAud").textContent = aud;
+  $("opRest").textContent = rest;
+  $("opFaltantes").textContent = rest;
+}
+
+function renderSessionTable(){
+  const fltLote = v("fltLote").trim().toLowerCase();
+  const fltCultura = v("fltCultura").trim().toLowerCase();
+  const fltCultivar = v("fltCultivar").trim().toLowerCase();
+  const fltStatus = v("fltStatus").trim().toLowerCase();
+
+  const filteredSession = activeAuditLotes.filter(x => {
+    if(fltLote && !String(x.lote).toLowerCase().includes(fltLote)) return false;
+    if(fltCultura && !String(x.cultura).toLowerCase().includes(fltCultura)) return false;
+    if(fltCultivar && !String(x.cultivar).toLowerCase().includes(fltCultivar)) return false;
+    if(fltStatus && !String(x.status).toLowerCase().includes(fltStatus)) return false;
+    return true;
+  });
+
+  if(filteredSession.length === 0){
+    $("sessionTableBody").innerHTML = '<tr><td colspan="13" class="muted" style="text-align:center">Nenhum lote corresponde aos filtros.</td></tr>';
     return;
   }
 
-  const matches = activeAuditLotes.filter(x => normalizarTexto(x.lote).includes(inputVal));
+  $("sessionTableBody").innerHTML = filteredSession.map(x => {
+    const realIdx = activeAuditLotes.indexOf(x);
+    const locStr = [x.camara, x.quadra, x.fileira].filter(Boolean).join(" / ") || "—";
+    const statusClass = x.status === 'VALIDADO' ? 'ok' : x.status === 'PENDENTE' ? 'muted' : 'bad';
+
+    return `
+      <tr>
+        <td><b>${esc(x.lote)}</b></td>
+        <td>${esc(x.cultura)}</td>
+        <td>${esc(x.cultivar)}</td>
+        <td>${x.qtd_sistema ?? "—"}</td>
+        <td>${x.qtd_fisica ?? "—"}</td>
+        <td>${esc(x.cat)}</td>
+        <td>${esc(x.cat_fis || "—")}</td>
+        <td>${esc(x.etiqueta_fisica || "—")}</td>
+        <td>${esc(x.peso_etiqueta || "—")}</td>
+        <td>${esc(locStr)}</td>
+        <td><span class="${statusClass}">${esc(x.status)}</span></td>
+        <td>${esc(x.observacao || "—")}</td>
+        <td>
+          <button style="padding:4px 8px;font-size:11px;" onclick="selecionarLoteParaEdicao(${realIdx})">Editar</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function onSearchLoteInput(){
+  const query = v("searchLoteInput").trim().toUpperCase();
+  const box = $("suggestionsBox");
+
+  if(!query){
+    box.classList.add("hidden");
+    return;
+  }
+
+  const matches = activeAuditLotes.filter(x => String(x.lote).toUpperCase().includes(query));
 
   if(matches.length === 0){
-    sugBox.innerHTML = '<div class="suggestion-item muted">Nenhum lote encontrado</div>';
+    box.innerHTML = '<div class="suggestion-item muted">Nenhum lote encontrado</div>';
   } else {
-    sugBox.innerHTML = matches.slice(0, 10).map((item) => {
-      const idx = activeAuditLotes.indexOf(item);
-      return `<div class="suggestion-item" onclick="selecionarLoteParaConferencia(${idx})">
-        <b>${esc(item.lote)}</b> - ${esc(item.cultivar)} (${esc(item.status)})
+    box.innerHTML = matches.slice(0, 10).map(x => {
+      const idx = activeAuditLotes.indexOf(x);
+      return `<div class="suggestion-item" onclick="selecionarLoteParaEdicao(${idx})">
+        <b>${esc(x.lote)}</b> - ${esc(x.cultivar)} (${esc(x.cultura)})
       </div>`;
     }).join("");
   }
-  sugBox.classList.remove("hidden");
+  box.classList.remove("hidden");
 }
 
-function selecionarLoteParaConferencia(index){
-  selectedLoteIndex = index;
-  const lote = activeAuditLotes[index];
-  
-  $("searchLoteInput").value = lote.lote;
-  $("dispCultivar").value = lote.cultivar;
-  $("dispCat").value = lote.cat;
-  $("dispPeneira").value = lote.peneira;
-  $("dispUm").value = lote.um;
-  $("dispTratamento").value = lote.tratamento;
-  $("dispQtdSistema").value = lote.qtd_sistema ?? 0;
+function selecionarLoteParaEdicao(idx){
+  selectedLoteIndex = idx;
+  const item = activeAuditLotes[idx];
+  if(!item) return;
 
-  $("inputCatFis").value = lote.cat_fis || lote.cat;
-  $("inputEtiquetaFis").value = lote.etiqueta_fisica || lote.peso_etiqueta || "";
-  $("inputQtdFis").value = lote.qtd_fisica !== null ? lote.qtd_fisica : "";
-  $("inputCamara").value = lote.camara || "";
-  $("inputQuadra").value = lote.quadra || "";
-  $("inputFileira").value = lote.fileira || "";
-  $("inputObs").value = lote.observacao || "";
+  $("searchLoteInput").value = item.lote;
+  $("dispCultivar").value = item.cultivar;
+  $("dispCat").value = item.cat;
+  $("dispPeneira").value = item.peneira;
+  $("dispUm").value = item.um;
+  $("dispTratamento").value = item.tratamento;
+  $("dispQtdSistema").value = item.qtd_sistema ?? "";
+
+  $("inputCatFis").value = item.cat_fis || "";
+  $("inputEtiquetaFis").value = item.etiqueta_fisica || "";
+  $("inputQtdFis").value = item.qtd_fisica ?? "";
+  $("inputCamara").value = item.camara || "";
+  $("inputQuadra").value = item.quadra || "";
+  $("inputFileira").value = item.fileira || "";
+  $("inputObs").value = item.observacao || "";
 
   $("suggestionsBox").classList.add("hidden");
+}
+
+function salvarConferenciaLote(){
+  if(selectedLoteIndex < 0){
+    return toast("Pesquise e selecione um lote primeiro!");
+  }
+
+  const item = activeAuditLotes[selectedLoteIndex];
+  const qtdFis = parseNumericValue(v("inputQtdFis"));
+
+  item.cat_fis = v("inputCatFis").trim();
+  item.etiqueta_fisica = v("inputEtiquetaFis").trim();
+  item.qtd_fisica = qtdFis;
+  item.camara = v("inputCamara").trim();
+  item.quadra = v("inputQuadra").trim();
+  item.fileira = v("inputFileira").trim();
+  item.observacao = v("inputObs").trim();
+
+  const qtdSys = Number(item.qtd_sistema) || 0;
+  if(qtdFis !== null){
+    if(qtdFis === qtdSys){
+      item.status = "VALIDADO";
+    } else {
+      item.status = "DIVERGENTE";
+    }
+  } else {
+    item.status = "PENDENTE";
+  }
+
+  toast(`Lote ${item.lote} atualizado!`);
+  limparFormularioConferencia();
+  updateSessionKPIs();
+  renderSessionTable();
 }
 
 function limparFormularioConferencia(){
@@ -876,6 +966,7 @@ function limparFormularioConferencia(){
   $("dispUm").value = "";
   $("dispTratamento").value = "";
   $("dispQtdSistema").value = "";
+
   $("inputCatFis").value = "";
   $("inputEtiquetaFis").value = "";
   $("inputQtdFis").value = "";
@@ -883,170 +974,22 @@ function limparFormularioConferencia(){
   $("inputQuadra").value = "";
   $("inputFileira").value = "";
   $("inputObs").value = "";
-}
-
-function salvarConferenciaLote(){
-  if(selectedLoteIndex < 0){
-    return toast("Selecione um lote válido na busca!");
-  }
-
-  const lote = activeAuditLotes[selectedLoteIndex];
-  const qFis = parseNumericValue(v("inputQtdFis"));
-
-  if(qFis === null){
-    return toast("Informe uma quantidade física válida!");
-  }
-
-  lote.cat_fis = v("inputCatFis").trim();
-  lote.etiqueta_fisica = v("inputEtiquetaFis").trim();
-  lote.qtd_fisica = qFis;
-  lote.camara = v("inputCamara").trim();
-  lote.quadra = v("inputQuadra").trim();
-  lote.fileira = v("inputFileira").trim();
-  lote.observacao = v("inputObs").trim();
-
-  const qSis = Number(lote.qtd_sistema) || 0;
-  if(qFis === qSis && normalizarTexto(lote.cat_fis) === normalizarTexto(lote.cat)){
-    lote.status = "VALIDADO";
-  } else {
-    lote.status = "DIVERGÊN";
-  }
-
-  toast(`Lote ${lote.lote} atualizado com sucesso!`);
-  limparFormularioConferencia();
-  updateSessionKPIs();
-  renderSessionTable();
-}
-
-function updateSessionKPIs(){
-  const total = activeAuditLotes.length;
-  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null).length;
-  const restantes = total - auditados;
-
-  $("opTot").textContent = total;
-  $("opAud").textContent = auditados;
-  $("opRest").textContent = restantes;
-  $("opFaltantes").textContent = restantes;
-}
-
-function renderSessionTable(){
-  const fltL = v("fltLote").toLowerCase();
-  const fltC = v("fltCultura").toLowerCase();
-  const fltCv = v("fltCultivar").toLowerCase();
-  const fltSt = v("fltStatus").toLowerCase();
-
-  const filtered = activeAuditLotes.filter(x => {
-    if(fltL && !String(x.lote).toLowerCase().includes(fltL)) return false;
-    if(fltC && !String(x.cultura).toLowerCase().includes(fltC)) return false;
-    if(fltCv && !String(x.cultivar).toLowerCase().includes(fltCv)) return false;
-    if(fltSt && !String(x.status).toLowerCase().includes(fltSt)) return false;
-    return true;
-  });
-
-  if(filtered.length === 0){
-    $("sessionTableBody").innerHTML = '<tr><td colspan="13" class="muted" style="text-align:center">Nenhum lote encontrado.</td></tr>';
-    return;
-  }
-
-  $("sessionTableBody").innerHTML = filtered.map(x => {
-    const originalIndex = activeAuditLotes.indexOf(x);
-    return `
-      <tr>
-        <td><b>${esc(x.lote)}</b></td>
-        <td>${esc(x.cultura)}</td>
-        <td>${esc(x.cultivar)}</td>
-        <td>${x.qtd_sistema ?? "—"}</td>
-        <td><b>${x.qtd_fisica ?? "—"}</b></td>
-        <td>${esc(x.cat)}</td>
-        <td>${esc(x.cat_fis || "—")}</td>
-        <td>${esc(x.etiqueta_fisica || "—")}</td>
-        <td>${esc(x.peso_etiqueta || "—")}</td>
-        <td>${esc([x.camara, x.quadra, x.fileira].filter(Boolean).join('/') || "—")}</td>
-        <td><span class="${x.status === 'VALIDADO' ? 'ok' : x.status === 'PENDENTE' ? 'muted' : 'bad'}">${esc(x.status)}</span></td>
-        <td>${esc(x.observacao || "—")}</td>
-        <td>
-          <button style="padding:4px 8px;font-size:11px;" onclick="selecionarLoteParaConferencia(${originalIndex})">Editar</button>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-/* EXPORTAÇÃO CORRIGIDA - BUSCA OS CAMPOS DO ESTADO DA SESSÃO OU DOS INPUTS DA TELA */
-function exportarPlanilhaSessao(){
-  if(activeAuditLotes.length === 0) return toast("Nenhum lote na sessão!");
-
-  const local = v("lblLocal");
-  const data = v("lblData");
-  const mes = v("lblMes");
-
-  // Garante que pega do estado da sessão ou fallback dos inputs HTML
-  const pcp = currentSessionHeader.pcp || v("pcp").trim() || "—";
-  const audun = currentSessionHeader.audun || v("audun").trim() || "—";
-  const ubs = currentSessionHeader.ubs || v("ubs").trim() || "—";
-
-  const totalLotes = activeAuditLotes.length;
-  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null).length;
-  const validados = activeAuditLotes.filter(x => x.status === "VALIDADO").length;
-  const acuracidade = totalLotes > 0 ? ((validados / totalLotes) * 100).toFixed(1) + "%" : "0.0%";
-
-  const resumoRows = [
-    ["--- RESUMO DA AUDITORIA ---", ""],
-    ["Local", local],
-    ["Data", data],
-    ["Mês", mes],
-    ["Total de Lotes", totalLotes],
-    ["Auditados", auditados],
-    ["Validados", validados],
-    ["Acuracidade Apurada", acuracidade],
-    ["Auditor PCP", pcp],
-    ["Auditor Unidade", audun],
-    ["Responsável UBS", ubs],
-    [],
-    ["--- DETALHAMENTO DOS LOTES ---", ""]
-  ];
-
-  const worksheet = XLSX.utils.aoa_to_sheet(resumoRows);
-
-  const lotesExport = activeAuditLotes.map(x => ({
-    "Lote": x.lote,
-    "Cultura": x.cultura,
-    "Cultivar": x.cultivar,
-    "Categoria": x.cat,
-    "UM Sis": x.um,
-    "Cat Fisica": x.cat_fis,
-    "Qtd Sistem": x.qtd_sistema,
-    "Qtd Fisica": x.qtd_fisica,
-    "Etiqueta Fi": x.etiqueta_fisica,
-    "Etiqueta Si": x.peso_etiqueta,
-    "Camara": x.camara,
-    "Quadra": x.quadra,
-    "Fileira": x.fileira,
-    "Status": x.status,
-    "Observacao": x.observacao
-  }));
-
-  XLSX.utils.sheet_add_json(worksheet, lotesExport, { origin: "A14", skipHeader: false });
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Auditoria");
-  XLSX.writeFile(workbook, `Auditoria_${local}_${data}.xlsx`);
+  $("suggestionsBox").classList.add("hidden");
 }
 
 function abrirModalAdicionarLote(){
-  $("addLocal").value = v("lblLocal");
+  $("addLocal").value = $("lblLocal").textContent;
   $("addUf").value = "";
   $("addFilial").value = "";
-  $("addCultura").value = "SOJA";
+  $("addCultura").value = "";
   $("addLote").value = "";
   $("addCultivar").value = "";
   $("addCat").value = "";
   $("addPen").value = "";
-  $("addUm").value = "BG";
+  $("addUm").value = "";
   $("addTratamento").value = "";
   $("addQtdSistema").value = "0";
   $("addPesoEtiqueta").value = "";
-
   $("modalAddLote").classList.remove("hidden");
 }
 
@@ -1055,47 +998,72 @@ function fecharModalAdicionarLote(){
 }
 
 function salvarNovoLoteManual(){
-  const numLote = v("addLote").trim();
-  if(!numLote){
-    return toast("Informe o número do lote!");
-  }
+  const loteNum = v("addLote").trim();
+  if(!loteNum) return toast("Informe o número do lote!");
 
-  const novoLote = {
+  const novo = {
     id: null,
-    mes: v("lblMes"),
-    lote: numLote,
+    mes: $("lblMes").textContent,
     local: v("addLocal").trim(),
     uf: v("addUf").trim(),
     filial: v("addFilial").trim(),
     cultura: v("addCultura").trim(),
+    lote: loteNum,
     cultivar: v("addCultivar").trim(),
     cat: v("addCat").trim(),
     peneira: v("addPen").trim(),
     um: v("addUm").trim(),
     tratamento: v("addTratamento").trim(),
     qtd_sistema: parseNumericValue(v("addQtdSistema")),
-    qtd_fisica: null,
     peso_etiqueta: v("addPesoEtiqueta").trim(),
+    qtd_fisica: null,
     cat_fis: "",
     etiqueta_fisica: "",
     camara: "",
     quadra: "",
     fileira: "",
-    observacao: "Lote inserido manualmente",
+    observacao: "Lote adicionado manualmente",
     status: "PENDENTE"
   };
 
-  activeAuditLotes.push(novoLote);
+  activeAuditLotes.push(novo);
   fecharModalAdicionarLote();
   updateSessionKPIs();
   renderSessionTable();
-  toast("Novo lote adicionado com sucesso!");
+  toast("Lote manual adicionado à sessão!");
+}
+
+function exportarPlanilhaSessao(){
+  if(activeAuditLotes.length === 0) return toast("Nenhum dado na sessão!");
+  const exportData = activeAuditLotes.map(x => ({
+    "Auditores": `PCP: ${currentSessionHeader.pcp} | UNID: ${currentSessionHeader.audun} | UBS: ${currentSessionHeader.ubs}`,
+    "Data": $("lblData").textContent,
+    "Mês": x.mes,
+    "Local": x.local,
+    "Cultura": x.cultura,
+    "Lote": x.lote,
+    "Cultivar": x.cultivar,
+    "Cat. Sistema": x.cat,
+    "Cat. Física": x.cat_fis,
+    "Qtd. Sistema": x.qtd_sistema,
+    "Qtd. Física": x.qtd_fisica,
+    "Câmara": x.camara,
+    "Quadra": x.quadra,
+    "Fileira": x.fileira,
+    "Status": x.status,
+    "Observação": x.observacao
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Sessão Auditoria");
+  XLSX.writeFile(wb, `auditoria_${$("lblLocal").textContent}_${$("lblData").textContent}.xlsx`);
 }
 
 async function finalizarAuditoriaSessao(){
   if(activeAuditLotes.length === 0) return toast("Nenhum lote para finalizar!");
   
-  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null);
+  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined);
   if(auditados.length === 0){
     return toast("Nenhum lote foi auditado ainda nesta sessão!");
   }
@@ -1104,34 +1072,35 @@ async function finalizarAuditoriaSessao(){
 
   try {
     const payload = activeAuditLotes.map(item => ({
-      mes: item.mes,
-      lote: item.lote,
-      local: item.local,
-      uf: item.uf,
-      filial: item.filial,
-      cultura: item.cultura,
-      cultivar: item.cultivar,
-      cat: item.cat,
-      peneira: item.peneira,
-      um: item.um,
-      tratamento: item.tratamento,
-      qtd_sistema: item.qtd_sistema,
-      qtd_fisica: item.qtd_fisica,
-      peso_etiqueta: item.peso_etiqueta,
-      cat_fis: item.cat_fis,
-      etiqueta_fisica: item.etiqueta_fisica,
-      camara: item.camara,
-      quadra: item.quadra,
-      fileira: item.fileira,
-      observacao: item.observacao,
-      status: item.status
+      mes: item.mes || "",
+      lote: item.lote || "",
+      local: item.local || "",
+      uf: item.uf || "",
+      filial: item.filial || "",
+      cultura: item.cultura || "",
+      cultivar: item.cultivar || "",
+      cat: item.cat || "",
+      peneira: item.peneira || "",
+      um: item.um || "",
+      tratamento: item.tratamento || "",
+      // Conversão garantida de campos numéricos para evitar envio de ""
+      qtd_sistema: parseNumericValue(item.qtd_sistema),
+      qtd_fisica: parseNumericValue(item.qtd_fisica),
+      peso_etiqueta: item.peso_etiqueta || "",
+      cat_fis: item.cat_fis || "",
+      etiqueta_fisica: item.etiqueta_fisica || "",
+      camara: item.camara || "",
+      quadra: item.quadra || "",
+      fileira: item.fileira || "",
+      observacao: item.observacao || "",
+      status: item.status || "PENDENTE"
     }));
 
     const { error } = await db.from(TABLE_NAME).insert(payload);
 
     if(error){
       console.error("Erro ao salvar auditoria:", error);
-      toast("Erro ao salvar no Supabase!");
+      toast(`Erro no Supabase: ${error.message || error.details}`);
       return;
     }
 
@@ -1145,7 +1114,7 @@ async function finalizarAuditoriaSessao(){
   }
 }
 
-// Inicialização
+// Inicialização da aplicação
 window.addEventListener("DOMContentLoaded", () => {
   dashboard();
 });
