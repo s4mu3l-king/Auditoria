@@ -13,7 +13,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
 
-header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-space:between;align-items:center;position:sticky;top:0;z-index:5}
 .brand-container{display:flex;align-items:center;gap:14px}
 .header-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
 .logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
@@ -38,6 +38,7 @@ button:hover{opacity:0.9}
 .sec{background:#e8eeea;color:var(--g2)}
 .btn-export{background:var(--g);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px}
 .btn-import{background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:170px;height:44px;border:0}
+.btn-continue{background:#a76b00;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;padding:12px 16px;min-width:180px;height:44px;border:0}
 .btn-add{background:var(--g);color:#fff}
 .btn-finish{background:var(--g);color:#fff;font-size:15px;padding:14px 22px}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
@@ -105,6 +106,7 @@ table.data-table tr:hover{background:#f0f5f2}
 
 <section id="home">
 <div class="top">
+  <button class="btn-continue" onclick="abrirModalContinuarAuditoria()">🔄 CONTINUAR AUDITORIA</button>
   <button class="btn-import" onclick="go('start')">NOVA AUDITORIA</button>
 </div>
 
@@ -312,6 +314,25 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
 </section>
 
+<!-- MODAL CONTINUAR AUDITORIA -->
+<div id="modalContinueAudit" class="modal-overlay hidden">
+  <div class="modal-content" style="max-width:500px;">
+    <h3 style="margin-top:0;color:var(--g)">Continuar Auditoria em Andamento</h3>
+    <p class="muted" style="font-size:13px">Selecione o local para carregar o progresso atual e continuar a auditoria.</p>
+    <div style="margin-bottom:16px;">
+      <label>LOCAL DA AUDITORIA
+        <select id="continueLocalSelect">
+          <option value="">Carregando locais...</option>
+        </select>
+      </label>
+    </div>
+    <div class="actions" style="justify-content:flex-end;">
+      <button class="sec" onclick="fecharModalContinuarAuditoria()">CANCELAR</button>
+      <button onclick="carregarSessaoExistente()">CARREGAR SESSÃO</button>
+    </div>
+  </div>
+</div>
+
 <div id="modalAddLote" class="modal-overlay hidden">
   <div class="modal-content">
     <h3 style="margin-top:0;color:var(--g)">Adicionar Novo Lote à Auditoria</h3>
@@ -410,7 +431,8 @@ function parseNumericValue(val){
   if(typeof val === "number") return isNaN(val) ? null : val;
   const cleaned = String(val).trim().replace(",", ".");
   if(cleaned === "" || isNaN(cleaned)) return null;
-  return Number(cleaned);
+  const n = Number(cleaned);
+  return isNaN(n) ? null : n;
 }
 
 function extrairCampos(item){
@@ -749,6 +771,76 @@ async function prepararTelaNovaAuditoria(){
   atualizarMesPorData();
 }
 
+// FUNCIONALIDADES DE CONTINUAR AUDITORIA
+async function abrirModalContinuarAuditoria(){
+  try {
+    const { data: histData, error } = await db
+      .from(TABLE_NAME)
+      .select("local")
+      .order("local");
+
+    if(error) throw error;
+
+    const localsMap = new Set();
+    (histData || []).forEach(x => { if(x.local) localsMap.add(String(x.local).trim()); });
+    const sortedLocals = [...localsMap].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+
+    if(sortedLocals.length === 0){
+      return toast("Nenhuma auditoria em andamento encontrada.");
+    }
+
+    $("continueLocalSelect").innerHTML = '<option value="">Selecione o local...</option>' +
+      sortedLocals.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+    $("modalContinueAudit").classList.remove("hidden");
+  } catch(e) {
+    console.error("Erro ao abrir modal de continuar:", e);
+    toast("Erro ao listar auditorias para continuação.");
+  }
+}
+
+function fecharModalContinuarAuditoria(){
+  $("modalContinueAudit").classList.add("hidden");
+}
+
+async function carregarSessaoExistente(){
+  const localSel = v("continueLocalSelect");
+  if(!localSel) return toast("Selecione um local para continuar!");
+
+  toast("Carregando progresso da auditoria...");
+
+  try {
+    const { data: histLotes, error } = await db
+      .from(TABLE_NAME)
+      .select("*")
+      .eq("local", localSel);
+
+    if(error) throw error;
+
+    if(!histLotes || histLotes.length === 0){
+      return toast("Nenhum lote encontrado para este local.");
+    }
+
+    activeAuditLotes = histLotes.map(extrairCampos);
+
+    const em = activeAuditLotes[0];
+    $("lblLocal").textContent = em.local || localSel;
+    $("lblMes").textContent = em.mes || "";
+    $("lblData").textContent = new Date().toISOString().slice(0,10);
+
+    fecharModalContinuarAuditoria();
+    limparFormularioConferencia();
+    updateSessionKPIs();
+    renderSessionTable();
+    go("audit-session");
+    toast("Progresso carregado com sucesso!");
+
+  } catch(e) {
+    console.error("Erro ao carregar sessão existente:", e);
+    toast("Ocorreu uma falha ao restaurar a auditoria.");
+  }
+}
+
 async function executarInicioAuditoria(){
   const localSel = v("local");
   const mesSel = v("month");
@@ -1063,7 +1155,7 @@ function exportarPlanilhaSessao(){
 async function finalizarAuditoriaSessao(){
   if(activeAuditLotes.length === 0) return toast("Nenhum lote para finalizar!");
   
-  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined);
+  const auditados = activeAuditLotes.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "");
   if(auditados.length === 0){
     return toast("Nenhum lote foi auditado ainda nesta sessão!");
   }
@@ -1071,32 +1163,42 @@ async function finalizarAuditoriaSessao(){
   toast("Salvando sessão no banco de dados...");
 
   try {
-    const payload = activeAuditLotes.map(item => ({
-      mes: item.mes || "",
-      lote: item.lote || "",
-      local: item.local || "",
-      uf: item.uf || "",
-      filial: item.filial || "",
-      cultura: item.cultura || "",
-      cultivar: item.cultivar || "",
-      cat: item.cat || "",
-      peneira: item.peneira || "",
-      um: item.um || "",
-      tratamento: item.tratamento || "",
-      // Conversão garantida de campos numéricos para evitar envio de ""
-      qtd_sistema: parseNumericValue(item.qtd_sistema),
-      qtd_fisica: parseNumericValue(item.qtd_fisica),
-      peso_etiqueta: item.peso_etiqueta || "",
-      cat_fis: item.cat_fis || "",
-      etiqueta_fisica: item.etiqueta_fisica || "",
-      camara: item.camara || "",
-      quadra: item.quadra || "",
-      fileira: item.fileira || "",
-      observacao: item.observacao || "",
-      status: item.status || "PENDENTE"
-    }));
+    const payload = activeAuditLotes.map(item => {
+      const qSys = parseNumericValue(item.qtd_sistema);
+      const qFis = parseNumericValue(item.qtd_fisica);
 
-    const { error } = await db.from(TABLE_NAME).insert(payload);
+      const obj = {
+        mes: item.mes || "",
+        lote: item.lote || "",
+        local: item.local || "",
+        uf: item.uf || "",
+        filial: item.filial || "",
+        cultura: item.cultura || "",
+        cultivar: item.cultivar || "",
+        cat: item.cat || "",
+        peneira: item.peneira || "",
+        um: item.um || "",
+        tratamento: item.tratamento || "",
+        qtd_sistema: qSys !== null ? qSys : null,
+        qtd_fisica: qFis !== null ? qFis : null,
+        peso_etiqueta: item.peso_etiqueta || "",
+        cat_fis: item.cat_fis || "",
+        etiqueta_fisica: item.etiqueta_fisica || "",
+        camara: item.camara || "",
+        quadra: item.quadra || "",
+        fileira: item.fileira || "",
+        observacao: item.observacao || "",
+        status: item.status || "PENDENTE"
+      };
+
+      if (item.id) {
+        obj.id = item.id;
+      }
+
+      return obj;
+    });
+
+    const { error } = await db.from(TABLE_NAME).upsert(payload);
 
     if(error){
       console.error("Erro ao salvar auditoria:", error);
