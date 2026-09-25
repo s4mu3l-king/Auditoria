@@ -7,6 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Plugin para exibir os rótulos/somas em cima das barras do gráfico -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
 <style>
 :root{--g:#145c3a;--g2:#0d442b;--bg:#f3f6f4;--card:#fff;--line:#dce5df;--text:#17231d;--muted:#66736c;--ok:#16804a;--bad:#b3261e;--warn:#a76b00}
@@ -161,7 +163,7 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
 
   <div class="card" style="margin-bottom:0;">
-    <b>Desempenho de Acuracidade e Lotes por Mês</b>
+    <b>Desempenho de Acuracidade e Soma de Bags por Mês</b>
     <div class="chart-container">
       <canvas id="barChartCanvas"></canvas>
     </div>
@@ -368,6 +370,9 @@ table.data-table tr:hover{background:#f0f5f2}
 </div>
 
 <script>
+// Registo do plugin de rótulos do Chart.js
+Chart.register(ChartDataLabels);
+
 const SUPABASE_URL="https://bpirkhpxefoacxmwknnv.supabase.co";
 const SUPABASE_KEY="sb_publishable_r4MPuycZ9I6ianCoOaeUMQ_465l_ZZt";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -638,26 +643,35 @@ function renderPivotAndChart(){
 
   $("pivotTableBody").innerHTML = tbodyHTML || '<tr><td colspan="10" class="muted" style="text-align:center">Sem dados.</td></tr>';
 
-  // Configuração do Gráfico Chart.js com Eixo Duplo
+  // Configuração do Gráfico Chart.js com Soma de Bags
   const ctx = $("barChartCanvas").getContext("2d");
   if(barChartInstance) {
     barChartInstance.destroy();
   }
 
-  const cores = ["#7ac99a", "#145c3a", "#2ecc71", "#16804a", "#48c9b0"];
+  const cores = ["#145c3a", "#2ecc71", "#3498db", "#9b59b6", "#e67e22"];
 
+  // As barras representam a SOMA DE BAGS (Qtd. Física)
   const datasets = locais.map((loc, idx) => {
-    const dataLotes = meses.map(m => matrix[m][loc].tot);
+    const dataBags = meses.map(m => matrix[m][loc].qtd_fisica);
     return {
       type: 'bar',
-      label: `${loc} (Lotes / Bags)`,
-      data: dataLotes,
+      label: `${loc} (Soma de Bags)`,
+      data: dataBags,
       backgroundColor: cores[idx % cores.length],
       borderRadius: 6,
-      yAxisID: 'y'
+      yAxisID: 'y',
+      datalabels: {
+        anchor: 'end',
+        align: 'start',
+        color: '#fff',
+        font: { weight: 'bold', size: 11 },
+        formatter: (value) => value > 0 ? value : ''
+      }
     };
   });
 
+  // Linha de Acuracidade Geral (%)
   const dataAcuracidade = meses.map(m => {
     let totMes = 0, valMes = 0;
     locais.forEach(loc => {
@@ -677,7 +691,14 @@ function renderPivotAndChart(){
     pointRadius: 5,
     fill: false,
     tension: 0.3,
-    yAxisID: 'y1'
+    yAxisID: 'y1',
+    datalabels: {
+      anchor: 'end',
+      align: 'top',
+      color: '#b3261e',
+      font: { weight: 'bold', size: 11 },
+      formatter: (value) => value > 0 ? value + '%' : ''
+    }
   });
 
   barChartInstance = new Chart(ctx, {
@@ -698,8 +719,8 @@ function renderPivotAndChart(){
               }
               const loc = locais[context.datasetIndex];
               const mes = meses[context.dataIndex];
-              const bags = matrix[mes][loc].qtd_fisica;
-              return `${context.dataset.label}: ${context.parsed.y} lotes (${bags} bags)`;
+              const lotes = matrix[mes][loc].tot;
+              return `${context.dataset.label}: ${context.parsed.y} bags (${lotes} lotes)`;
             }
           }
         }
@@ -710,7 +731,7 @@ function renderPivotAndChart(){
           display: true,
           position: 'left',
           beginAtZero: true,
-          title: { display: true, text: 'Nº de Lotes' },
+          title: { display: true, text: 'Soma de Bags (Qtd. Física)' },
           grid: { color: '#e2e9e4' }
         },
         y1: {
@@ -817,7 +838,6 @@ async function prepararTelaNovaAuditoria(){
   atualizarMesPorData();
 }
 
-// FUNCIONALIDADES DE CONTINUAR AUDITORIA
 async function abrirModalContinuarAuditoria(){
   try {
     const { data: histData, error } = await db
@@ -1134,7 +1154,7 @@ async function finalizarAuditoriaSessao(){
     if(error) throw error;
 
     toast("Auditoria salva no Supabase com sucesso!");
-    rawAllAudits = []; // Limpa cache para atualizar o dashboard
+    rawAllAudits = [];
     go("home");
   } catch(e) {
     console.error("Erro ao finalizar auditoria:", e);
