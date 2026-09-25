@@ -580,7 +580,7 @@ function renderPivotAndChart(){
   meses.forEach(m => {
     matrix[m] = {};
     locais.forEach(l => {
-      matrix[m][l] = { tot: 0, validados: 0 };
+      matrix[m][l] = { tot: 0, validados: 0, qtd_sistema: 0, qtd_fisica: 0 };
     });
   });
 
@@ -590,33 +590,37 @@ function renderPivotAndChart(){
       if(String(x.status).toUpperCase() === "VALIDADO"){
         matrix[x.mes][x.local].validados++;
       }
+      matrix[x.mes][x.local].qtd_sistema += (Number(x.qtd_sistema) || 0);
+      matrix[x.mes][x.local].qtd_fisica += (Number(x.qtd_fisica) || 0);
     }
   });
 
   let thHTML = `<tr><th>MÊS</th>`;
   locais.forEach(l => {
-    thHTML += `<th style="text-align:center;" colspan="2">${esc(l)}</th>`;
+    thHTML += `<th style="text-align:center;" colspan="4">${esc(l)}</th>`;
   });
   thHTML += `</tr><tr><th></th>`;
   locais.forEach(() => {
-    thHTML += `<th style="font-size:10px;text-align:center;">Nº Lotes</th><th style="font-size:10px;text-align:center;">Acuracidade</th>`;
+    thHTML += `<th style="font-size:10px;text-align:center;">Nº Lotes</th><th style="font-size:10px;text-align:center;">Qtd. Sistema</th><th style="font-size:10px;text-align:center;">Qtd. Física</th><th style="font-size:10px;text-align:center;">Acuracidade</th>`;
   });
   thHTML += `</tr>`;
   $("pivotTableHeader").innerHTML = thHTML;
 
   let tbodyHTML = "";
   const totalGeralLocais = {};
-  locais.forEach(l => { totalGeralLocais[l] = { tot: 0, validados: 0 }; });
+  locais.forEach(l => { totalGeralLocais[l] = { tot: 0, validados: 0, qtd_sistema: 0, qtd_fisica: 0 }; });
 
   meses.forEach(m => {
     tbodyHTML += `<tr><td><b>${esc(m)}</b></td>`;
     locais.forEach(l => {
       const cell = matrix[m][l];
       const acc = cell.tot > 0 ? Math.round((cell.validados / cell.tot) * 100) + "%" : "0%";
-      tbodyHTML += `<td style="text-align:center;">${cell.tot}</td><td style="text-align:center;font-weight:bold;color:var(--g);">${acc}</td>`;
+      tbodyHTML += `<td style="text-align:center;">${cell.tot}</td><td style="text-align:center;">${cell.qtd_sistema}</td><td style="text-align:center;">${cell.qtd_fisica}</td><td style="text-align:center;font-weight:bold;color:var(--g);">${acc}</td>`;
       
       totalGeralLocais[l].tot += cell.tot;
       totalGeralLocais[l].validados += cell.validados;
+      totalGeralLocais[l].qtd_sistema += cell.qtd_sistema;
+      totalGeralLocais[l].qtd_fisica += cell.qtd_fisica;
     });
     tbodyHTML += `</tr>`;
   });
@@ -625,8 +629,10 @@ function renderPivotAndChart(){
   locais.forEach(l => {
     const totL = totalGeralLocais[l].tot;
     const valL = totalGeralLocais[l].validados;
+    const sysL = totalGeralLocais[l].qtd_sistema;
+    const fisL = totalGeralLocais[l].qtd_fisica;
     const accL = totL > 0 ? Math.round((valL / totL) * 100) + "%" : "0%";
-    tbodyHTML += `<td style="text-align:center;">${totL}</td><td style="text-align:center;color:var(--g);">${accL}</td>`;
+    tbodyHTML += `<td style="text-align:center;">${totL}</td><td style="text-align:center;">${sysL}</td><td style="text-align:center;">${fisL}</td><td style="text-align:center;color:var(--g);">${accL}</td>`;
   });
   tbodyHTML += `</tr>`;
 
@@ -670,7 +676,7 @@ function renderPivotAndChart(){
               const loc = locais[datasetIndex];
               const cell = matrix[m][loc];
               const acc = cell.tot > 0 ? ((cell.validados / cell.tot) * 100).toFixed(1) + "%" : "0.0%";
-              return `Acuracidade: ${acc}`;
+              return `Qtd. Sistema: ${cell.qtd_sistema}\nQtd. Física: ${cell.qtd_fisica}\nAcuracidade: ${acc}`;
             }
           }
         }
@@ -794,7 +800,7 @@ async function abrirModalContinuarAuditoria(){
 
     $("modalContinueAudit").classList.remove("hidden");
   } catch(e) {
-    console.error("Erro ao buscar locais para continuar:", e);
+    console.error("Erro ao carregar auditorias em andamento:", e);
     toast("Erro ao carregar locais em andamento.");
   }
 }
@@ -802,408 +808,6 @@ async function abrirModalContinuarAuditoria(){
 function fecharModalContinuarAuditoria(){
   $("modalContinueAudit").classList.add("hidden");
 }
-
-async function carregarSessaoExistente(){
-  const localSel = v("continueLocalSelect");
-  if(!localSel) return toast("Selecione um local para continuar!");
-
-  try {
-    toast("Carregando sessão do local...");
-
-    const { data: sessionData, error } = await db
-      .from(TABLE_NAME)
-      .select("*")
-      .eq("local", localSel);
-
-    if(error) throw error;
-
-    if(!sessionData || sessionData.length === 0){
-      return toast("Nenhum registro localizado para o local selecionado.");
-    }
-
-    activeAuditLotes = sessionData.map(extrairCampos);
-
-    const emAmostra = sessionData[0] || {};
-    currentSessionHeader = {
-      pcp: emAmostra.auditor_pcp || emAmostra.pcp || "",
-      audun: emAmostra.auditor_unidade || emAmostra.audun || "",
-      ubs: emAmostra.responsavel_ubs || emAmostra.ubs || ""
-    };
-
-    $("lblLocal").textContent = localSel;
-    $("lblData").textContent = emAmostra.data_verificacao || emAmostra.data || new Date().toLocaleDateString('pt-BR');
-    $("lblMes").textContent = activeAuditLotes[0]?.mes || "—";
-
-    fecharModalContinuarAuditoria();
-    go("audit-session");
-    renderSessionTable();
-    toast("Sessão carregada com sucesso!");
-
-  } catch(e) {
-    console.error("Erro ao carregar sessão existente:", e);
-    toast("Falha ao carregar a sessão.");
-  }
-}
-
-// INICIALIZAÇÃO DA NOVA AUDITORIA (FILTRANDO QTD_SISTEMA > 0)
-async function executarInicioAuditoria(){
-  const loc = v("local");
-  const dt = v("date");
-  const ms = v("month");
-  const pcp = v("pcp");
-  const audun = v("audun");
-  const ubs = v("ubs");
-
-  if(!loc) return toast("Selecione o local!");
-  if(!dt) return toast("Selecione a data!");
-  if(!pcp || !audun || !ubs) return toast("Preencha os nomes dos auditores e responsável!");
-
-  try {
-    toast("Buscando lotes da base sistêmica...");
-
-    const { data: baseLotes, error } = await db
-      .from(BASE_TABLE_NAME)
-      .select("*")
-      .eq("local", loc);
-
-    if(error) throw error;
-
-    if(!baseLotes || baseLotes.length === 0){
-      return toast("Nenhum lote cadastrado para este local na base de dados.");
-    }
-
-    currentSessionHeader = { pcp, audun, ubs };
-
-    // Filtra para manter somente os lotes com Qtd Sistema > 0
-    activeAuditLotes = baseLotes
-      .map(item => {
-        const parsed = extrairCampos(item);
-        return {
-          ...parsed,
-          local: loc,
-          mes: ms,
-          data_verificacao: dt,
-          auditor_pcp: pcp,
-          auditor_unidade: audun,
-          responsavel_ubs: ubs,
-          status: "PENDENTE"
-        };
-      })
-      .filter(lote => (Number(lote.qtd_sistema) || 0) > 0);
-
-    if(activeAuditLotes.length === 0){
-      return toast("Nenhum lote com quantidade maior que zero encontrado para este local.");
-    }
-
-    $("lblLocal").textContent = loc;
-    $("lblData").textContent = dt;
-    $("lblMes").textContent = ms;
-
-    go("audit-session");
-    renderSessionTable();
-    toast(`Auditoria iniciada com ${activeAuditLotes.length} lotes ativos!`);
-
-  } catch(e) {
-    console.error("Erro ao iniciar conferência:", e);
-    toast("Erro ao carregar lotes do local selecionado.");
-  }
-}
-
-// LÓGICA DA SESSÃO DE CONFERÊNCIA
-function renderSessionTable(){
-  const fltL = v("fltLote").trim().toLowerCase();
-  const fltC = v("fltCultura").trim().toLowerCase();
-  const fltCv = v("fltCultivar").trim().toLowerCase();
-  const fltS = v("fltStatus").trim().toLowerCase();
-
-  const filtrados = activeAuditLotes.filter(x => {
-    if(fltL && !String(x.lote).toLowerCase().includes(fltL)) return false;
-    if(fltC && !String(x.cultura).toLowerCase().includes(fltC)) return false;
-    if(fltCv && !String(x.cultivar).toLowerCase().includes(fltCv)) return false;
-    if(fltS && !String(x.status).toLowerCase().includes(fltS)) return false;
-    return true;
-  });
-
-  const tot = activeAuditLotes.length;
-  const aud = activeAuditLotes.filter(x => x.qtd_fisica !== null && x.qtd_fisica !== undefined && String(x.qtd_fisica).trim() !== "").length;
-  const rest = tot - aud;
-
-  $("opTot").textContent = tot;
-  $("opAud").textContent = aud;
-  $("opRest").textContent = rest;
-  $("opFaltantes").textContent = rest;
-
-  if(filtrados.length === 0){
-    $("sessionTableBody").innerHTML = '<tr><td colspan="13" class="muted" style="text-align:center">Nenhum lote localizado.</td></tr>';
-    return;
-  }
-
-  $("sessionTableBody").innerHTML = filtrados.map((x) => {
-    const realIdx = activeAuditLotes.indexOf(x);
-    const isVal = String(x.status).toUpperCase() === "VALIDADO";
-    const isPen = String(x.status).toUpperCase() === "PENDENTE";
-
-    const localizacao = [x.camara, x.quadra, x.fileira].filter(Boolean).join(" / ") || "—";
-
-    return `
-      <tr style="${selectedLoteIndex === realIdx ? 'background:#e8eeea;' : ''}">
-        <td><b>${esc(x.lote)}</b></td>
-        <td>${esc(x.cultura)}</td>
-        <td>${esc(x.cultivar)}</td>
-        <td>${x.qtd_sistema ?? "—"}</td>
-        <td><b>${x.qtd_fisica ?? "—"}</b></td>
-        <td>${esc(x.cat)}</td>
-        <td>${esc(x.cat_fis || "—")}</td>
-        <td>${esc(x.etiqueta_fisica || "—")}</td>
-        <td>${esc(x.peso_etiqueta || "—")}</td>
-        <td>${esc(localizacao)}</td>
-        <td><span class="${isVal ? 'ok' : isPen ? 'muted' : 'bad'}">${esc(x.status)}</span></td>
-        <td>${esc(x.observacao || "—")}</td>
-        <td>
-          <button style="padding:4px 8px;font-size:11px;" onclick="selecionarLoteParaConferencia(${realIdx})">EDITAR</button>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-// AUTOCOMPLETE DE PESQUISA
-function onSearchLoteInput(){
-  const q = v("searchLoteInput").trim().toUpperCase();
-  const box = $("suggestionsBox");
-
-  if(!q){
-    box.classList.add("hidden");
-    box.innerHTML = "";
-    return;
-  }
-
-  const matches = activeAuditLotes
-    .map((item, index) => ({ item, index }))
-    .filter(obj => String(obj.item.lote).toUpperCase().includes(q))
-    .slice(0, 10);
-
-  if(matches.length === 0){
-    box.classList.add("hidden");
-    box.innerHTML = "";
-    return;
-  }
-
-  box.innerHTML = matches.map(m => `
-    <div class="suggestion-item" onclick="selecionarLoteParaConferencia(${m.index})">
-      <b>${esc(m.item.lote)}</b> - ${esc(m.item.cultivar)} (${esc(m.item.cultura)}) | Qtd Sist: ${m.item.qtd_sistema ?? 0}
-    </div>
-  `).join("");
-
-  box.classList.remove("hidden");
-}
-
-function selecionarLoteParaConferencia(index){
-  selectedLoteIndex = index;
-  const item = activeAuditLotes[index];
-  if(!item) return;
-
-  $("searchLoteInput").value = item.lote;
-  $("dispCultivar").value = item.cultivar || "";
-  $("dispCat").value = item.cat || "";
-  $("dispPeneira").value = item.peneira || "";
-  $("dispUm").value = item.um || "";
-  $("dispTratamento").value = item.tratamento || "";
-  $("dispQtdSistema").value = item.qtd_sistema ?? "";
-
-  $("inputCatFis").value = item.cat_fis || "";
-  $("inputEtiquetaFis").value = item.etiqueta_fisica || "";
-  $("inputQtdFis").value = item.qtd_fisica ?? "";
-  $("inputCamara").value = item.camara || "";
-  $("inputQuadra").value = item.quadra || "";
-  $("inputFileira").value = item.fileira || "";
-  $("inputObs").value = item.observacao || "";
-
-  $("suggestionsBox").classList.add("hidden");
-  renderSessionTable();
-}
-
-// SALVAR LOTE NA SESSÃO
-function salvarConferenciaLote(){
-  if(selectedLoteIndex < 0 || !activeAuditLotes[selectedLoteIndex]){
-    return toast("Selecione um lote válido primeiro!");
-  }
-
-  const qtdFisVal = $("inputQtdFis").value;
-  if(qtdFisVal === "" || isNaN(qtdFisVal)){
-    return toast("Informe uma quantidade física válida!");
-  }
-
-  const item = activeAuditLotes[selectedLoteIndex];
-  const qtdFisicaNum = Number(qtdFisVal);
-  const qtdSistNum = Number(item.qtd_sistema || 0);
-
-  item.qtd_fisica = qtdFisicaNum;
-  item.cat_fis = v("inputCatFis").trim();
-  item.etiqueta_fisica = v("inputEtiquetaFis").trim();
-  item.camara = v("inputCamara").trim();
-  item.quadra = v("inputQuadra").trim();
-  item.fileira = v("inputFileira").trim();
-  item.observacao = v("inputObs").trim();
-
-  if(qtdFisicaNum === qtdSistNum){
-    item.status = "VALIDADO";
-  } else {
-    item.status = "DIVERGENTE";
-  }
-
-  toast(`Lote ${item.lote} atualizado (${item.status})!`);
-  limparFormularioConferencia();
-  renderSessionTable();
-}
-
-function limparFormularioConferencia(){
-  selectedLoteIndex = -1;
-  $("searchLoteInput").value = "";
-  $("dispCultivar").value = "";
-  $("dispCat").value = "";
-  $("dispPeneira").value = "";
-  $("dispUm").value = "";
-  $("dispTratamento").value = "";
-  $("dispQtdSistema").value = "";
-
-  $("inputCatFis").value = "";
-  $("inputEtiquetaFis").value = "";
-  $("inputQtdFis").value = "";
-  $("inputCamara").value = "";
-  $("inputQuadra").value = "";
-  $("inputFileira").value = "";
-  $("inputObs").value = "";
-}
-
-// MODAL ADICIONAR LOTE MANUAL
-function abrirModalAdicionarLote(){
-  $("addLocal").value = $("lblLocal").textContent !== "—" ? $("lblLocal").textContent : "";
-  $("addUf").value = "";
-  $("addFilial").value = "";
-  $("addCultura").value = "";
-  $("addLote").value = "";
-  $("addCultivar").value = "";
-  $("addCat").value = "";
-  $("addPen").value = "";
-  $("addUm").value = "";
-  $("addTratamento").value = "";
-  $("addQtdSistema").value = "0";
-  $("addPesoEtiqueta").value = "";
-
-  $("modalAddLote").classList.remove("hidden");
-}
-
-function fecharModalAdicionarLote(){
-  $("modalAddLote").classList.add("hidden");
-}
-
-function salvarNovoLoteManual(){
-  const loteNum = v("addLote").trim();
-  if(!loteNum) return toast("Informe o número do lote!");
-
-  const novoLote = {
-    id: null,
-    mes: $("lblMes").textContent,
-    lote: loteNum,
-    local: v("addLocal").trim() || $("lblLocal").textContent,
-    uf: v("addUf").trim(),
-    filial: v("addFilial").trim(),
-    cultura: v("addCultura").trim(),
-    cultivar: v("addCultivar").trim(),
-    cat: v("addCat").trim(),
-    peneira: v("addPen").trim(),
-    um: v("addUm").trim(),
-    tratamento: v("addTratamento").trim(),
-    qtd_sistema: parseNumericValue(v("addQtdSistema")),
-    qtd_fisica: null,
-    peso_etiqueta: v("addPesoEtiqueta").trim(),
-    cat_fis: "",
-    etiqueta_fisica: "",
-    camara: "",
-    quadra: "",
-    fileira: "",
-    observacao: "Lote adicionado manualmente",
-    status: "PENDENTE",
-    data_verificacao: $("lblData").textContent,
-    auditor_pcp: currentSessionHeader.pcp,
-    auditor_unidade: currentSessionHeader.audun,
-    responsavel_ubs: currentSessionHeader.ubs
-  };
-
-  activeAuditLotes.push(novoLote);
-  fecharModalAdicionarLote();
-  renderSessionTable();
-  toast(`Lote ${loteNum} adicionado com sucesso!`);
-}
-
-// FINALIZAÇÃO E SINCRONIZAÇÃO
-async function finalizarAuditoriaSessao(){
-  const pendentes = activeAuditLotes.filter(x => x.qtd_fisica === null || x.qtd_fisica === undefined || String(x.qtd_fisica).trim() === "").length;
-
-  if(pendentes > 0){
-    if(!confirm(`Existem ${pendentes} lotes pendentes de conferência. Deseja finalizar mesmo assim?`)){
-      return;
-    }
-  }
-
-  try {
-    toast("Gravando histórico da auditoria no Supabase...");
-
-    const payload = activeAuditLotes.map(x => ({
-      mes: x.mes || null,
-      lote: x.lote || null,
-      local: x.local || null,
-      uf: x.uf || null,
-      filial: x.filial || null,
-      cultura: x.cultura || null,
-      cultivar: x.cultivar || null,
-      cat: x.cat || null,
-      peneira: x.peneira || null,
-      um: x.um || null,
-      tratamento: x.tratamento || null,
-      qtd_sistema: parseNumericValue(x.qtd_sistema),
-      qtd_fisica: parseNumericValue(x.qtd_fisica),
-      peso_etiqueta: x.peso_etiqueta || null,
-      cat_fis: x.cat_fis || null,
-      etiqueta_fisica: x.etiqueta_fisica || null,
-      camara: x.camara || null,
-      quadra: x.quadra || null,
-      fileira: x.fileira || null,
-      observacao: x.observacao || null,
-      status: x.status || "PENDENTE",
-      data_verificacao: x.data_verificacao || $("lblData").textContent || null,
-      auditor_pcp: currentSessionHeader.pcp || null,
-      auditor_unidade: currentSessionHeader.audun || null,
-      responsavel_ubs: currentSessionHeader.ubs || null
-    }));
-
-    const { error } = await db.from(TABLE_NAME).insert(payload);
-
-    if(error) throw error;
-
-    toast("Auditoria finalizada e gravada com sucesso!");
-    rawAllAudits = [];
-    go("home");
-
-  } catch(e) {
-    console.error("Erro ao finalizar auditoria:", e);
-    toast("Erro ao gravar os dados da auditoria.");
-  }
-}
-
-function exportarPlanilhaSessao(){
-  if(activeAuditLotes.length === 0) return toast("Sem dados na sessão para exportar!");
-  const ws = XLSX.utils.json_to_sheet(activeAuditLotes);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Sessão Atual");
-  XLSX.writeFile(wb, `sessao_auditoria_${$("lblLocal").textContent}_${$("lblMes").textContent}.xlsx`);
-}
-
-// INICIALIZAÇÃO DA APLICAÇÃO
-window.addEventListener("DOMContentLoaded", () => {
-  dashboard();
-});
 </script>
 </body>
 </html>
