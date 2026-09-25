@@ -13,7 +13,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
 
-header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+header{background:var(--g);color:#fff;padding:12px 22px;display:flex;justify-space:space-between;align-items:center;position:sticky;top:0;z-index:5}
 .brand-container{display:flex;align-items:center;gap:14px}
 .header-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
 .logo-box{background:#fff;padding:6px 14px;border-radius:8px;display:flex;align-items:center;justify-content:center;height:56px;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
@@ -333,6 +333,7 @@ table.data-table tr:hover{background:#f0f5f2}
   </div>
 </div>
 
+<!-- MODAL ADICIONAR LOTE -->
 <div id="modalAddLote" class="modal-overlay hidden">
   <div class="modal-content">
     <h3 style="margin-top:0;color:var(--g)">Adicionar Novo Lote à Auditoria</h3>
@@ -580,7 +581,7 @@ function renderPivotAndChart(){
   meses.forEach(m => {
     matrix[m] = {};
     locais.forEach(l => {
-      matrix[m][l] = { tot: 0, validados: 0, qtd_sistema: 0, qtd_fisica: 0 };
+      matrix[m][l] = { tot: 0, validados: 0 };
     });
   });
 
@@ -590,37 +591,33 @@ function renderPivotAndChart(){
       if(String(x.status).toUpperCase() === "VALIDADO"){
         matrix[x.mes][x.local].validados++;
       }
-      matrix[x.mes][x.local].qtd_sistema += (Number(x.qtd_sistema) || 0);
-      matrix[x.mes][x.local].qtd_fisica += (Number(x.qtd_fisica) || 0);
     }
   });
 
   let thHTML = `<tr><th>MÊS</th>`;
   locais.forEach(l => {
-    thHTML += `<th style="text-align:center;" colspan="4">${esc(l)}</th>`;
+    thHTML += `<th style="text-align:center;" colspan="2">${esc(l)}</th>`;
   });
   thHTML += `</tr><tr><th></th>`;
   locais.forEach(() => {
-    thHTML += `<th style="font-size:10px;text-align:center;">Nº Lotes</th><th style="font-size:10px;text-align:center;">Qtd. Sistema</th><th style="font-size:10px;text-align:center;">Qtd. Física</th><th style="font-size:10px;text-align:center;">Acuracidade</th>`;
+    thHTML += `<th style="font-size:10px;text-align:center;">Nº Lotes</th><th style="font-size:10px;text-align:center;">Acuracidade</th>`;
   });
   thHTML += `</tr>`;
   $("pivotTableHeader").innerHTML = thHTML;
 
   let tbodyHTML = "";
   const totalGeralLocais = {};
-  locais.forEach(l => { totalGeralLocais[l] = { tot: 0, validados: 0, qtd_sistema: 0, qtd_fisica: 0 }; });
+  locais.forEach(l => { totalGeralLocais[l] = { tot: 0, validados: 0 }; });
 
   meses.forEach(m => {
     tbodyHTML += `<tr><td><b>${esc(m)}</b></td>`;
     locais.forEach(l => {
       const cell = matrix[m][l];
       const acc = cell.tot > 0 ? Math.round((cell.validados / cell.tot) * 100) + "%" : "0%";
-      tbodyHTML += `<td style="text-align:center;">${cell.tot}</td><td style="text-align:center;">${cell.qtd_sistema}</td><td style="text-align:center;">${cell.qtd_fisica}</td><td style="text-align:center;font-weight:bold;color:var(--g);">${acc}</td>`;
+      tbodyHTML += `<td style="text-align:center;">${cell.tot}</td><td style="text-align:center;font-weight:bold;color:var(--g);">${acc}</td>`;
       
       totalGeralLocais[l].tot += cell.tot;
       totalGeralLocais[l].validados += cell.validados;
-      totalGeralLocais[l].qtd_sistema += cell.qtd_sistema;
-      totalGeralLocais[l].qtd_fisica += cell.qtd_fisica;
     });
     tbodyHTML += `</tr>`;
   });
@@ -629,15 +626,14 @@ function renderPivotAndChart(){
   locais.forEach(l => {
     const totL = totalGeralLocais[l].tot;
     const valL = totalGeralLocais[l].validados;
-    const sysL = totalGeralLocais[l].qtd_sistema;
-    const fisL = totalGeralLocais[l].qtd_fisica;
     const accL = totL > 0 ? Math.round((valL / totL) * 100) + "%" : "0%";
-    tbodyHTML += `<td style="text-align:center;">${totL}</td><td style="text-align:center;">${sysL}</td><td style="text-align:center;">${fisL}</td><td style="text-align:center;color:var(--g);">${accL}</td>`;
+    tbodyHTML += `<td style="text-align:center;">${totL}</td><td style="text-align:center;color:var(--g);">${accL}</td>`;
   });
   tbodyHTML += `</tr>`;
 
   $("pivotTableBody").innerHTML = tbodyHTML || '<tr><td colspan="10" class="muted" style="text-align:center">Sem dados.</td></tr>';
 
+  // Configuração do Gráfico Chart.js com Eixo Duplo
   const ctx = $("barChartCanvas").getContext("2d");
   if(barChartInstance) {
     barChartInstance.destroy();
@@ -648,16 +644,38 @@ function renderPivotAndChart(){
   const datasets = locais.map((loc, idx) => {
     const dataLotes = meses.map(m => matrix[m][loc].tot);
     return {
-      label: `${loc} - Nº Lotes`,
+      type: 'bar',
+      label: `${loc} (Lotes)`,
       data: dataLotes,
       backgroundColor: cores[idx % cores.length],
       borderRadius: 6,
-      borderWidth: 1
+      yAxisID: 'y'
     };
   });
 
+  const dataAcuracidade = meses.map(m => {
+    let totMes = 0, valMes = 0;
+    locais.forEach(loc => {
+      totMes += matrix[m][loc].tot;
+      valMes += matrix[m][loc].validados;
+    });
+    return totMes > 0 ? parseFloat(((valMes / totMes) * 100).toFixed(1)) : 0;
+  });
+
+  datasets.push({
+    type: 'line',
+    label: 'Acuracidade Geral (%)',
+    data: dataAcuracidade,
+    borderColor: '#b3261e',
+    backgroundColor: '#b3261e',
+    borderWidth: 3,
+    pointRadius: 5,
+    fill: false,
+    tension: 0.3,
+    yAxisID: 'y1'
+  });
+
   barChartInstance = new Chart(ctx, {
-    type: 'bar',
     data: {
       labels: meses,
       datasets: datasets
@@ -669,20 +687,34 @@ function renderPivotAndChart(){
         legend: { position: 'top' },
         tooltip: {
           callbacks: {
-            afterBody: function(context) {
-              const dataIndex = context[0].dataIndex;
-              const datasetIndex = context[0].datasetIndex;
-              const m = meses[dataIndex];
-              const loc = locais[datasetIndex];
-              const cell = matrix[m][loc];
-              const acc = cell.tot > 0 ? ((cell.validados / cell.tot) * 100).toFixed(1) + "%" : "0.0%";
-              return `Qtd. Sistema: ${cell.qtd_sistema}\nQtd. Física: ${cell.qtd_fisica}\nAcuracidade: ${acc}`;
+            label: function(context) {
+              if (context.dataset.yAxisID === 'y1') {
+                return `${context.dataset.label}: ${context.parsed.y}%`;
+              }
+              return `${context.dataset.label}: ${context.parsed.y} lotes`;
             }
           }
         }
       },
       scales: {
-        y: { beginAtZero: true, grid: { color: '#e2e9e4' } },
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          beginAtZero: true,
+          title: { display: true, text: 'Nº de Lotes' },
+          grid: { color: '#e2e9e4' }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          beginAtZero: true,
+          max: 100,
+          title: { display: true, text: 'Acuracidade (%)' },
+          grid: { drawOnChartArea: false },
+          ticks: { callback: value => value + '%' }
+        },
         x: { grid: { display: false } }
       }
     }
@@ -800,14 +832,320 @@ async function abrirModalContinuarAuditoria(){
 
     $("modalContinueAudit").classList.remove("hidden");
   } catch(e) {
-    console.error("Erro ao carregar auditorias em andamento:", e);
-    toast("Erro ao carregar locais em andamento.");
+    console.error("Erro ao buscar sessões ativas:", e);
+    toast("Erro ao carregar sessões de auditoria.");
   }
 }
 
 function fecharModalContinuarAuditoria(){
   $("modalContinueAudit").classList.add("hidden");
 }
+
+async function carregarSessaoExistente(){
+  const localSel = $("continueLocalSelect").value;
+  if(!localSel) return toast("Selecione um local!");
+
+  try {
+    const { data, error } = await db
+      .from(TABLE_NAME)
+      .select("*")
+      .eq("local", localSel);
+
+    if(error) throw error;
+
+    if(!data || data.length === 0){
+      return toast("Nenhum lote encontrado para este local.");
+    }
+
+    activeAuditLotes = data.map(extrairCampos);
+
+    $("lblLocal").textContent = localSel;
+    $("lblData").textContent = activeAuditLotes[0]?.data || new Date().toLocaleDateString('pt-BR');
+    $("lblMes").textContent = activeAuditLotes[0]?.mes || "—";
+
+    fecharModalContinuarAuditoria();
+    go("audit-session");
+    renderSessionTable();
+    toast("Sessão carregada com sucesso!");
+  } catch(e) {
+    console.error("Erro ao carregar sessão:", e);
+    toast("Erro ao abrir auditoria existente.");
+  }
+}
+
+async function executarInicioAuditoria(){
+  const local = v("local");
+  const data = v("date");
+  const mes = v("month");
+
+  if(!local || !data || !mes){
+    return toast("Preencha todos os campos obrigatórios (Local e Data)!");
+  }
+
+  try {
+    const { data: baseLotes, error } = await db
+      .from(BASE_TABLE_NAME)
+      .select("*")
+      .eq("local", local);
+
+    if(error) throw error;
+
+    activeAuditLotes = baseLotes.map(x => {
+      const c = extrairCampos(x);
+      c.mes = mes;
+      c.status = "PENDENTE";
+      return c;
+    });
+
+    $("lblLocal").textContent = local;
+    $("lblData").textContent = data;
+    $("lblMes").textContent = mes;
+
+    currentSessionHeader = {
+      pcp: v("pcp"),
+      audun: v("audun"),
+      ubs: v("ubs")
+    };
+
+    go("audit-session");
+    renderSessionTable();
+    toast("Nova conferência iniciada!");
+  } catch(e) {
+    console.error("Erro ao iniciar auditoria:", e);
+    toast("Erro ao buscar lotes no banco de dados.");
+  }
+}
+
+function onSearchLoteInput(){
+  const term = v("searchLoteInput").trim().toLowerCase();
+  const box = $("suggestionsBox");
+
+  if(!term){
+    box.classList.add("hidden");
+    return;
+  }
+
+  const matches = activeAuditLotes.filter(x => String(x.lote).toLowerCase().includes(term));
+
+  if(matches.length === 0){
+    box.innerHTML = '<div class="suggestion-item muted">Nenhum lote encontrado</div>';
+  } else {
+    box.innerHTML = matches.slice(0, 10).map((x) => `
+      <div class="suggestion-item" onclick="selecionarLoteParaEdicao('${esc(x.lote)}')">
+        <b>Lote: ${esc(x.lote)}</b> — ${esc(x.cultivar)} (${x.qtd_sistema ?? 0} S)
+      </div>
+    `).join("");
+  }
+  box.classList.remove("hidden");
+}
+
+function selecionarLoteParaEdicao(loteNum){
+  const idx = activeAuditLotes.findIndex(x => String(x.lote) === String(loteNum));
+  if(idx === -1) return;
+
+  selectedLoteIndex = idx;
+  const item = activeAuditLotes[idx];
+
+  $("searchLoteInput").value = item.lote;
+  $("dispCultivar").value = item.cultivar || "";
+  $("dispCat").value = item.cat || "";
+  $("dispPeneira").value = item.peneira || "";
+  $("dispUm").value = item.um || "";
+  $("dispTratamento").value = item.tratamento || "";
+  $("dispQtdSistema").value = item.qtd_sistema ?? "";
+
+  $("inputCatFis").value = item.cat_fis || "";
+  $("inputEtiquetaFis").value = item.etiqueta_fisica || "";
+  $("inputQtdFis").value = item.qtd_fisica ?? "";
+  $("inputCamara").value = item.camara || "";
+  $("inputQuadra").value = item.quadra || "";
+  $("inputFileira").value = item.fileira || "";
+  $("inputObs").value = item.observacao || "";
+
+  $("suggestionsBox").classList.add("hidden");
+}
+
+async function salvarConferenciaLote(){
+  if(selectedLoteIndex === -1){
+    return toast("Pesquise e selecione um lote primeiro!");
+  }
+
+  const item = activeAuditLotes[selectedLoteIndex];
+  item.cat_fis = v("inputCatFis");
+  item.etiqueta_fisica = v("inputEtiquetaFis");
+  item.qtd_fisica = parseNumericValue(v("inputQtdFis"));
+  item.camara = v("inputCamara");
+  item.quadra = v("inputQuadra");
+  item.fileira = v("inputFileira");
+  item.observacao = v("inputObs");
+
+  if(item.qtd_fisica !== null && item.qtd_fisica === item.qtd_sistema){
+    item.status = "VALIDADO";
+  } else if(item.qtd_fisica !== null) {
+    item.status = "DIVERGENTE";
+  } else {
+    item.status = "PENDENTE";
+  }
+
+  renderSessionTable();
+  toast("Lote atualizado localmente!");
+
+  limparFormularioConferencia();
+}
+
+function limparFormularioConferencia(){
+  selectedLoteIndex = -1;
+  $("searchLoteInput").value = "";
+  $("dispCultivar").value = "";
+  $("dispCat").value = "";
+  $("dispPeneira").value = "";
+  $("dispUm").value = "";
+  $("dispTratamento").value = "";
+  $("dispQtdSistema").value = "";
+  $("inputCatFis").value = "";
+  $("inputEtiquetaFis").value = "";
+  $("inputQtdFis").value = "";
+  $("inputCamara").value = "";
+  $("inputQuadra").value = "";
+  $("inputFileira").value = "";
+  $("inputObs").value = "";
+}
+
+function renderSessionTable(){
+  const fltL = v("fltLote").trim().toLowerCase();
+  const fltC = v("fltCultura").trim().toLowerCase();
+  const fltCv = v("fltCultivar").trim().toLowerCase();
+  const fltS = v("fltStatus").trim().toLowerCase();
+
+  const filtered = activeAuditLotes.filter(x => {
+    return (!fltL || String(x.lote).toLowerCase().includes(fltL)) &&
+           (!fltC || String(x.cultura).toLowerCase().includes(fltC)) &&
+           (!fltCv || String(x.cultivar).toLowerCase().includes(fltCv)) &&
+           (!fltS || String(x.status).toLowerCase().includes(fltS));
+  });
+
+  const tot = activeAuditLotes.length;
+  const aud = activeAuditLotes.filter(x => x.qtd_fisica !== null).length;
+  const rest = tot - aud;
+
+  $("opTot").textContent = tot;
+  $("opAud").textContent = aud;
+  $("opRest").textContent = rest;
+  $("opFaltantes").textContent = rest;
+
+  if(filtered.length === 0){
+    $("sessionTableBody").innerHTML = '<tr><td colspan="13" class="muted" style="text-align:center">Nenhum lote localizado.</td></tr>';
+    return;
+  }
+
+  $("sessionTableBody").innerHTML = filtered.map(x => `
+    <tr>
+      <td><b>${esc(x.lote)}</b></td>
+      <td>${esc(x.cultura)}</td>
+      <td>${esc(x.cultivar)}</td>
+      <td>${x.qtd_sistema ?? "—"}</td>
+      <td>${x.qtd_fisica ?? "—"}</td>
+      <td>${esc(x.cat)}</td>
+      <td>${esc(x.cat_fis || "—")}</td>
+      <td>${esc(x.etiqueta_fisica || "—")}</td>
+      <td>${esc(x.peso_etiqueta || "—")}</td>
+      <td>${esc([x.camara, x.quadra, x.fileira].filter(Boolean).join(" / ") || "—")}</td>
+      <td><span class="${x.status === 'VALIDADO' ? 'ok' : x.status === 'PENDENTE' ? 'muted' : 'bad'}">${esc(x.status)}</span></td>
+      <td>${esc(x.observacao || "—")}</td>
+      <td><button class="sec" style="padding:4px 8px;font-size:11px;" onclick="selecionarLoteParaEdicao('${esc(x.lote)}')">Editar</button></td>
+    </tr>
+  `).join("");
+}
+
+function abrirModalAdicionarLote(){
+  $("addLocal").value = $("lblLocal").textContent !== "—" ? $("lblLocal").textContent : "";
+  $("modalAddLote").classList.remove("hidden");
+}
+
+function fecharModalAdicionarLote(){
+  $("modalAddLote").classList.add("hidden");
+}
+
+function salvarNovoLoteManual(){
+  const lote = v("addLote").trim();
+  if(!lote) return toast("Informe o número do Lote!");
+
+  const novoItem = {
+    lote: lote,
+    local: v("addLocal"),
+    uf: v("addUf"),
+    filial: v("addFilial"),
+    cultura: v("addCultura"),
+    cultivar: v("addCultivar"),
+    cat: v("addCat"),
+    peneira: v("addPen"),
+    um: v("addUm"),
+    tratamento: v("addTratamento"),
+    qtd_sistema: parseNumericValue(v("addQtdSistema")) || 0,
+    peso_etiqueta: v("addPesoEtiqueta"),
+    qtd_fisica: null,
+    status: "PENDENTE",
+    mes: $("lblMes").textContent !== "—" ? $("lblMes").textContent : ""
+  };
+
+  activeAuditLotes.unshift(novoItem);
+  renderSessionTable();
+  fecharModalAdicionarLote();
+  toast("Novo lote adicionado à auditoria!");
+}
+
+async function finalizarAuditoriaSessao(){
+  if(activeAuditLotes.length === 0) return toast("Sem dados para salvar!");
+
+  try {
+    const payloads = activeAuditLotes.map(x => ({
+      mes: x.mes,
+      lote: x.lote,
+      local: x.local,
+      uf: x.uf,
+      filial: x.filial,
+      cultura: x.cultura,
+      cultivar: x.cultivar,
+      cat: x.cat,
+      peneira: x.peneira,
+      um: x.um,
+      tratamento: x.tratamento,
+      qtd_sistema: x.qtd_sistema,
+      qtd_fisica: x.qtd_fisica,
+      peso_etiqueta: x.peso_etiqueta,
+      cat_fis: x.cat_fis,
+      etiqueta_fisica: x.etiqueta_fisica,
+      camara: x.camara,
+      quadra: x.quadra,
+      fileira: x.fileira,
+      observacao: x.observacao,
+      status: x.status
+    }));
+
+    const { error } = await db.from(TABLE_NAME).upsert(payloads);
+    if(error) throw error;
+
+    toast("Auditoria salva no Supabase com sucesso!");
+    rawAllAudits = []; // Limpa cache para atualizar o dashboard
+    go("home");
+  } catch(e) {
+    console.error("Erro ao finalizar auditoria:", e);
+    toast("Erro ao gravar dados no Supabase.");
+  }
+}
+
+function exportarPlanilhaSessao(){
+  if(activeAuditLotes.length === 0) return toast("Sem lotes na sessão!");
+  const ws = XLSX.utils.json_to_sheet(activeAuditLotes);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "SessaoAuditoria");
+  XLSX.writeFile(wb, `auditoria_${$("lblLocal").textContent}.xlsx`);
+}
+
+window.onload = () => {
+  dashboard();
+};
 </script>
+
 </body>
 </html>
