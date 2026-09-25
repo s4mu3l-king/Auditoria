@@ -581,13 +581,16 @@ function renderPivotAndChart(){
   meses.forEach(m => {
     matrix[m] = {};
     locais.forEach(l => {
-      matrix[m][l] = { tot: 0, validados: 0 };
+      matrix[m][l] = { tot: 0, validados: 0, qtd_fisica: 0 };
     });
   });
 
   filteredData.forEach(x => {
     if(x.mes && x.local && matrix[x.mes] && matrix[x.mes][x.local]){
       matrix[x.mes][x.local].tot++;
+      if(x.qtd_fisica !== null && x.qtd_fisica !== undefined) {
+        matrix[x.mes][x.local].qtd_fisica += Number(x.qtd_fisica) || 0;
+      }
       if(String(x.status).toUpperCase() === "VALIDADO"){
         matrix[x.mes][x.local].validados++;
       }
@@ -596,27 +599,28 @@ function renderPivotAndChart(){
 
   let thHTML = `<tr><th>MÊS</th>`;
   locais.forEach(l => {
-    thHTML += `<th style="text-align:center;" colspan="2">${esc(l)}</th>`;
+    thHTML += `<th style="text-align:center;" colspan="3">${esc(l)}</th>`;
   });
   thHTML += `</tr><tr><th></th>`;
   locais.forEach(() => {
-    thHTML += `<th style="font-size:10px;text-align:center;">Nº Lotes</th><th style="font-size:10px;text-align:center;">Acuracidade</th>`;
+    thHTML += `<th style="font-size:10px;text-align:center;">Nº Lotes</th><th style="font-size:10px;text-align:center;">Qtd. Física (Bags)</th><th style="font-size:10px;text-align:center;">Acuracidade</th>`;
   });
   thHTML += `</tr>`;
   $("pivotTableHeader").innerHTML = thHTML;
 
   let tbodyHTML = "";
   const totalGeralLocais = {};
-  locais.forEach(l => { totalGeralLocais[l] = { tot: 0, validados: 0 }; });
+  locais.forEach(l => { totalGeralLocais[l] = { tot: 0, validados: 0, qtd_fisica: 0 }; });
 
   meses.forEach(m => {
     tbodyHTML += `<tr><td><b>${esc(m)}</b></td>`;
     locais.forEach(l => {
       const cell = matrix[m][l];
       const acc = cell.tot > 0 ? Math.round((cell.validados / cell.tot) * 100) + "%" : "0%";
-      tbodyHTML += `<td style="text-align:center;">${cell.tot}</td><td style="text-align:center;font-weight:bold;color:var(--g);">${acc}</td>`;
+      tbodyHTML += `<td style="text-align:center;">${cell.tot}</td><td style="text-align:center;">${cell.qtd_fisica}</td><td style="text-align:center;font-weight:bold;color:var(--g);">${acc}</td>`;
       
       totalGeralLocais[l].tot += cell.tot;
+      totalGeralLocais[l].qtd_fisica += cell.qtd_fisica;
       totalGeralLocais[l].validados += cell.validados;
     });
     tbodyHTML += `</tr>`;
@@ -625,9 +629,10 @@ function renderPivotAndChart(){
   tbodyHTML += `<tr style="background:#e8eeea;font-weight:bold;"><td>Total Geral</td>`;
   locais.forEach(l => {
     const totL = totalGeralLocais[l].tot;
+    const qtdFisL = totalGeralLocais[l].qtd_fisica;
     const valL = totalGeralLocais[l].validados;
     const accL = totL > 0 ? Math.round((valL / totL) * 100) + "%" : "0%";
-    tbodyHTML += `<td style="text-align:center;">${totL}</td><td style="text-align:center;color:var(--g);">${accL}</td>`;
+    tbodyHTML += `<td style="text-align:center;">${totL}</td><td style="text-align:center;">${qtdFisL}</td><td style="text-align:center;color:var(--g);">${accL}</td>`;
   });
   tbodyHTML += `</tr>`;
 
@@ -645,7 +650,7 @@ function renderPivotAndChart(){
     const dataLotes = meses.map(m => matrix[m][loc].tot);
     return {
       type: 'bar',
-      label: `${loc} (Lotes)`,
+      label: `${loc} (Lotes / Bags)`,
       data: dataLotes,
       backgroundColor: cores[idx % cores.length],
       borderRadius: 6,
@@ -691,7 +696,10 @@ function renderPivotAndChart(){
               if (context.dataset.yAxisID === 'y1') {
                 return `${context.dataset.label}: ${context.parsed.y}%`;
               }
-              return `${context.dataset.label}: ${context.parsed.y} lotes`;
+              const loc = locais[context.datasetIndex];
+              const mes = meses[context.dataIndex];
+              const bags = matrix[mes][loc].qtd_fisica;
+              return `${context.dataset.label}: ${context.parsed.y} lotes (${bags} bags)`;
             }
           }
         }
